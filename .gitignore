@@ -1,0 +1,62 @@
+# Local research, planning documents and withdrawn drafts
+/research/
+/plans/
+/planning/
+/docs/research/
+/docs/plans/
+/docs/planning/
+/_local-drafts/
+/Project_Plan.pdf
+/ScholarProof_Project_Plan.pdf
+/Synopsis_DBMS.pdf
+/ScholarProof_Research_and_Implementation_Blueprint.md
+/ScholarProof_Research_and_Implementation_Blueprint.pdf
+
+# Temporary files and local artifact renders
+/tmp/
+/temp/
+*.tmp
+*.log
+*.swp
+*.swo
+~$*
+
+# Dependencies, builds and test output
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output/
+.vite/
+.next/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local configuration; example configuration remains trackable
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.p12
+*.pfx
+*-private.pem
+
+# Local services and backups; do not ignore SQL migration source files
+/.local/
+/data/
+/backups/
+*.dump
+*.bak
+
+# Editor and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
