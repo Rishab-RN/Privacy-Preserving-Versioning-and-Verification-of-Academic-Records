@@ -1,9 +1,9 @@
 ---
 name: Feature request
 about: Propose a focused capability or improvement
-title: ""
-labels: ""
-assignees: ""
+title: ''
+labels: ''
+assignees: ''
 ---
 
 ## Problem

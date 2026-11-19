@@ -1,0 +1,92 @@
+# Repository layout
+
+The repository uses npm workspaces to keep application code and shared packages in
+one checkout, with one root lockfile. Run workspace commands from the repository
+root unless a guide explicitly says otherwise.
+
+```text
+apps/
+  api/                      HTTP API and backend composition
+  web/                      React/Vite/Tailwind toolchain; UI entry pending
+  worker/                   Reserved background processing boundary (README only)
+packages/
+  contracts/                Shared request/response types and data contracts
+  verification/             Reserved verification boundary (README only)
+db/
+  migrations/               Reviewed, ordered PostgreSQL schema changes
+  seeds/                    Deterministic synthetic development data
+infra/
+  docker/                   Local database infrastructure
+scripts/                    Repository-wide development utilities
+tests/                      Checks that span application/package boundaries
+docs/
+  architecture/             Reviewed diagrams and design documentation
+  development/              Setup, repository and collaboration guides
+  project-journey.md         Meaningful milestones and their evidence
+.github/                    Review templates and CI configuration
+```
+
+## Implemented code and reserved boundaries
+
+The API startup slice and shared contracts package contain implemented source.
+The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependencies
+installed, plus a type-checked Vite configuration. It has no UI entry or runnable
+frontend yet. Worker and verification directories contain ownership notes only;
+they do not establish that a job pipeline or cryptographic verifier exists.
+
+Current work is Week 1 setup. Product flows and database schema work start in a
+later agreed weekly stage rather than following automatically from dependency
+installation.
+
+The owner-provided ER and DFD diagrams remain pending. `db/migrations/` and
+`db/seeds/` establish ownership for future database work; they do not approve a
+schema. Introduce the first migration only after reviewing the model and its
+invariants.
+
+## Dependency boundaries
+
+- Applications may use shared packages. Avoid importing another application's
+  internal source files directly.
+- `packages/contracts/` defines shared interfaces; it must not create a second
+  source of academic truth or depend on a specific application's database client.
+- `packages/verification/` will contain verification logic that can be checked
+  independently of the issuer's mutable database. Do not add permissive placeholder
+  verification that reports success.
+- The API owns request handling and application composition. Background job
+  processing belongs in the worker when a durable job workflow is introduced.
+- Database migrations are the schema history. Application startup must not silently
+  create or rewrite the production schema.
+
+These boundaries can evolve through a reviewed change. Add a service or package
+when it has a concrete responsibility; do not create additional deployments merely
+to mirror every folder.
+
+## What belongs in Git
+
+Track application/package source, workspace manifests and the root lockfile,
+configuration templates, migrations, synthetic seed generators, useful tests,
+curated documentation and CI definitions. Future reviewed ER/DFD artifacts belong
+in `docs/architecture/` and can be tracked deliberately.
+
+The ignore rules keep the following local:
+
+- Research downloads, planning folders and the existing outline/synopsis reports.
+- Withdrawn drafts, temporary exports and intermediate PDF renders.
+- Installed dependencies, build output, coverage, caches and virtual environments.
+- Real environment files, private-key material, database volumes and backup files.
+- Editor and operating-system metadata.
+
+Keep an `.env.example` with safe example values trackable. Do not commit real
+student records as fixtures. Do not use a blanket `*.sql` or `*.pdf` ignore rule:
+reviewed migrations and intentional documentation may use those formats.
+
+An ignore rule applies to untracked files; it does not remove material that was
+already committed. Inspect the actual staged diff before every commit.
+
+## Adding work
+
+Choose the owning application/package, add only the required code and update its
+setup instructions in the same change. Place focused tests near their code where
+that workspace's tooling supports it; reserve `tests/` for cross-boundary checks.
+Record a journey entry when a meaningful capability or architectural decision is
+completed, with the checks actually run.

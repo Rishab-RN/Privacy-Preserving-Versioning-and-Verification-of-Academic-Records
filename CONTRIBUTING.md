@@ -18,9 +18,11 @@ may edit and verify authorised work but must not run `git add`, `git commit` or
 - `docs/<topic>`: documentation, such as `docs/academic-model`.
 - `test/<topic>` or `chore/<topic>`: tests or maintenance.
 
-After the initial repository bootstrap, use a short-lived branch and a pull request
-for each meaningful change. A permanent `develop` branch is not required. Rebase or
-merge current `main` before review; do not rewrite another contributor's branch.
+Use a short-lived branch and a pull request for each meaningful change. A permanent
+`develop` branch is not required. Rebase or merge current `main` before review; do
+not rewrite another contributor's branch. See the
+[Git workflow](docs/development/git-workflow.md) for clean-checkout and
+already-edited working-tree cases.
 
 ## Commit messages
 
@@ -55,8 +57,28 @@ Before requesting review:
 - Update the README or journey only when setup, status or a meaningful milestone
   changes.
 
-The repository currently contains documentation only. Application lint, test and CI
-commands will be introduced with the application tooling.
+From the repository root, use the committed lockfile and run the foundation checks:
+
+```powershell
+npm ci
+npm run check
+npm run build
+```
+
+Run additional checks appropriate to the changed behaviour and record actual
+results. A passing tooling gate does not establish that the planned academic
+workflows or research mechanisms are complete. Setup and current implementation
+boundaries are documented in [Local development](docs/development/local-development.md).
+
+Use npm workspaces and the single root lockfile. Follow the ownership boundaries in
+[Repository layout](docs/development/repository-layout.md), and update package
+manifests, the lockfile and setup instructions together when dependencies change.
+
+For infrastructure/configuration changes, also run `npm run infra:config`. When
+the local database services are available, `npm run infra:check` verifies
+authenticated PostgreSQL/MongoDB access. Record configuration validation and live
+service checks separately. Preserve an existing ignored `.env` and its database
+volume credentials; do not overwrite it during a routine install.
 
 ## Data and research
 

@@ -1,0 +1,24 @@
+# Match local-only material, dependencies and generated output.
+research/
+plans/
+planning/
+docs/research/
+docs/plans/
+docs/planning/
+_local-drafts/
+tmp/
+temp/
+.local/
+.runtime/
+backups/
+node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/*.tsbuildinfo
+package-lock.json
+Project_Plan.pdf
+ScholarProof_Project_Plan.pdf
+Synopsis_DBMS.pdf
+ScholarProof_Research_and_Implementation_Blueprint.md
+ScholarProof_Research_and_Implementation_Blueprint.pdf

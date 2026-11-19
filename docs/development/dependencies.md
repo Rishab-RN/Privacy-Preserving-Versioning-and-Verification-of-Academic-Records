@@ -1,0 +1,59 @@
+# Dependencies and phase boundaries
+
+Use one npm workspace, one root `package-lock.json`, and `npm ci` for repeatable
+installs. All application packages are private; `UNLICENSED` in the root manifest
+does not select an open-source licence. The owner still needs to choose reuse terms.
+
+## Week 1 foundation
+
+| Area           | Installed or configured                    | Current use                                               |
+| -------------- | ------------------------------------------ | --------------------------------------------------------- |
+| Runtime        | Node.js 24, npm 11                         | API and repository commands                               |
+| TypeScript     | TypeScript 6.0, TSX, Node types            | Strict compiler and development runner                    |
+| Quality        | ESLint 10, typescript-eslint 8, Prettier 3 | Shared lint/format checks                                 |
+| API            | Express 5, Zod 4                           | HTTP foundation; Zod reserved for domain input validation |
+| SQL            | `pg` and its types                         | Installed; client integration follows reviewed schema     |
+| Documents      | MongoDB Node driver                        | Installed; document operations not yet implemented        |
+| Frontend       | React 19, Vite 8, Tailwind 4 and types     | Installed/type-checked configuration; UI pending          |
+| Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0 | Optional development containers                           |
+| Test runner    | Node's test runner through TSX             | HTTP contract and configuration cases                     |
+
+Versions are exact in manifests and resolved by the lockfile. TypeScript 7 was the
+registry default at setup time, but the selected typescript-eslint release declares
+support below TypeScript 6.1; TypeScript 6.0.3 was chosen to keep the tooling within
+its declared compatibility range. Change this choice through a tested dependency
+update rather than bypassing peer checks.
+
+The root `build` compiles the implemented API/contracts. It does not pretend to
+build frontend pages, a worker or a verifier before those exist. `typecheck` also
+checks the installed frontend configuration.
+
+## Introduce dependencies with their implementation stage
+
+| Stage               | Add when needed                                   | Decision gate                                                   |
+| ------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| Schema and API      | Migration/auth/session tooling                    | Reviewed model and authentication design                        |
+| Credential issuance | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                     |
+| Graph experiment    | Neo4j driver/server                               | A concrete provenance query and SQL baseline                    |
+| ML experiment       | Python environment, scikit-learn and data tooling | Generator, feature policy and leakage-safe evaluation           |
+| ZK extension        | Circom/snarkjs and circuit dependencies           | Reviewed statement, manifest completeness and setup assumptions |
+| Vector extension    | pgvector or a dedicated engine                    | Labelled use case that justifies the extra infrastructure       |
+
+These later tools are not required to run Week 1 and are not yet installed by this
+repository. Avoid global ML/GPU/toolchain installs and additional services before
+their use case and resource requirements are agreed. Python 3.12 is available on
+the current developer machine; the ML stage will create an isolated, ignored
+environment and a separate locked requirement set.
+
+## Source documentation checked during setup
+
+- [npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/)
+- [Express installation](https://expressjs.com/en/starter/installing/)
+- [typescript-eslint setup](https://typescript-eslint.io/getting-started/)
+- [Vite guide](https://vite.dev/guide/)
+- [Tailwind with Vite](https://tailwindcss.com/docs/installation/using-vite)
+- [PostgreSQL image storage layout](https://github.com/docker-library/docs/blob/master/postgres/README.md)
+
+Container release-line tags are appropriate for local setup. Record immutable image
+digests, machine details and workload seeds when producing reproducible research
+measurements.

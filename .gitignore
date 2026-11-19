@@ -1,4 +1,4 @@
-# Local research, planning documents and withdrawn drafts
+# Research and planning stay local. Reviewed architecture belongs in docs/architecture/.
 /research/
 /plans/
 /planning/
@@ -12,7 +12,7 @@
 /ScholarProof_Research_and_Implementation_Blueprint.md
 /ScholarProof_Research_and_Implementation_Blueprint.pdf
 
-# Temporary files and local artifact renders
+# Local scratch work and generated previews (published diagrams are not blanket-ignored)
 /tmp/
 /temp/
 *.tmp
@@ -36,6 +36,12 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.tsbuildinfo
+.cache/
+*.lcov
+.eslintcache
+.npm/
+.pnpm-store/
 
 # Secrets and local configuration; example configuration remains trackable
 .env
@@ -49,7 +55,7 @@ venv/
 
 # Local services and backups; do not ignore SQL migration source files
 /.local/
-/data/
+/.runtime/
 /backups/
 *.dump
 *.bak
@@ -60,3 +66,6 @@ venv/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Deliberately track package-lock.json, SQL migrations, synthetic fixtures,
+# public verification keys, reviewed diagrams and .env.example files.

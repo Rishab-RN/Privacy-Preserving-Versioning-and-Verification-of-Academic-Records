@@ -1,9 +1,9 @@
 ---
 name: Bug report
 about: Report reproducible incorrect behaviour
-title: ""
-labels: ""
-assignees: ""
+title: ''
+labels: ''
+assignees: ''
 ---
 
 ## Problem
