@@ -6,17 +6,17 @@ does not select an open-source licence. The owner still needs to choose reuse te
 
 ## Week 1 foundation
 
-| Area           | Installed or configured                    | Current use                                               |
-| -------------- | ------------------------------------------ | --------------------------------------------------------- |
-| Runtime        | Node.js 24, npm 11                         | API and repository commands                               |
-| TypeScript     | TypeScript 6.0, TSX, Node types            | Strict compiler and development runner                    |
-| Quality        | ESLint 10, typescript-eslint 8, Prettier 3 | Shared lint/format checks                                 |
-| API            | Express 5, Zod 4                           | HTTP foundation; Zod reserved for domain input validation |
-| SQL            | `pg` and its types                         | Installed; client integration follows reviewed schema     |
-| Documents      | MongoDB Node driver                        | Installed; document operations not yet implemented        |
-| Frontend       | React 19, Vite 8, Tailwind 4 and types     | Installed/type-checked configuration; UI pending          |
-| Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0 | Optional development containers                           |
-| Test runner    | Node's test runner through TSX             | HTTP contract and configuration cases                     |
+| Area           | Installed or configured                      | Current use                                               |
+| -------------- | -------------------------------------------- | --------------------------------------------------------- |
+| Runtime        | Node.js 24, npm 11                           | API and repository commands                               |
+| TypeScript     | TypeScript 6.0, TSX, Node types              | Strict compiler and development runner                    |
+| Quality        | ESLint 10, typescript-eslint 8, Prettier 3   | Shared lint/format checks                                 |
+| API            | Express 5, Zod 4                             | HTTP foundation; Zod reserved for domain input validation |
+| SQL            | `pg` and its types                           | Installed; client integration follows reviewed schema     |
+| Documents      | MongoDB Node driver                          | Installed; document operations not yet implemented        |
+| Frontend       | React 19, Vite 8, Tailwind 4 and types       | Installed/type-checked configuration; UI pending          |
+| Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0   | Optional development containers                           |
+| Test runner    | Node's test runner; TSX for TypeScript cases | Bootstrap, diagnostics, HTTP contracts and configuration  |
 
 Versions are exact in manifests and resolved by the lockfile. TypeScript 7 was the
 registry default at setup time, but the selected typescript-eslint release declares

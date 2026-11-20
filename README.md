@@ -81,6 +81,8 @@ Use **Node.js 24 and npm 11**. From the repository root:
 
 ```powershell
 npm ci
+npm run setup
+npm run doctor
 npm run check
 npm run build
 npm run dev:api
@@ -90,21 +92,29 @@ npm run dev:api
 claim database readiness or a working academic-record workflow. Stop the development
 server with `Ctrl+C`. The web toolchain has no product entry page yet.
 
-For optional databases, create a local `.env` from `.env.example` and replace its
-example passwords. The current development workspace already has a generated,
-Git-ignored `.env`; keep existing credentials when reusing its Docker volumes.
+`npm run setup` creates a Git-ignored `.env` with generated local database passwords
+only when the file is missing. Existing configuration is preserved. Keep its
+credentials when reusing initialized Docker volumes. `npm run doctor` checks
+prerequisites without displaying secret values; add `-- --require-docker` when
+Docker is required for the work at hand.
 
 ```powershell
 npm run infra:config
 npm run infra:up
 npm run infra:status
+npm run infra:check
 # Stop services without deleting their data:
 npm run infra:down
 ```
 
 See [Local development](docs/development/local-development.md) for details.
-The CI definition runs quality checks and builds on Windows and Linux after the
-owner pushes it; a local run does not establish a successful GitHub Actions run.
+`infra:up` waits up to 120 seconds for service health. `infra:check` reports
+authenticated PostgreSQL and MongoDB access independently. Neither check establishes
+an approved schema or working academic workflow.
+
+The CI definition runs quality checks and builds on Windows and Linux for topic
+branch pushes and pull requests. A local run does not establish a successful
+GitHub Actions run.
 
 If you are using the existing `PrivacyPreservingRecords` working folder, its
 `origin` is already configured; do not clone a second repository inside it.
@@ -128,10 +138,3 @@ must not run `git add`, `git commit` or `git push` unless that instruction chang
 - [Local development](docs/development/local-development.md)
 - [Dependencies and phase boundaries](docs/development/dependencies.md)
 - [Contribution guidelines](CONTRIBUTING.md)
-
-## Reference and attribution
-
-The initial investigation considered
-[RohanCB18/DBMS](https://github.com/RohanCB18/DBMS). Reference code is not included
-in this repository. Any future reuse must preserve attribution and have established
-licensing terms. A licence for ScholarProof has not yet been selected.

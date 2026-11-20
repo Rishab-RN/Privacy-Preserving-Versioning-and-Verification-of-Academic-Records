@@ -15,6 +15,8 @@
     "packages/*"
   ],
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "dev:api": "npm run build:contracts && npm run dev --workspace @scholarproof/api",
     "start:api": "npm run start --workspace @scholarproof/api",
     "build:contracts": "tsc --build packages/contracts",
@@ -23,10 +25,11 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "npm run test --workspace @scholarproof/api",
+    "test:tooling": "node --test scripts/test/setup.test.mjs scripts/test/doctor.test.mjs",
+    "test": "npm run test:tooling && npm run test --workspace @scholarproof/api",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "infra:config": "docker compose --env-file .env.example -f infra/docker/compose.yaml config --quiet",
-    "infra:up": "docker compose --env-file .env -f infra/docker/compose.yaml up -d",
+    "infra:up": "docker compose --env-file .env -f infra/docker/compose.yaml up -d --wait --wait-timeout 120",
     "infra:down": "docker compose --env-file .env -f infra/docker/compose.yaml down",
     "infra:status": "docker compose --env-file .env -f infra/docker/compose.yaml ps",
     "infra:check": "npm run check:services --workspace @scholarproof/api"

@@ -17,7 +17,7 @@ db/
   seeds/                    Deterministic synthetic development data
 infra/
   docker/                   Local database infrastructure
-scripts/                    Repository-wide development utilities
+scripts/                    Safe local setup and prerequisite checks
 tests/                      Checks that span application/package boundaries
 docs/
   architecture/             Reviewed diagrams and design documentation
@@ -33,6 +33,14 @@ The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependen
 installed, plus a type-checked Vite configuration. It has no UI entry or runnable
 frontend yet. Worker and verification directories contain ownership notes only;
 they do not establish that a job pipeline or cryptographic verifier exists.
+
+Repository automation lives in `scripts/` and is exposed through root npm
+commands. `setup` creates missing local configuration without replacing an
+existing `.env`; `doctor` reports prerequisite/configuration availability without
+printing secret values. These commands do not implement a domain model, start
+database services or modify Git history. The CI definition runs the foundation
+checks on feature-branch pushes and pull requests; results must be verified on the
+actual published run.
 
 Current work is Week 1 setup. Product flows and database schema work start in a
 later agreed weekly stage rather than following automatically from dependency

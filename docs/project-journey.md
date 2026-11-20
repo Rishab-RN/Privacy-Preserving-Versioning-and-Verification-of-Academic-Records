@@ -62,6 +62,25 @@ database client access are separate from academic application integration. No UI
 flow, schema migration, background publication or credential proof capability is
 claimed here.
 
+## 2026-11-20 - Collaborator bootstrap and environment diagnostics
+
+- Added `npm run setup` with generated local database passwords on first use and
+  exact preservation of an existing `.env`. Repeated execution does not rotate
+  initialized-volume credentials.
+- Added a dependency-free environment doctor with an optional required-Docker
+  profile and sanitized prerequisite/configuration output.
+- Made database checks independent, bounded and service-specific so one failure
+  cannot hide the other result. Connection details and arbitrary exception
+  messages are not printed.
+- Made local database startup wait for service health, and enabled CI on the
+  documented topic-branch prefixes as well as pull requests.
+- Verified all 19 reported tests, lint, formatting, type checks and build; Docker
+  prerequisite checks, health-waiting startup and both authenticated service
+  probes passed. The existing `.env` remained byte-for-byte unchanged.
+
+These are local results. Remote CI results depend on the owner's next push/PR.
+No academic schema, new diagrams or domain workflows were introduced.
+
 ## Next milestone
 
 Review the Week 1 setup/readiness record with the owner. Begin the next weekly
