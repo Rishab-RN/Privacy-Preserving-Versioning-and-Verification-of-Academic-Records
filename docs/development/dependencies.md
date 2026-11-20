@@ -12,11 +12,11 @@ does not select an open-source licence. The owner still needs to choose reuse te
 | TypeScript     | TypeScript 6.0, TSX, Node types              | Strict compiler and development runner                    |
 | Quality        | ESLint 10, typescript-eslint 8, Prettier 3   | Shared lint/format checks                                 |
 | API            | Express 5, Zod 4                             | HTTP foundation; Zod reserved for domain input validation |
-| SQL            | `pg` and its types                           | Installed; client integration follows reviewed schema     |
+| SQL            | `pg` and its types                           | Migration/seed CLI and PostgreSQL integration checks      |
 | Documents      | MongoDB Node driver                          | Installed; document operations not yet implemented        |
 | Frontend       | React 19, Vite 8, Tailwind 4 and types       | Installed/type-checked configuration; UI pending          |
 | Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0   | Optional development containers                           |
-| Test runner    | Node's test runner; TSX for TypeScript cases | Bootstrap, diagnostics, HTTP contracts and configuration  |
+| Test runner    | Node's test runner; TSX for TypeScript cases | Tooling/HTTP checks and isolated PostgreSQL tests         |
 
 Versions are exact in manifests and resolved by the lockfile. TypeScript 7 was the
 registry default at setup time, but the selected typescript-eslint release declares
@@ -27,6 +27,11 @@ update rather than bypassing peer checks.
 The root `build` compiles the implemented API/contracts. It does not pretend to
 build frontend pages, a worker or a verifier before those exist. `typecheck` also
 checks the installed frontend configuration.
+
+Week 2 uses the existing `pg` client and Node tooling for migrations and fixtures;
+no new npm dependency was added. PostgreSQL's `btree_gist` extension supports the
+temporal exclusion constraint. The model and current permission boundary are
+documented in the [academic model](../architecture/academic-model.md).
 
 ## Introduce dependencies with their implementation stage
 

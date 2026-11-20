@@ -3,11 +3,11 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 1 - environment and repository setup.** The npm workspace,
-API startup/liveness slice and shared contracts are in place. The frontend
-toolchain is installed; product UI, academic workflows and database integration
-are pending. The project owner will provide the ER and data-flow diagrams before
-schema work begins.
+**Current phase: Week 2 - academic SQL foundation.** Week 1 setup is verified.
+PostgreSQL migrations, immutable grade revisions, bitemporal transcript queries
+and synthetic fixtures are implemented. API startup/liveness and shared contracts
+are in place; authenticated academic APIs and product UI follow in later weeks.
+The model is provisional pending the owner's diagrams and academic-policy review.
 
 ## Problem
 
@@ -36,12 +36,13 @@ workflow is working. Publication and novelty claims will depend on evidence.
 | -------------------------- | ----------------------------------------------------------------- |
 | Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending    |
 | API                        | Node.js, Express and TypeScript; liveness endpoint implemented    |
-| Academic authority         | PostgreSQL local service; drivers installed, schema pending       |
+| Academic authority         | PostgreSQL 18; migrations, version history and temporal queries   |
 | Flexible evidence/packages | MongoDB local service; driver installed, integration pending      |
 | Verification               | Signed credentials and Merkle proofs planned; no verifier yet     |
 | Later research extensions  | Python ML, Neo4j and bounded ZK predicates, installed when needed |
 
-Final schema and service choices will follow the reviewed design. A valid signature
+See the [academic model](docs/architecture/academic-model.md) for assumptions and
+limits. Final policy choices will follow owner review. A valid signature
 does not prove that an entered grade is factually correct; historical inclusion alone
 does not establish currentness.
 
@@ -55,10 +56,10 @@ apps/
 packages/
   contracts/                Shared transport types
   verification/             Reserved independent verification boundary
-db/                         Migration and synthetic-seed source
+db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
 scripts/                    Repository maintenance utilities
-tests/                      Future cross-service tests
+tests/                      PostgreSQL integration checks
 .github/                    CI, issue and pull-request templates
 docs/
   architecture/             Reviewed diagrams and design documentation
@@ -109,12 +110,29 @@ npm run infra:down
 
 See [Local development](docs/development/local-development.md) for details.
 `infra:up` waits up to 120 seconds for service health. `infra:check` reports
-authenticated PostgreSQL and MongoDB access independently. Neither check establishes
-an approved schema or working academic workflow.
+authenticated PostgreSQL and MongoDB access independently. Apply the SQL model
+explicitly after the services are ready:
 
-The CI definition runs quality checks and builds on Windows and Linux for topic
-branch pushes and pull requests. A local run does not establish a successful
-GitHub Actions run.
+```powershell
+npm run db:status
+npm run db:migrate
+npm run db:seed
+npm run db:demo
+npm run test:db
+# Save an actual query plan under ignored .runtime/:
+npm run db:plan
+```
+
+The demo shows the same synthetic course changing from `4.00 / failed` to
+`8.00 / passed` when the known-at time changes. Earlier knowledge remains queryable.
+The seed creates 25 synthetic students, 100 grade records and 102 versions; a
+second seed run leaves them unchanged. Database tests create and remove their own
+temporary database, without resetting the development database. See the
+[database guide](db/README.md) for privileges and migration recovery.
+
+The CI definition runs quality checks and builds on Windows and Linux, plus a
+PostgreSQL 18 integration job on Linux, for topic-branch pushes and pull requests.
+A local run does not establish a successful GitHub Actions run.
 
 If you are using the existing `PrivacyPreservingRecords` working folder, its
 `origin` is already configured; do not clone a second repository inside it.

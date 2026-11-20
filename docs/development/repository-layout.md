@@ -15,6 +15,7 @@ packages/
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
   seeds/                    Deterministic synthetic development data
+  queries/                  Parameterized SQL for query-plan inspection
 infra/
   docker/                   Local database infrastructure
 scripts/                    Safe local setup and prerequisite checks
@@ -42,14 +43,12 @@ database services or modify Git history. The CI definition runs the foundation
 checks on feature-branch pushes and pull requests; results must be verified on the
 actual published run.
 
-Current work is Week 1 setup. Product flows and database schema work start in a
-later agreed weekly stage rather than following automatically from dependency
-installation.
-
-The owner-provided ER and DFD diagrams remain pending. `db/migrations/` and
-`db/seeds/` establish ownership for future database work; they do not approve a
-schema. Introduce the first migration only after reviewing the model and its
-invariants.
+Week 2 SQL source is implemented in `db/`, its administrative CLI in
+`apps/api/scripts/db/`, and real PostgreSQL checks in `tests/database/`. These
+scripts are separate from HTTP request handlers. No new dependency was required
+for this slice. The owner-provided ER/DFD diagrams remain pending; the
+[academic model](../architecture/academic-model.md) records provisional assumptions
+to reconcile with them before broader workflows.
 
 ## Dependency boundaries
 

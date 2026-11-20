@@ -81,11 +81,51 @@ claimed here.
 These are local results. Remote CI results depend on the owner's next push/PR.
 No academic schema, new diagrams or domain workflows were introduced.
 
+## 2026-11-20 - Provisional academic SQL foundation
+
+At the owner's request to check Week 1 and continue to Week 2, implemented the
+written academic model on `feat/academic-schema`. Owner diagrams and official
+grading-policy review remain open; no new diagrams were generated. See the
+[model assumptions](architecture/academic-model.md).
+
+- Added thirteen academic tables with institution-scoped foreign keys, versioned
+  illustrative grading policy, unique enrolments and immutable enrolment identity.
+- Added append-only grade versions, expected-version conflict detection, and a
+  derived valid-time/system-time projection. Retroactive, partial and future
+  corrections preserve earlier known-at answers.
+- Added a non-owner read-only database group, transactional checksummed migrations,
+  an idempotent synthetic fixture and explicit administrative CLI commands. No
+  dependency changes were needed.
+- Defined a PostgreSQL 18 CI integration job alongside Windows/Linux quality jobs.
+  Published CI results remain unverified until the owner pushes the branch.
+
+Local verification:
+
+- `npm run check` passed lint, formatting, type checks and all 22 tooling/API tests;
+  `npm run build` passed.
+- `npm run test:db` passed all 14 PostgreSQL integration tests. Two concurrent
+  fresh migration runners applied each file exactly once, and the temporary test
+  database was removed. Tests cover competing corrections, time boundaries,
+  forbidden writes, scheme-specific policy, author institution, direct SQL guards,
+  migration rollback and seed idempotency.
+- Applied all three migrations to the local development database. A second run
+  applied nothing. Loaded 25 synthetic students, 100 grade records and 102 versions;
+  a second seed run changed nothing.
+- `npm run db:plan` demonstrated `4.00 / failed` before correction and `8.00 / passed`
+  afterward using the same effective date. It saved an actual query plan under
+  ignored `.runtime/`; this small fixture is not a scalability benchmark.
+
+This stage implements SQL correctness mechanisms, not cryptographic tamper
+evidence or a privacy guarantee. Authenticated academic APIs, MongoDB evidence,
+product UI and credential verification remain pending. The owner still performs
+staging, commits and pushes manually.
+
 ## Next milestone
 
-Review the Week 1 setup/readiness record with the owner. Begin the next weekly
-stage only when requested; schema implementation additionally requires review of
-the owner-provided diagrams and agreement on academic invariants.
+Review the provisional model against owner-supplied diagrams and actual grading,
+attempt and correction rules. The next implementation slice is authenticated,
+scoped API access and the MongoDB evidence boundary; agree on its authorization
+model before adding academic endpoints.
 
 ## Entry format
 

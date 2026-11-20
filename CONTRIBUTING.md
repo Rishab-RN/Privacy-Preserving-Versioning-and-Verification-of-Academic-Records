@@ -2,9 +2,10 @@
 
 ## Working agreement
 
-Keep changes small enough to review and explain their purpose. Agree on the academic
-model before implementing its schema. Update relevant documentation in the same
-change as the behaviour it describes.
+Keep changes small enough to review and explain their purpose. Agree on academic
+invariants before extending the model; explicitly label any owner-requested
+provisional implementation and its unresolved assumptions. Update documentation
+in the same change as the behaviour it describes.
 
 Staging, commits and pushes are performed manually by the project owner. Assistants
 may edit and verify authorised work but must not run `git add`, `git commit` or
@@ -90,5 +91,6 @@ or research novelty as established facts.
 ## Documentation ownership
 
 The project owner will supply the ER and DFD diagrams. Record their reviewed versions
-in `docs/architecture/` before implementing the schema. Maintain factual milestones
-in `docs/project-journey.md`; keep personal research and planning drafts local.
+in `docs/architecture/` and reconcile the provisional Week 2 schema with them before
+extending workflows. Maintain factual milestones in `docs/project-journey.md`;
+keep personal research and planning drafts local.

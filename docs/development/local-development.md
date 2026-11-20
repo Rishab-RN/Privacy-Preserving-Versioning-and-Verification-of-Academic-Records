@@ -130,13 +130,24 @@ outside your development machine.
 
 ## Current implementation boundary
 
-Current work is Week 1 dependency/environment setup. React, React DOM, Vite and
-Tailwind are installed and the Vite configuration is type checked; there is no
-runnable UI entry yet. Frontend product flows, background publication jobs,
-database migrations and independent credential verification follow in later agreed
-weekly stages. ER/DFD diagrams will be supplied by the project owner before schema
-implementation. Do not treat installed packages or reserved folders as completed
-features.
+Week 1 setup is verified. Week 2 adds explicit SQL migrations, synthetic fixtures,
+immutable grade revisions and known-at/effective-at transcript queries. Run:
+
+```powershell
+npm run db:migrate
+npm run db:seed
+npm run db:demo
+npm run test:db
+```
+
+See the [database guide](../../db/README.md) for permissions, query plans and
+recovery. The SQL model is provisional pending owner diagrams and grading rules.
+`npm run check` does not run live database tests; use `npm run test:db` explicitly.
+
+React, React DOM, Vite and Tailwind are installed and the Vite configuration is
+type checked; there is no runnable UI entry yet. Authenticated domain APIs,
+MongoDB document operations, frontend flows, background jobs and credential
+verification remain later weekly stages.
 
 For ownership and dependency boundaries, see
 [Repository layout](repository-layout.md). For branches and manual commits, see

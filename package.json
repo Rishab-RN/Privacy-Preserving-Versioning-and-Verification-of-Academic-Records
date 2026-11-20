@@ -21,7 +21,7 @@
     "start:api": "npm run start --workspace @scholarproof/api",
     "build:contracts": "tsc --build packages/contracts",
     "build": "tsc --build tsconfig.build.json",
-    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json",
+    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -32,7 +32,13 @@
     "infra:up": "docker compose --env-file .env -f infra/docker/compose.yaml up -d --wait --wait-timeout 120",
     "infra:down": "docker compose --env-file .env -f infra/docker/compose.yaml down",
     "infra:status": "docker compose --env-file .env -f infra/docker/compose.yaml ps",
-    "infra:check": "npm run check:services --workspace @scholarproof/api"
+    "infra:check": "npm run check:services --workspace @scholarproof/api",
+    "db:migrate": "npm run db:migrate --workspace @scholarproof/api",
+    "db:status": "npm run db:status --workspace @scholarproof/api",
+    "db:seed": "npm run db:seed --workspace @scholarproof/api",
+    "db:demo": "npm run db:demo --workspace @scholarproof/api",
+    "db:plan": "npm run db:plan --workspace @scholarproof/api",
+    "test:db": "npm run test:db --workspace @scholarproof/api"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
