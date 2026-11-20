@@ -25,17 +25,107 @@ are ignored by Git.
   pull-request/issue templates.
 - Excluded local research, planning drafts, temporary files and withdrawn diagram
   drafts through `.gitignore`.
-- Assigned ER/DFD preparation to the project owner. The reviewed diagrams will
+- Recorded ER/DFD diagrams as owner-provided design inputs. Their review will
   precede database implementation.
 - Kept staging, commits and pushes under the project owner's manual control.
 
 No application, database migrations, deployment or performance results have been
 implemented or claimed at this milestone.
 
+## 2026-11-20 - Implementation workspace foundation
+
+- Established API and shared contracts source workspaces, with a single root
+  lockfile. Installed the React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 web
+  toolchain and type-checked its Vite configuration; a UI entry remains pending.
+  Worker and verification directories contain ownership notes only.
+- Separated database migrations and synthetic seeds from local infrastructure,
+  repository scripts and cross-boundary tests.
+- Added development instructions and explicit ownership/dependency boundaries.
+- Continued the manual Git workflow after the owner's first commit and push.
+- Kept research and planning files local while preserving trackable source,
+  configuration examples and curated technical documentation.
+
+Verified setup evidence for this milestone:
+
+- `npm run check` passed lint, formatting verification, type checking and six tests.
+- `npm run build` succeeded.
+- `npm run infra:config` passed static Compose configuration validation.
+- PostgreSQL 18 and MongoDB 8.0 containers were running and healthy;
+  `npm run infra:check` passed authenticated PostgreSQL `SELECT 1` and MongoDB ping
+  checks with local network access.
+- `npm audit` reported zero advisories for the installed lockfile at this check.
+
+An ignored `.env` with generated local passwords is preserved for the initialized
+database volumes. These are local verification results, not a claim that remote
+GitHub CI has passed. Week 1 remains setup only: the API startup/liveness slice and
+database client access are separate from academic application integration. No UI
+flow, schema migration, background publication or credential proof capability is
+claimed here.
+
+## 2026-11-20 - Collaborator bootstrap and environment diagnostics
+
+- Added `npm run setup` with generated local database passwords on first use and
+  exact preservation of an existing `.env`. Repeated execution does not rotate
+  initialized-volume credentials.
+- Added a dependency-free environment doctor with an optional required-Docker
+  profile and sanitized prerequisite/configuration output.
+- Made database checks independent, bounded and service-specific so one failure
+  cannot hide the other result. Connection details and arbitrary exception
+  messages are not printed.
+- Made local database startup wait for service health, and enabled CI on the
+  documented topic-branch prefixes as well as pull requests.
+- Verified all 19 reported tests, lint, formatting, type checks and build; Docker
+  prerequisite checks, health-waiting startup and both authenticated service
+  probes passed. The existing `.env` remained byte-for-byte unchanged.
+
+These are local results. Remote CI results depend on the owner's next push/PR.
+No academic schema, new diagrams or domain workflows were introduced.
+
+## 2026-11-20 - Provisional academic SQL foundation
+
+At the owner's request to check Week 1 and continue to Week 2, implemented the
+written academic model on `feat/academic-schema`. Owner diagrams and official
+grading-policy review remain open; no new diagrams were generated. See the
+[model assumptions](architecture/academic-model.md).
+
+- Added thirteen academic tables with institution-scoped foreign keys, versioned
+  illustrative grading policy, unique enrolments and immutable enrolment identity.
+- Added append-only grade versions, expected-version conflict detection, and a
+  derived valid-time/system-time projection. Retroactive, partial and future
+  corrections preserve earlier known-at answers.
+- Added a non-owner read-only database group, transactional checksummed migrations,
+  an idempotent synthetic fixture and explicit administrative CLI commands. No
+  dependency changes were needed.
+- Defined a PostgreSQL 18 CI integration job alongside Windows/Linux quality jobs.
+  Published CI results remain unverified until the owner pushes the branch.
+
+Local verification:
+
+- `npm run check` passed lint, formatting, type checks and all 22 tooling/API tests;
+  `npm run build` passed.
+- `npm run test:db` passed all 14 PostgreSQL integration tests. Two concurrent
+  fresh migration runners applied each file exactly once, and the temporary test
+  database was removed. Tests cover competing corrections, time boundaries,
+  forbidden writes, scheme-specific policy, author institution, direct SQL guards,
+  migration rollback and seed idempotency.
+- Applied all three migrations to the local development database. A second run
+  applied nothing. Loaded 25 synthetic students, 100 grade records and 102 versions;
+  a second seed run changed nothing.
+- `npm run db:plan` demonstrated `4.00 / failed` before correction and `8.00 / passed`
+  afterward using the same effective date. It saved an actual query plan under
+  ignored `.runtime/`; this small fixture is not a scalability benchmark.
+
+This stage implements SQL correctness mechanisms, not cryptographic tamper
+evidence or a privacy guarantee. Authenticated academic APIs, MongoDB evidence,
+product UI and credential verification remain pending. The owner still performs
+staging, commits and pushes manually.
+
 ## Next milestone
 
-Review the owner-provided diagrams, agree on schema invariants, then implement a
-small academic record issuance/correction workflow with appropriate validation.
+Review the provisional model against owner-supplied diagrams and actual grading,
+attempt and correction rules. The next implementation slice is authenticated,
+scoped API access and the MongoDB evidence boundary; agree on its authorization
+model before adding academic endpoints.
 
 ## Entry format
 

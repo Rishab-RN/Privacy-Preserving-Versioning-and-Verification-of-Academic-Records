@@ -1,88 +1,96 @@
 # Git workflow
 
-The local repository is already cloned and `origin` points to:
+The repository is already initialized, and the project owner has created and pushed
+the first commit on `main`. Its `origin` is:
 
 ```text
 https://github.com/Rishab-RN/Privacy-Preserving-Versioning-and-Verification-of-Academic-Records.git
 ```
 
-The repository was empty when cloned. The commands below are for the project owner
-to run manually after reviewing the files. Assistants must not stage, commit or push
-under the current working agreement.
+The commands below are for contributors to run manually. Under the current working
+agreement, assistants may edit and verify authorised work but must not run
+`git add`, `git commit` or `git push`.
 
-## First commit for the empty repository
+## Start a focused branch
 
-Bootstrap `main` once so subsequent branches can open pull requests against it.
-
-```powershell
-Set-Location "C:\Users\Rishab Nayak\Desktop\Om\Codes\PrivacyPreservingRecords"
-git status --short
-git add README.md CONTRIBUTING.md .gitignore .editorconfig .gitattributes .github docs
-git diff --cached --stat
-git diff --cached --check
-git diff --cached
-git commit -m "docs: initialize project documentation"
-git push -u origin main
-```
-
-Review the complete staged diff before committing. The ignore rules keep research,
-planning inputs, the local draft archive and temporary files out of this commit.
-Configure your own Git name/email if Git requests them; do not use another
-contributor's identity.
-
-## Daily branch workflow
-
-Start from an up-to-date `main` with a clean working tree. For example, when adding
-the reviewed diagrams:
+With a clean working tree, start from current `main`:
 
 ```powershell
 git switch main
 git pull --ff-only origin main
-git switch -c docs/academic-model
+git switch -c chore/repository-foundation
 ```
 
-After making and checking the change, stage only its intended files:
+If you have already made the intended changes on `main`, create the topic branch
+first to carry those uncommitted changes with you:
 
 ```powershell
 git status --short
-git add docs/architecture
-git diff --cached --stat
-git diff --cached --check
-git diff --cached
-git commit -m "docs: add reviewed academic model"
-git push -u origin docs/academic-model
+git switch -c chore/repository-foundation
 ```
 
-Open a pull request into `main`, describe the change and report checks actually run.
-Prefer a reviewed squash merge and remove the remote topic branch after merging.
-Use `feat/`, `fix/`, `test/` and `chore/` branches for the corresponding work.
+Do not pull, discard or overwrite uncommitted work just to follow the clean-checkout
+example. Resolve unrelated working-tree changes separately with their owner.
 
-## GitHub settings after the first push
+Use `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `test/<topic>` or `chore/<topic>`.
+Keep the branch focused; a permanent `develop` branch is not required.
 
-The repository owner should configure a branch rule for `main`: require pull
-requests and a review where the team's permissions allow it, and block force pushes
-and deletion. Add required CI checks only after the relevant workflows exist and
-have been verified. Do not advertise branch protection or passing CI before they
-are configured.
+## Review, commit and publish manually
 
-## Maintenance rules
+Stage explicit paths belonging to the change. For a documentation-only change,
+for example:
 
-- Use explicit staging paths; inspect every staged diff.
+```powershell
+git status --short
+git --no-pager diff
+git add docs/development/git-workflow.md
+git --no-pager diff --cached --stat
+git diff --cached --check
+git --no-pager diff --cached
+git commit -m "docs: clarify contributor workflow"
+git push -u origin chore/repository-foundation
+```
+
+For code changes, run `npm run check`, `npm run build` and any relevant behavioural
+checks before committing. Adjust the staging paths and commit subject to the actual
+change. Confirm that local research, plans, secrets and runtime data are absent.
+
+`--no-pager` prints a diff directly. If a command opens Git's pager, press `q` to
+return to the terminal.
+
+## Pull requests and integration
+
+Open a pull request into `main`. Describe the problem, resulting behaviour and
+checks actually run. Include UI evidence or migration/recovery details when
+relevant. Request review from the component owner and resolve feedback on the topic
+branch.
+
+Prefer a reviewed squash merge with a short Conventional Commit PR title. After
+the merge, update local `main` before starting the next topic. Do not force-push a
+shared branch or rewrite another contributor's commits.
+
+## GitHub repository settings
+
+The repository owner should configure a rule for `main`: require pull requests and
+reviews where the team's permissions allow them, and block force pushes and
+deletion. Add required CI checks only after the workflows exist and their results
+have been verified. Repository documentation must not claim these settings are
+enabled before they are configured.
+
+## Maintenance conventions
+
 - Keep one coherent change per branch and commit.
-- Keep short Conventional Commit subjects, with details in the body when needed.
-- Do not commit secrets, student data, research downloads or local database files.
-- Do not force-push shared branches or rewrite another person's commits.
-- Update setup documentation when commands change, and the journey at meaningful
+- Keep Conventional Commit subjects short; explain non-obvious reasons in the body.
+- Commit the npm lockfile with intentional dependency changes.
+- Update setup documentation when commands change and the journey at meaningful
   milestones.
+- Never use broad staging as a substitute for reviewing the diff.
 
 Useful read-only checks:
 
 ```powershell
-git status --short
-git diff
-git diff --cached
+git status --short --branch
+git --no-pager diff
+git --no-pager diff --cached
 git log --oneline --decorate -10
 ```
-
-`git log` becomes useful after the first commit. No initial commit or remote push is
-performed automatically by these documentation changes.

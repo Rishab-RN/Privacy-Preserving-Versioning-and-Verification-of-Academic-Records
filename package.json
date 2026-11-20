@@ -1,0 +1,54 @@
+{
+  "name": "academic-records-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Privacy-preserving academic record versioning and verification",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "dev:api": "npm run build:contracts && npm run dev --workspace @scholarproof/api",
+    "start:api": "npm run start --workspace @scholarproof/api",
+    "build:contracts": "tsc --build packages/contracts",
+    "build": "tsc --build tsconfig.build.json",
+    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:tooling": "node --test scripts/test/setup.test.mjs scripts/test/doctor.test.mjs",
+    "test": "npm run test:tooling && npm run test --workspace @scholarproof/api",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "infra:config": "docker compose --env-file .env.example -f infra/docker/compose.yaml config --quiet",
+    "infra:up": "docker compose --env-file .env -f infra/docker/compose.yaml up -d --wait --wait-timeout 120",
+    "infra:down": "docker compose --env-file .env -f infra/docker/compose.yaml down",
+    "infra:status": "docker compose --env-file .env -f infra/docker/compose.yaml ps",
+    "infra:check": "npm run check:services --workspace @scholarproof/api",
+    "db:migrate": "npm run db:migrate --workspace @scholarproof/api",
+    "db:status": "npm run db:status --workspace @scholarproof/api",
+    "db:seed": "npm run db:seed --workspace @scholarproof/api",
+    "db:demo": "npm run db:demo --workspace @scholarproof/api",
+    "db:plan": "npm run db:plan --workspace @scholarproof/api",
+    "test:db": "npm run test:db --workspace @scholarproof/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "eslint": "10.15.0",
+    "prettier": "3.10.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0"
+  }
+}

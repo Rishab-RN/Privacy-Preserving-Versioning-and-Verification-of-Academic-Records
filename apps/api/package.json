@@ -1,0 +1,25 @@
+{
+  "name": "@scholarproof/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
+    "start": "node --env-file-if-exists=../../.env dist/server.js",
+    "test": "tsx --test test/app.test.ts test/config.test.ts test/service-checks.test.ts test/migrations.test.ts",
+    "check:services": "tsx --env-file-if-exists=../../.env scripts/check-services.ts",
+    "db:migrate": "tsx --env-file-if-exists=../../.env scripts/db/migrate.ts up",
+    "db:status": "tsx --env-file-if-exists=../../.env scripts/db/migrate.ts status",
+    "db:seed": "tsx --env-file-if-exists=../../.env scripts/db/seed.ts",
+    "db:demo": "tsx --env-file-if-exists=../../.env scripts/db/demo.ts",
+    "db:plan": "tsx --env-file-if-exists=../../.env scripts/db/demo.ts --plan",
+    "test:db": "tsx --env-file-if-exists=../../.env scripts/db/test.ts"
+  },
+  "dependencies": {
+    "@scholarproof/contracts": "0.1.0",
+    "express": "5.3.0",
+    "mongodb": "7.9.1",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  }
+}

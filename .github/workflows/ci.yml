@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**', 'chore/**', 'docs/**', 'test/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Node 24 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm install --global npm@11.6.2
+      - run: npm ci
+      - run: npm run setup
+      - run: npm run check
+      - run: npm run build
+
+  database:
+    name: PostgreSQL 18 integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: scholarproof_ci
+          POSTGRES_USER: scholarproof_ci
+          POSTGRES_PASSWORD: ci-synthetic-only
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U scholarproof_ci -d scholarproof_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      POSTGRES_DB: scholarproof_ci
+      POSTGRES_USER: scholarproof_ci
+      POSTGRES_PASSWORD: ci-synthetic-only
+      POSTGRES_PORT: '55432'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm install --global npm@11.6.2
+      - run: npm ci
+      - run: npm run test:db
+      - run: npm run db:migrate
+      - run: npm run db:status
+      - run: npm run db:seed
+      - run: npm run db:seed
+      - run: npm run db:plan
