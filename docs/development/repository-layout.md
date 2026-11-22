@@ -52,6 +52,12 @@ to reconcile with them before broader workflows.
 
 ## Dependency boundaries
 
+Week 3 runtime modules live in `apps/api/src/`: HTTP contracts/composition, local
+password/session handling, scoped SQL queries, evidence protocol and Mongo adapter.
+Administrative access provisioning/demo/test harnesses live in
+`apps/api/scripts/access/`, separately from request handlers. Cross-store HTTP
+checks are in `tests/integration/`. No new dependency was added for this slice.
+
 - Applications may use shared packages. Avoid importing another application's
   internal source files directly.
 - `packages/contracts/` defines shared interfaces; it must not create a second

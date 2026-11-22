@@ -29,7 +29,7 @@ test('migrations are repeatable, checksummed and serialize concurrent runners', 
     index === 0 ? { ...migration, checksum: '0'.repeat(64) } : migration,
   );
   await assert.rejects(applyMigrations(client, changed), /checksum changed/);
-  assert.equal((await migrationStatus(client, local)).length, 3);
+  assert.equal((await migrationStatus(client, local)).length, local.length);
 });
 
 test('the deterministic synthetic seed can be loaded twice without duplicate records', async (context) => {
@@ -52,11 +52,12 @@ test('a failed migration rolls back its DDL and does not enter migration history
   const local = loadMigrations();
   const sql =
     'CREATE TABLE academic.rollback_probe(id integer); SELECT * FROM academic.missing_test_relation;';
-  const bad = { version: '0004', name: '0004_failure_probe.sql', sql, checksum: sqlChecksum(sql) };
+  const version = String(local.length + 1).padStart(4, '0');
+  const bad = { version, name: `${version}_failure_probe.sql`, sql, checksum: sqlChecksum(sql) };
   await assert.rejects(applyMigrations(client, [...local, bad]), /rolled back/);
   const result = await client.query<{ present: string | null }>(
     "SELECT to_regclass('academic.rollback_probe')::text AS present",
   );
   assert.equal(result.rows[0]?.present, null);
-  assert.equal((await migrationStatus(client, local)).length, 3);
+  assert.equal((await migrationStatus(client, local)).length, local.length);
 });

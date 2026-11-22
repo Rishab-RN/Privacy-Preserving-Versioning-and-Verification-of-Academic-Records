@@ -10,3 +10,8 @@ limits. Reconcile it with the owner's diagrams and grading rules before extendin
 the workflows. Implemented behaviour is not institutional-policy approval.
 
 Record diagram versions and review status here when the owner supplies them.
+
+The [Week 3 access/evidence design](access-and-evidence.md) records the local
+identity adapter, authorization matrix, restricted database identities, document
+encoding and recoverable SQL/Mongo staging protocol. It preserves the pending
+academic-policy review and does not introduce grade-write APIs.

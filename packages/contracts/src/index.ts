@@ -5,7 +5,20 @@ export interface LivenessResponse {
 
 export interface ApiErrorResponse {
   error: {
-    code: 'NOT_FOUND';
+    code: string;
     message: string;
   };
+}
+
+export interface SessionResponse {
+  token: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+}
+
+export interface EvidenceReceipt {
+  evidenceId: string;
+  state: 'available';
+  digestSha256: string;
+  sizeBytes: number;
 }

@@ -3,11 +3,10 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 2 - academic SQL foundation.** Week 1 setup is verified.
-PostgreSQL migrations, immutable grade revisions, bitemporal transcript queries
-and synthetic fixtures are implemented. API startup/liveness and shared contracts
-are in place; authenticated academic APIs and product UI follow in later weeks.
-The model is provisional pending the owner's diagrams and academic-policy review.
+**Current phase: Week 3 - scoped access and evidence.** The SQL foundation now has
+authenticated transcript reads, revocable sessions and integrity-checked MongoDB
+evidence forms. Grade writes, approval workflows and product UI remain later stages.
+The academic model is provisional pending the owner's diagrams and policy review.
 
 ## Problem
 
@@ -35,9 +34,9 @@ workflow is working. Publication and novelty claims will depend on evidence.
 | Area                       | Direction                                                         |
 | -------------------------- | ----------------------------------------------------------------- |
 | Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending    |
-| API                        | Node.js, Express and TypeScript; liveness endpoint implemented    |
+| API                        | Node.js/Express/TypeScript; local sessions and scoped reads       |
 | Academic authority         | PostgreSQL 18; migrations, version history and temporal queries   |
-| Flexible evidence/packages | MongoDB local service; driver installed, integration pending      |
+| Flexible evidence/packages | MongoDB; bounded validated evidence, SQL references and digests   |
 | Verification               | Signed credentials and Merkle proofs planned; no verifier yet     |
 | Later research extensions  | Python ML, Neo4j and bounded ZK predicates, installed when needed |
 
@@ -59,7 +58,7 @@ packages/
 db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
 scripts/                    Repository maintenance utilities
-tests/                      PostgreSQL integration checks
+tests/                      PostgreSQL and real HTTP/SQL/Mongo integration checks
 .github/                    CI, issue and pull-request templates
 docs/
   architecture/             Reviewed diagrams and design documentation
@@ -130,8 +129,24 @@ second seed run leaves them unchanged. Database tests create and remove their ow
 temporary database, without resetting the development database. See the
 [database guide](db/README.md) for privileges and migration recovery.
 
+For the authenticated API and synthetic evidence walkthrough:
+
+```powershell
+npm run access:setup
+npm run access:demo
+npm run test:integration
+npm run dev:api
+```
+
+`access:setup` creates restricted runtime identities and preserves their passwords
+in ignored `.env.api`. `access:demo` provisions three synthetic logins with random
+passwords in ignored `.runtime/demo-accounts.json`; credentials are never printed.
+See the [API walkthrough](docs/development/api.md) and
+[access/evidence design](docs/architecture/access-and-evidence.md). These routes
+do not issue or correct grades, and stored data is currently plaintext.
+
 The CI definition runs quality checks and builds on Windows and Linux, plus a
-PostgreSQL 18 integration job on Linux, for topic-branch pushes and pull requests.
+PostgreSQL 18/MongoDB 8 integration job on Linux, for topic-branch pushes and pull requests.
 A local run does not establish a successful GitHub Actions run.
 
 If you are using the existing `PrivacyPreservingRecords` working folder, its

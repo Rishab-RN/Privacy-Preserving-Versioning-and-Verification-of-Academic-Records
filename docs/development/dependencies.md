@@ -33,6 +33,11 @@ no new npm dependency was added. PostgreSQL's `btree_gist` extension supports th
 temporal exclusion constraint. The model and current permission boundary are
 documented in the [academic model](../architecture/academic-model.md).
 
+Week 3 also uses existing dependencies: Node crypto for scrypt/random session
+tokens/SHA-256, Zod for HTTP contracts, and the Mongo driver for validated evidence.
+No new npm package or external identity server is required. This local identity
+adapter does not establish institutional SSO integration.
+
 ## Introduce dependencies with their implementation stage
 
 | Stage               | Add when needed                                   | Decision gate                                                   |
