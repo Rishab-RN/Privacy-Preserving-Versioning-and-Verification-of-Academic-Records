@@ -15,3 +15,8 @@ The [Week 3 access/evidence design](access-and-evidence.md) records the local
 identity adapter, authorization matrix, restricted database identities, document
 encoding and recoverable SQL/Mongo staging protocol. It preserves the pending
 academic-policy review and does not introduce grade-write APIs.
+
+The owner confirmed [mandatory capabilities](required-capabilities.md) on
+23 November 2026: cryptographic tamper verification, Neo4j provenance and Python
+ML anomaly detection. ZK/vector decisions remain use-case based. Earlier optional
+graph/ML language is superseded; the capabilities are not yet implemented.

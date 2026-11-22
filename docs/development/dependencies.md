@@ -40,20 +40,25 @@ adapter does not establish institutional SSO integration.
 
 ## Introduce dependencies with their implementation stage
 
-| Stage               | Add when needed                                   | Decision gate                                                   |
-| ------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
-| Schema and API      | Migration/auth/session tooling                    | Reviewed model and authentication design                        |
-| Credential issuance | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                     |
-| Graph experiment    | Neo4j driver/server                               | A concrete provenance query and SQL baseline                    |
-| ML experiment       | Python environment, scikit-learn and data tooling | Generator, feature policy and leakage-safe evaluation           |
-| ZK extension        | Circom/snarkjs and circuit dependencies           | Reviewed statement, manifest completeness and setup assumptions |
-| Vector extension    | pgvector or a dedicated engine                    | Labelled use case that justifies the extra infrastructure       |
+| Stage                         | Add when needed                                   | Decision gate                                                                                         |
+| ----------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Schema and API                | Migration/auth/session tooling                    | Reviewed model and authentication design                                                              |
+| Credential issuance           | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                                                           |
+| Required graph provenance     | Neo4j driver/server                               | Week 8: scoped provenance schema, mandatory Cypher queries, SQL comparison and recoverable projection |
+| Required ML anomaly detection | Python environment, scikit-learn and data tooling | Week 9: reproducible generator, rules/model baselines, graph features and leakage-safe evaluation     |
+| Use-case ZK decision          | Circom/snarkjs and circuit dependencies           | Reviewed bounded statement, manifest completeness and setup assumptions                               |
+| Use-case vector decision      | pgvector or a dedicated engine                    | A defined use case that justifies the extra infrastructure                                            |
 
 These later tools are not required to run Week 1 and are not yet installed by this
-repository. Avoid global ML/GPU/toolchain installs and additional services before
-their use case and resource requirements are agreed. Python 3.12 is available on
-the current developer machine; the ML stage will create an isolated, ignored
-environment and a separate locked requirement set.
+repository. Neo4j and Python ML are mandatory in their scheduled stages; installation
+timing does not make them optional. Pin supported versions and verify real
+connectivity/imports when those stages begin. Use an isolated, ignored Python
+environment and a locked requirement set rather than a global ML installation.
+Python 3.12 is available on the current developer machine. ZK/vector dependencies
+remain separate use-case decisions and cannot displace the mandatory components.
+
+The [required capability contract](../architecture/required-capabilities.md)
+defines meaningful Neo4j and ML use cases and the evidence required for completion.
 
 ## Source documentation checked during setup
 

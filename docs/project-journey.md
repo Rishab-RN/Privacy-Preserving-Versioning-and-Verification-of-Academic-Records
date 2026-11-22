@@ -164,11 +164,39 @@ No files were staged, committed or pushed by the assistant. Grades/evidence rema
 plaintext; RLS, institutional SSO, approval/grade-write APIs and cryptographic
 verification are not claimed.
 
+## 2026-11-23 - Mandatory graph, ML and tamper-verification scope
+
+- The owner confirmed cryptographic tamper verification, Neo4j provenance and
+  Python ML anomaly detection as required deliverables. This supersedes earlier
+  optional graph/ML descriptions; it does not retroactively claim implementation.
+- Kept ZK predicates and vector search as separate use-case decisions, as the
+  owner clarified. They cannot replace the required work.
+- Defined graph workloads, rules/tabular/graph-feature ML comparisons and integrated
+  integrity-versus-risk outcomes in the [capability contract](architecture/required-capabilities.md).
+- Revised the local roadmap: Week 8 mandatory Neo4j, Week 9 mandatory ML/anomaly
+  detection, Week 10 integrated tamper/witness/recovery evaluation. Week 4 captures
+  the authoritative provenance/events needed by those consumers.
+- Recorded formal normalization analysis as an open Week 2 deliverable to finish
+  before Week 4; separated schema tests do not prove every table is in 3NF.
+
+This change updates requirements and documentation only. Neo4j/ML services, model
+training and the independent cryptographic verifier remain pending. No dependencies
+were installed and no files were staged, committed or pushed.
+
+## 2026-11-23 - Week 4 branch and incremental commit agreement
+
+The owner merged Week 3 in PR #2 (`6da301b`) and authorised Week 4.
+The new working branch is `feat/record-transitions`, based on the fetched merged
+`origin/main`. The owner now permits assistant staging/committing only after
+permission for each focused update; pushes/merges remain manual. Preserve checked
+incremental commits rather than one week-sized implementation commit.
+
 ## Next milestone
 
-Review/merge the Week 3 PR after published CI and diff review. Before Week 4 grade
-writes, settle the provisional grading/attempt and approval policy, then implement
-controlled issue/correct transitions with audit and durable outbox delivery.
+Finish the formal normalization analysis, state the prototype approval policy and
+implement controlled issue/correct transitions with audit and durable outbox
+delivery. Owner diagrams and institutional grading/attempt rules remain open
+review items; implementation assumptions must remain explicit.
 
 ## Entry format
 
