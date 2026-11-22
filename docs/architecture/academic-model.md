@@ -100,6 +100,10 @@ read access and the as-of query function, with no grant to append grades or muta
 base tables. A login/password and API authorization remain later work. These grants
 allow database-level read demonstrations, not per-student or tenant RLS isolation.
 
+Week 3 implements the separate API login/group, local sessions and scoped reads;
+see [access/evidence](access-and-evidence.md). The original read-only group remains
+a database demonstration role and is not the API login.
+
 Migrations need an administrative database connection, including permission to
 install `btree_gist` and provision the read-only group. An already-existing unsafe
 role causes migration failure rather than silently changing that role.

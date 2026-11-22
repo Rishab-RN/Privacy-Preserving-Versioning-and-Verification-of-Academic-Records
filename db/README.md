@@ -6,6 +6,12 @@ The [model and assumptions](../docs/architecture/academic-model.md) are provisio
 pending owner-supplied diagrams and grading-policy review. MongoDB is reserved for
 flexible evidence/document packages; it is not a competing transcript authority.
 
+Week 3 adds migrations `0004`/`0005`: password/session tables, immutable scoped
+evidence references and restricted API permissions. The old read-only group is
+hardened against unsafe inherited grants. See the
+[access/evidence design](../docs/architecture/access-and-evidence.md) and
+[Mongo validator guide](mongo/README.md).
+
 - `migrations/`: ordered, reviewed schema changes; commit migration source.
 - `seeds/`: deterministic synthetic fixtures; no real student records.
 - `queries/`: parameterized transcript SQL for demonstrations and plan inspection.
@@ -49,8 +55,9 @@ inspection, not a performance or scalability claim.
 The local administrative account needs schema/table creation, `btree_gist`
 installation and role creation privileges. `test:db` also needs `CREATE DATABASE`
 on the local cluster. These are development/migration credentials, not an
-authenticated application role. Provisioning a separate API login and scoped
-authorization is later work.
+authenticated application role. `access:setup` provisions the separate API login;
+the [API authorization policy](../docs/architecture/access-and-evidence.md) defines
+its application-level scope.
 
 `scholarproof_runtime` is a non-owner, read-only NOLOGIN group. Tests switch into
 it to prove reads succeed and academic writes/DDL fail. It is cluster-scoped and
@@ -68,6 +75,15 @@ The normal `npm run check` includes database-tooling unit checks without requiri
 PostgreSQL. Live database checks are deliberately explicit through `test:db`.
 GitHub CI defines a separate PostgreSQL 18 integration job using an ephemeral
 service, following the [GitHub service-container guide](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers).
+
+`npm run test:integration` additionally provisions a unique Mongo database and
+restricted temporary SQL/Mongo API identities to exercise real HTTP flows and
+storage faults. Run it after `test:db`, not concurrently: SQL permission-rejection
+tests temporarily modify cluster-scoped group grants inside rolled-back transactions.
+The CI data job includes PostgreSQL 18 and MongoDB 8 services and runs both commands.
+
+Run `npm run access:setup` after migrations to create preserved local runtime
+credentials in `.env.api`. The API does not use the migration administrator.
 
 ## Recovery and changes
 

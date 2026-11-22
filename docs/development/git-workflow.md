@@ -35,6 +35,10 @@ example. Resolve unrelated working-tree changes separately with their owner.
 Use `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `test/<topic>` or `chore/<topic>`.
 Keep the branch focused; a permanent `develop` branch is not required.
 
+For this team, keep `main` plus one active working branch by default. Finish its
+review/merge before starting the next feature branch. A branch may contain several
+focused commits; creating one for every commit or calendar week is unnecessary.
+
 ## Review, commit and publish manually
 
 Stage explicit paths belonging to the change. For a documentation-only change,
@@ -68,6 +72,12 @@ branch.
 Prefer a reviewed squash merge with a short Conventional Commit PR title. After
 the merge, update local `main` before starting the next topic. Do not force-push a
 shared branch or rewrite another contributor's commits.
+
+Create the PR once a coherent change is committed/pushed and local checks pass.
+Merge after its diff is reviewed and the published GitHub checks pass. At each
+assistant handoff, distinguish **ready for PR** from **ready to merge**; a local
+pass alone does not establish the latter. Staging, commits, pushes and merges stay
+under the owner's manual control.
 
 ## GitHub repository settings
 

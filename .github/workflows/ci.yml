@@ -37,7 +37,7 @@ jobs:
       - run: npm run build
 
   database:
-    name: PostgreSQL 18 integration
+    name: PostgreSQL 18 / MongoDB 8 integration
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -54,11 +54,26 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+      mongo:
+        image: mongo:8.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: scholarproof_ci
+          MONGO_INITDB_ROOT_PASSWORD: ci-synthetic-only
+        ports:
+          - 57017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --username scholarproof_ci --password ci-synthetic-only --authenticationDatabase admin --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
       POSTGRES_DB: scholarproof_ci
       POSTGRES_USER: scholarproof_ci
       POSTGRES_PASSWORD: ci-synthetic-only
       POSTGRES_PORT: '55432'
+      MONGO_ROOT_USER: scholarproof_ci
+      MONGO_ROOT_PASSWORD: ci-synthetic-only
+      MONGO_PORT: '57017'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -70,8 +85,13 @@ jobs:
       - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run test:db
+      - run: npm run test:integration
       - run: npm run db:migrate
       - run: npm run db:status
       - run: npm run db:seed
       - run: npm run db:seed
       - run: npm run db:plan
+      - run: npm run access:setup
+      - run: npm run access:demo
+      - run: npm run build
+      - run: npm run access:smoke

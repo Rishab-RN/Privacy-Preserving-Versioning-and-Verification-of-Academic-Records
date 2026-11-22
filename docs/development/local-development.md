@@ -144,10 +144,16 @@ See the [database guide](../../db/README.md) for permissions, query plans and
 recovery. The SQL model is provisional pending owner diagrams and grading rules.
 `npm run check` does not run live database tests; use `npm run test:db` explicitly.
 
+Week 3 adds scoped transcript reads and bounded MongoDB evidence. Run
+`npm run access:setup`, then `npm run access:demo` for synthetic accounts and
+`npm run test:integration` for isolated real HTTP/SQL/Mongo checks. The API loads
+restricted credentials from ignored `.env.api`; it never falls back to the
+administrative database identity. Follow the [API walkthrough](api.md).
+
 React, React DOM, Vite and Tailwind are installed and the Vite configuration is
-type checked; there is no runnable UI entry yet. Authenticated domain APIs,
-MongoDB document operations, frontend flows, background jobs and credential
-verification remain later weekly stages.
+type checked; there is no runnable UI entry yet. Grade issue/correction APIs,
+approval workflows, frontend flows, background jobs and credential verification
+remain later weekly stages.
 
 For ownership and dependency boundaries, see
 [Repository layout](repository-layout.md). For branches and manual commits, see

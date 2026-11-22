@@ -120,12 +120,55 @@ evidence or a privacy guarantee. Authenticated academic APIs, MongoDB evidence,
 product UI and credential verification remain pending. The owner still performs
 staging, commits and pushes manually.
 
+## 2026-11-21 - Week 2 audit and scoped access/evidence
+
+The owner merged PR #1 into `main` (`8afcee3`). Rechecked Week 2 locally: quality,
+build, all 14 SQL integration tests and both service probes passed. A static audit
+found no blocking temporal/schema defect, but identified unsafe role reuse through
+inherited or column-level write privileges. Added forward hardening rather than
+editing applied migration files. Diagram and official grading-policy review remain
+open; this does not prevent independent scoped-read/evidence work.
+
+Implemented Week 3 on the single working branch `feat/scoped-access`:
+
+- Added administratively provisioned local accounts, scrypt password verification,
+  hashed opaque sessions, one-hour expiry, logout, bounded login work and route
+  limits. Current account/role state is rechecked on subsequent requests.
+- Added student-self and institutional registrar/auditor transcript reads, preserving
+  exact timestamp precision. Examiners receive no unmodelled institution-wide access.
+- Added strict, bounded version 1 JSON evidence, immutable SQL references/digests,
+  Mongo validation and restricted insert/read permissions. Pending reservations
+  recover with the same idempotency key after injected Mongo or SQL failures.
+- Separated migration credentials from restricted runtime SQL/Mongo identities,
+  with explicit preserved local configuration and startup privilege-drift checks.
+- Extended CI with Mongo and a compiled synthetic API demo, keeping Windows/Linux
+  quality checks. Added an API walkthrough and the access/evidence policy.
+
+Verified locally:
+
+- `npm run check` passed lint, formatting, type checks and all 30 tooling/API tests.
+- `npm run test:db` passed all 18 SQL tests; `npm run test:integration` passed all
+  15 reported HTTP/SQL/Mongo tests, including forbidden scope, altered content,
+  interrupted delivery and unsafe permission drift. Isolated resources were removed.
+- `npm run build` passed. The compiled API completed liveness, login, own transcript,
+  evidence upload/read and logout; its temporary server was stopped.
+- The compiled demo exposed a UUID-contract mismatch with deterministic seed IDs.
+  Fixed validation to accept canonical PostgreSQL UUID values, added a regression,
+  rebuilt and repeated the integration/demo checks successfully. Seed checksums
+  and historical migrations were preserved.
+- Applied migrations `0004`/`0005` locally, provisioned restricted identities and
+  three synthetic accounts. Repeated setup preserves existing credentials.
+
+These are local results; the new branch's remote CI awaits manual publication.
+No files were staged, committed or pushed by the assistant. Grades/evidence remain
+plaintext; RLS, institutional SSO, approval/grade-write APIs and cryptographic
+verification are not claimed.
+
 ## Next milestone
 
-Review the provisional model against owner-supplied diagrams and actual grading,
-attempt and correction rules. The next implementation slice is authenticated,
-scoped API access and the MongoDB evidence boundary; agree on its authorization
-model before adding academic endpoints.
+Review/merge the Week 3 PR after published CI and diff review. Before Week 4 grade
+writes, settle the provisional grading/attempt and approval policy, then implement
+controlled issue/correct transitions with audit and durable outbox delivery.
 
 ## Entry format
 

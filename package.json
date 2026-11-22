@@ -21,7 +21,7 @@
     "start:api": "npm run start --workspace @scholarproof/api",
     "build:contracts": "tsc --build packages/contracts",
     "build": "tsc --build tsconfig.build.json",
-    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json",
+    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json && tsc --project tests/integration/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -38,7 +38,11 @@
     "db:seed": "npm run db:seed --workspace @scholarproof/api",
     "db:demo": "npm run db:demo --workspace @scholarproof/api",
     "db:plan": "npm run db:plan --workspace @scholarproof/api",
-    "test:db": "npm run test:db --workspace @scholarproof/api"
+    "test:db": "npm run test:db --workspace @scholarproof/api",
+    "access:setup": "npm run access:setup --workspace @scholarproof/api",
+    "access:demo": "npm run access:demo --workspace @scholarproof/api",
+    "access:smoke": "npm run access:smoke --workspace @scholarproof/api",
+    "test:integration": "npm run test:integration --workspace @scholarproof/api"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
