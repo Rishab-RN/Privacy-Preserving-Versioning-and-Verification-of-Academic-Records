@@ -239,3 +239,33 @@ Future workflow, audit and outbox relations need their own key/FD review when ad
 Runtime roles and triggers protect ordinary application paths. Owners/superusers
 can bypass them, and neither normalization nor FK checks provide cryptographic
 tamper evidence, factual-grade truth or institutional-policy approval.
+
+## Week 4 additions - migrations 0006 and 0007
+
+The preceding sixteen-table analysis remains a pinned snapshot. The workflow adds
+four relations; none changes the declared keys of the earlier academic tables.
+The extra evidence `(evidence_id, record_id)` UNIQUE set is a non-minimal superkey
+supporting a bound-reference FK, not a newly minimal evidence identity.
+
+| Relation                   | Identifying keys and relevant dependency                                                                                        | Physical design assessment                                                                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflow.change_request`  | `request_id`; `(proposer_id,idempotency_key)`; `evidence_id → record_id` through the immutable evidence reference               | The record copy is a non-key dependency: variable business fields are 2NF, not uniformly 3NF. The composite evidence FK enforces agreement.                                                               |
+| `workflow.decision`        | `request_id` determines its decision/actor/reason/result; `(record_id,version_no)` is unique only for non-null approved results | The request identifies the decision; nullable result/status encoding is enforced with CHECKs. Do not advertise its conditional result key as an unconditional key.                                        |
+| `workflow.domain_event`    | `event_id`; `(request_id,kind)`; `request_id → record_id`                                                                       | The request-to-record copy is partial on the alternate key. This is intentionally immutable audit data, not a normalized mutable business catalogue. The JSON envelope also repeats protocol identifiers. |
+| `workflow.outbox_delivery` | Declared `(event_id,consumer)`; the current consumer CHECK fixes one consumer, implying `event_id` identifies the current row   | Variable delivery state depends on its identity. The fixed consumer tag has the same constant-FD qualification as earlier protocol tags; future multiple consumers change the minimal key.                |
+
+A logical request decomposition could retain its proposal facts and evidence ID
+without a stored record ID, joining `EvidenceRecord(evidence_id,record_id)` to
+restore the record. Shared evidence ID determines the mapping, making that join
+lossless. Similarly, an event fact without the record copy can join
+`RequestRecord(request_id,record_id)`. Such decompositions do not preserve every
+current composite FK, query/permission boundary or historical snapshot requirement
+automatically. No physical decomposition is claimed by this documentation.
+
+Requests, decisions and events are immutable under ordinary application paths;
+controlled functions validate and bind references, and the approval transaction
+updates the head/projection/audit/outbox atomically. Mutable retry/lease state is
+separated from event facts, so retry does not rewrite historical events. This
+limits update anomalies while leaving the stated normal-form exceptions visible.
+See [record workflow](record-workflow.md) for the provisional approval and trust
+boundaries. A later strict-3NF redesign still requires reviewed forward migrations.

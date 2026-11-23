@@ -16,6 +16,10 @@ candidate keys, functional dependencies, logical decompositions and intentional
 physical exceptions. It does not claim every physical table is in 3NF/BCNF or
 replace institutional-policy review.
 
+The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
+approval, the atomic SQL change/audit/outbox boundary and recoverable derived
+delivery. Its SQL/API/worker updates have separate validation and commit points.
+
 The [Week 3 access/evidence design](access-and-evidence.md) records the local
 identity adapter, authorization matrix, restricted database identities, document
 encoding and recoverable SQL/Mongo staging protocol. It preserves the pending

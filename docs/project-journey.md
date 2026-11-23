@@ -200,12 +200,26 @@ decompositions. Physical tenant/predecessor/projection exceptions remain explici
 this is not a blanket 3NF/BCNF certificate or an applied schema redesign. New Week 4
 relations need their own FD review when introduced.
 
+## 2026-11-23 - Atomic SQL workflow slice
+
+The first Week 4 implementation slice adds SQL migrations `0006`/`0007`: immutable
+requests/decisions/events, distinct-registrar approval, bound evidence and leased
+outbox delivery. Atomic rollback, retries, scope, temporal semantics and worker
+lease checks are covered in isolated PostgreSQL tests. Initial proposals also
+freeze their offering's academic context before the first grade exists. The
+[workflow contract](architecture/record-workflow.md) states the prototype policy
+and trust limits; its API/worker integration is a separate update. Development
+rollout has not yet been performed at this commit point.
+
+Verified all 27 PostgreSQL tests, including concurrent fresh migrations and cleanup
+of the generated test database. Formatting and diff checks passed. The runtime
+API/worker updates remain outside this database commit.
+
 ## Next milestone
 
-State the prototype approval policy and implement controlled issue/correct
-transitions with audit and durable outbox
-delivery. Owner diagrams and institutional grading/attempt rules remain open
-review items; implementation assumptions must remain explicit.
+Complete the HTTP workflow, restricted worker/provisioning and compiled end-to-end
+demo as focused updates. Owner diagrams and institutional grading/attempt rules
+remain open review items; implementation assumptions must remain explicit.
 
 ## Entry format
 

@@ -41,6 +41,7 @@ try {
       '--test-concurrency=1',
       join(projectRoot, 'tests/database/academic.test.ts'),
       join(projectRoot, 'tests/database/access.test.ts'),
+      join(projectRoot, 'tests/database/workflow.test.ts'),
       join(projectRoot, 'tests/database/migrations.test.ts'),
     ],
     {
