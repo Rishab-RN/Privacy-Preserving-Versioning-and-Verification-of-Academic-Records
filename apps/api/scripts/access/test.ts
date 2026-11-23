@@ -15,6 +15,10 @@ import {
 import { applyMigrations } from '../db/migrations.js';
 import { configurationValue, configuredPort } from '../lib/service-checks.js';
 import { EVIDENCE_COLLECTION, initializeEvidenceCollection } from '../../src/evidence-store.js';
+import {
+  initializeProjectionCollections,
+  PROJECTION_COLLECTIONS,
+} from '../../../worker/src/projection.js';
 
 class IntegrationHarnessError extends Error {
   constructor(message: string) {
@@ -27,6 +31,10 @@ const suffix = randomUUID().replaceAll('-', '');
 const databaseName = `scholarproof_test_${suffix}`;
 const loginName = `scholarproof_http_${suffix}`;
 const mongoRole = 'http_evidence';
+const workerName = `scholarproof_jobs_${suffix}`;
+const workerRole = 'test_projections';
+const workerPostgresPassword = randomBytes(32).toString('hex');
+const workerMongoPassword = randomBytes(32).toString('hex');
 const postgresPassword = randomBytes(32).toString('hex');
 const mongoPassword = randomBytes(32).toString('hex');
 
@@ -38,13 +46,18 @@ let sqlLoginCreated = false;
 let mongoDatabaseClaimed = false;
 let mongoRoleCreated = false;
 let mongoUserCreated = false;
+let workerSqlCreated = false;
+let workerMongoRoleCreated = false;
+let workerMongoUserCreated = false;
 let cleanupFailed = false;
 let stage = 'configuration';
 
 const safeNames = () =>
   /^scholarproof_test_[a-f0-9]{32}$/.test(databaseName) &&
   /^scholarproof_http_[a-f0-9]{32}$/.test(loginName) &&
-  mongoRole === 'http_evidence';
+  mongoRole === 'http_evidence' &&
+  /^scholarproof_jobs_[a-f0-9]{32}$/.test(workerName) &&
+  workerRole === 'test_projections';
 
 function diagnostic(error: unknown): string {
   return error instanceof IntegrationHarnessError ? error.message : safeDatabaseError(error);
@@ -84,6 +97,11 @@ try {
   );
   sqlLoginCreated = true;
   await maintenance.query(`GRANT scholarproof_api_access TO ${quoteDatabaseName(loginName)}`);
+  await maintenance.query(
+    `CREATE ROLE ${quoteDatabaseName(workerName)} LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '${workerPostgresPassword}'`,
+  );
+  workerSqlCreated = true;
+  await maintenance.query(`GRANT scholarproof_worker_access TO ${quoteDatabaseName(workerName)}`);
 
   stage = 'isolated MongoDB connection';
   const mongoPort = configuredPort(process.env.MONGO_PORT ?? '57017');
@@ -122,6 +140,7 @@ try {
   // collection/validator failure still cleans up only this run's new database.
   mongoDatabaseClaimed = true;
   await initializeEvidenceCollection(mongoDatabase);
+  await initializeProjectionCollections(mongoDatabase);
   stage = 'isolated MongoDB role provisioning';
   await mongoDatabase.command({
     createRole: mongoRole,
@@ -142,6 +161,32 @@ try {
     roles: [{ role: mongoRole, db: databaseName }],
   });
   mongoUserCreated = true;
+  await mongoDatabase.command({
+    createRole: workerRole,
+    roles: [],
+    privileges: [
+      {
+        resource: { db: databaseName, collection: PROJECTION_COLLECTIONS.events },
+        actions: ['find', 'insert'],
+      },
+      {
+        resource: { db: databaseName, collection: PROJECTION_COLLECTIONS.revisions },
+        actions: ['find', 'insert'],
+      },
+      {
+        resource: { db: databaseName, collection: PROJECTION_COLLECTIONS.heads },
+        actions: ['find', 'insert', 'update'],
+      },
+      { resource: { db: databaseName, collection: '' }, actions: ['listCollections'] },
+    ],
+  });
+  workerMongoRoleCreated = true;
+  await mongoDatabase.command({
+    createUser: workerName,
+    pwd: workerMongoPassword,
+    roles: [{ role: workerRole, db: databaseName }],
+  });
+  workerMongoUserCreated = true;
 
   stage = 'HTTP integration checks';
   console.info(
@@ -155,6 +200,7 @@ try {
       '--test-concurrency=1',
       join(projectRoot, 'tests/integration/api.test.ts'),
       join(projectRoot, 'tests/integration/workflow.test.ts'),
+      join(projectRoot, 'tests/integration/worker.test.ts'),
     ],
     {
       cwd: projectRoot,
@@ -171,6 +217,11 @@ try {
         API_MONGO_USER: loginName,
         API_MONGO_PASSWORD: mongoPassword,
         TEST_MONGO_DATABASE: databaseName,
+        WORKER_POSTGRES_USER: workerName,
+        WORKER_POSTGRES_PASSWORD: workerPostgresPassword,
+        WORKER_MONGO_DB: databaseName,
+        WORKER_MONGO_USER: workerName,
+        WORKER_MONGO_PASSWORD: workerMongoPassword,
       },
     },
   );
@@ -185,6 +236,14 @@ try {
     console.error('Refusing cleanup of resources outside this generated integration run');
     process.exitCode = 1;
   } else {
+    if (mongoDatabase && workerMongoUserCreated)
+      await cleanup('worker MongoDB user removal', () =>
+        mongoDatabase!.command({ dropUser: workerName }),
+      );
+    if (mongoDatabase && workerMongoRoleCreated)
+      await cleanup('worker MongoDB role removal', () =>
+        mongoDatabase!.command({ dropRole: workerRole }),
+      );
     if (mongoDatabase && mongoUserCreated) {
       await cleanup('MongoDB user removal', () => mongoDatabase!.command({ dropUser: loginName }));
     }
@@ -204,6 +263,10 @@ try {
         maintenance!.query(`DROP ROLE ${quoteDatabaseName(loginName)}`),
       );
     }
+    if (maintenance && workerSqlCreated)
+      await cleanup('worker PostgreSQL login removal', () =>
+        maintenance!.query(`DROP ROLE ${quoteDatabaseName(workerName)}`),
+      );
   }
   await Promise.allSettled([maintenance?.end(), mongo?.close()]);
   if (sqlDatabaseCreated || mongoDatabaseClaimed) {

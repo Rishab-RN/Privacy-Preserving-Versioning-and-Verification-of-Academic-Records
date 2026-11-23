@@ -21,12 +21,12 @@
     "start:api": "npm run start --workspace @scholarproof/api",
     "build:contracts": "tsc --build packages/contracts",
     "build": "tsc --build tsconfig.build.json",
-    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json && tsc --project tests/integration/tsconfig.json",
+    "typecheck": "npm run build:contracts && tsc --project apps/api/tsconfig.check.json && tsc --project apps/worker/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json && tsc --project tests/integration/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:tooling": "node --test scripts/test/setup.test.mjs scripts/test/doctor.test.mjs",
-    "test": "npm run test:tooling && npm run test --workspace @scholarproof/api",
+    "test": "npm run test:tooling && npm run test --workspace @scholarproof/api && npm run test --workspace @scholarproof/worker",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "infra:config": "docker compose --env-file .env.example -f infra/docker/compose.yaml config --quiet",
     "infra:up": "docker compose --env-file .env -f infra/docker/compose.yaml up -d --wait --wait-timeout 120",
@@ -42,7 +42,11 @@
     "access:setup": "npm run access:setup --workspace @scholarproof/api",
     "access:demo": "npm run access:demo --workspace @scholarproof/api",
     "access:smoke": "npm run access:smoke --workspace @scholarproof/api",
-    "test:integration": "npm run test:integration --workspace @scholarproof/api"
+    "test:integration": "npm run test:integration --workspace @scholarproof/api",
+    "worker:setup": "npm run setup --workspace @scholarproof/worker",
+    "worker:once": "npm run once --workspace @scholarproof/worker",
+    "worker:replay": "npm run replay --workspace @scholarproof/worker",
+    "dev:worker": "npm run dev --workspace @scholarproof/worker"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

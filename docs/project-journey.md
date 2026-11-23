@@ -229,10 +229,25 @@ Shared contracts/API type checks and all 22 API tests passed. The API integratio
 entry point includes the new workflow tests without importing the worker package,
 so this update is independently reviewable from worker provisioning/delivery.
 
+## 2026-11-23 - Recoverable MongoDB projection worker
+
+The worker now consumes committed workflow events using a separate restricted
+SQL/Mongo identity. Immutable receipts/revisions support exact retries; the
+latest-recorded-version pointer cannot regress under delayed delivery. Leases,
+backoff and quarantine are durable SQL state. Replay rebuilds missing derived
+documents from one journal snapshot without acknowledging another worker's leases.
+The [worker guide](../apps/worker/README.md) documents bounds and operator limits.
+
+All eight worker unit tests and 36 reported isolated integration tests passed,
+including partial writes, expired/stale leases, disjoint concurrent claims, Mongo
+outage/recovery, permission drift, Unicode reasons, interruption and journal
+replay. Generated test resources were removed. Development provisioning and the
+compiled full-workflow demonstration remain the next focused update.
+
 ## Next milestone
 
-Complete restricted worker/provisioning and the compiled end-to-end
-demo as focused updates. Owner diagrams and institutional grading/attempt rules
+Complete development rollout and the compiled end-to-end demo as a focused
+update. Owner diagrams and institutional grading/attempt rules
 remain open review items; implementation assumptions must remain explicit.
 
 ## Entry format
