@@ -215,9 +215,23 @@ Verified all 27 PostgreSQL tests, including concurrent fresh migrations and clea
 of the generated test database. Formatting and diff checks passed. The runtime
 API/worker updates remain outside this database commit.
 
+## 2026-11-23 - Controlled HTTP workflow slice
+
+The HTTP workflow slice adds validated/shared proposal/status contracts and
+registrar proposal/approve/reject routes. SQL wrappers recheck sessions and scope;
+there is no caller-supplied actor identity or direct grade-table write. Approval
+returns 202 for committed SQL state and visible pending delivery. The API-only
+integration entry point passed all 25 reported HTTP/SQL/Mongo tests, including
+concurrent corrections and an unavailable document store after evidence staging.
+Worker runtime/provisioning remains a separate update.
+
+Shared contracts/API type checks and all 22 API tests passed. The API integration
+entry point includes the new workflow tests without importing the worker package,
+so this update is independently reviewable from worker provisioning/delivery.
+
 ## Next milestone
 
-Complete the HTTP workflow, restricted worker/provisioning and compiled end-to-end
+Complete restricted worker/provisioning and the compiled end-to-end
 demo as focused updates. Owner diagrams and institutional grading/attempt rules
 remain open review items; implementation assumptions must remain explicit.
 

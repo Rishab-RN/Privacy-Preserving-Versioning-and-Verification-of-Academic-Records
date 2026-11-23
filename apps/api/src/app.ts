@@ -5,6 +5,7 @@ import { ApiFailure } from './errors.js';
 import { evidenceInput, loginInput, parse, transcriptInput, uuid } from './inputs.js';
 import type { Platform } from './platform.js';
 import { WindowLimiter } from './security.js';
+import { installWorkflowRoutes } from './workflow.js';
 
 export function createApp(platform?: Platform) {
   const app = express();
@@ -82,6 +83,7 @@ export function createApp(platform?: Platform) {
     const { principal } = await platform!.authenticate(request.get('authorization'));
     response.json(await platform!.evidence(principal, parse(uuid, request.params.evidenceId)));
   });
+  if (platform) installWorkflowRoutes(api, platform);
   app.use('/api/v1', api);
 
   app.use((_request, response) => {

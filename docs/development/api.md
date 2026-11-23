@@ -1,4 +1,4 @@
-# Week 3 API
+# API development guide
 
 The API binds to `127.0.0.1:4000` by default. All `/api/v1` responses use
 `Cache-Control: no-store`; errors are JSON `{error:{code,message}}` without raw
@@ -69,8 +69,51 @@ Retain the same idempotency key and body when retrying a failed upload. Use a ne
 key for new evidence. Do not print/store bearer tokens in shared terminal captures.
 
 Read the [access/evidence design](../architecture/access-and-evidence.md) for role
-scope, digest encoding and failure semantics. These endpoints do not approve or
-apply academic corrections.
+scope, digest encoding and failure semantics. Controlled academic changes are
+described below; the student walkthrough itself submits evidence only.
+
+## Controlled academic changes - Week 4
+
+Two different active registrars in the record's institution are required. One
+proposes; the other approves/applies or rejects. Students/examiners cannot use
+these routes, and auditors can only read request status in their institution.
+This is a prototype policy, pending institutional review.
+
+| Method/path                                       | Input/result                                                                            |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| POST `/api/v1/records/:recordId/change-requests`  | Bearer + UUID `Idempotency-Key`; proposal JSON below; 201 with immutable request/status |
+| GET `/api/v1/change-requests/:requestId`          | Scoped request, decision, current revision/staleness and delivery states                |
+| POST `/api/v1/change-requests/:requestId/approve` | JSON `{reason}`; 202 after atomic SQL acceptance                                        |
+| POST `/api/v1/change-requests/:requestId/reject`  | JSON `{reason}`; 200 with immutable rejection; no grade append                          |
+
+```json
+{
+  "expectedVersion": 0,
+  "gradePoints": "8.00",
+  "outcome": "passed",
+  "validFrom": "2026-01-01T00:00:00.000000Z",
+  "validUntil": null,
+  "evidenceId": "00000000-0000-0000-0000-000000000001",
+  "reason": "Synthetic initial result for review"
+}
+```
+
+The example evidence ID is a placeholder: use a real `available` evidence receipt
+bound to the target record. Grade points are decimal strings (at most two decimal
+places), or null for `withdrawn`/`incomplete`. Version 0 issues the first result;
+corrections use the latest recorded version as their precondition. Valid-time
+queries still distinguish future/partial corrections from current-effective grades.
+
+Same-key proposal retries with the same semantic numeric/time values and other
+fields return the original request. Changed input conflicts. Approval/rejection
+retries must have the same actor, decision and reason. A stale version returns 409;
+review the new head rather than blindly retrying an outdated proposal.
+
+202 confirms a committed academic transition with durable outbox work. It does not
+claim Mongo availability, projection delivery or signed-credential publication.
+Delivery status reports safe errors/attempts without exposing worker lease tokens.
+See the [workflow contract](../architecture/record-workflow.md) for atomicity,
+privilege and trust boundaries. Requests cannot supply an actor or institution ID.
 
 ## Verification commands
 
