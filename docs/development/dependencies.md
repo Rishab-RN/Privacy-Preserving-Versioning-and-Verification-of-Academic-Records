@@ -6,17 +6,17 @@ does not select an open-source licence. The owner still needs to choose reuse te
 
 ## Week 1 foundation
 
-| Area           | Installed or configured                      | Current use                                               |
-| -------------- | -------------------------------------------- | --------------------------------------------------------- |
-| Runtime        | Node.js 24, npm 11                           | API and repository commands                               |
-| TypeScript     | TypeScript 6.0, TSX, Node types              | Strict compiler and development runner                    |
-| Quality        | ESLint 10, typescript-eslint 8, Prettier 3   | Shared lint/format checks                                 |
-| API            | Express 5, Zod 4                             | HTTP foundation; Zod reserved for domain input validation |
-| SQL            | `pg` and its types                           | Migration/seed CLI and PostgreSQL integration checks      |
-| Documents      | MongoDB Node driver                          | Installed; document operations not yet implemented        |
-| Frontend       | React 19, Vite 8, Tailwind 4 and types       | Installed/type-checked configuration; UI pending          |
-| Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0   | Optional development containers                           |
-| Test runner    | Node's test runner; TSX for TypeScript cases | Tooling/HTTP checks and isolated PostgreSQL tests         |
+| Area           | Installed or configured                      | Current use                                                |
+| -------------- | -------------------------------------------- | ---------------------------------------------------------- |
+| Runtime        | Node.js 24, npm 11                           | API and repository commands                                |
+| TypeScript     | TypeScript 6.0, TSX, Node types              | Strict compiler and development runner                     |
+| Quality        | ESLint 10, typescript-eslint 8, Prettier 3   | Shared lint/format checks                                  |
+| API            | Express 5, Zod 4                             | Scoped HTTP routes and strict domain input validation      |
+| SQL            | `pg` and its types                           | Migrations, temporal queries, approval wrappers and outbox |
+| Documents      | MongoDB Node driver                          | Validated evidence and recoverable workflow projections    |
+| Frontend       | React 19, Vite 8, Tailwind 4 and types       | Installed/type-checked configuration; UI pending           |
+| Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0   | Optional development containers                            |
+| Test runner    | Node's test runner; TSX for TypeScript cases | Tooling/HTTP checks and isolated PostgreSQL tests          |
 
 Versions are exact in manifests and resolved by the lockfile. TypeScript 7 was the
 registry default at setup time, but the selected typescript-eslint release declares
@@ -24,9 +24,9 @@ support below TypeScript 6.1; TypeScript 6.0.3 was chosen to keep the tooling wi
 its declared compatibility range. Change this choice through a tested dependency
 update rather than bypassing peer checks.
 
-The root `build` compiles the implemented API/contracts. It does not pretend to
-build frontend pages, a worker or a verifier before those exist. `typecheck` also
-checks the installed frontend configuration.
+The root `build` compiles the API, shared contracts and worker. `typecheck` also
+checks scripts, tests and the installed frontend configuration. Product pages and
+the independent verifier have not been implemented yet.
 
 Week 2 uses the existing `pg` client and Node tooling for migrations and fixtures;
 no new npm dependency was added. PostgreSQL's `btree_gist` extension supports the
@@ -38,22 +38,35 @@ tokens/SHA-256, Zod for HTTP contracts, and the Mongo driver for validated evide
 No new npm package or external identity server is required. This local identity
 adapter does not establish institutional SSO integration.
 
+Week 4 reuses the same pinned `pg`, MongoDB and Zod versions in a separate worker
+workspace; it adds no external dependency family or queue service. PostgreSQL owns
+atomic approval, the retained journal and leased outbox. MongoDB stores rebuildable
+receipts/revisions and a latest-recorded-version pointer. Provisioning runs with
+administrative local credentials; API and worker runtime identities remain separate
+and restricted. See the [workflow contract](../architecture/record-workflow.md) and
+[worker guide](../../apps/worker/README.md) for failure and replay limits.
+
 ## Introduce dependencies with their implementation stage
 
-| Stage               | Add when needed                                   | Decision gate                                                   |
-| ------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
-| Schema and API      | Migration/auth/session tooling                    | Reviewed model and authentication design                        |
-| Credential issuance | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                     |
-| Graph experiment    | Neo4j driver/server                               | A concrete provenance query and SQL baseline                    |
-| ML experiment       | Python environment, scikit-learn and data tooling | Generator, feature policy and leakage-safe evaluation           |
-| ZK extension        | Circom/snarkjs and circuit dependencies           | Reviewed statement, manifest completeness and setup assumptions |
-| Vector extension    | pgvector or a dedicated engine                    | Labelled use case that justifies the extra infrastructure       |
+| Stage                         | Add when needed                                   | Decision gate                                                                                         |
+| ----------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Schema and API                | Migration/auth/session tooling                    | Reviewed model and authentication design                                                              |
+| Credential issuance           | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                                                           |
+| Required graph provenance     | Neo4j driver/server                               | Week 8: scoped provenance schema, mandatory Cypher queries, SQL comparison and recoverable projection |
+| Required ML anomaly detection | Python environment, scikit-learn and data tooling | Week 9: reproducible generator, rules/model baselines, graph features and leakage-safe evaluation     |
+| Use-case ZK decision          | Circom/snarkjs and circuit dependencies           | Reviewed bounded statement, manifest completeness and setup assumptions                               |
+| Use-case vector decision      | pgvector or a dedicated engine                    | A defined use case that justifies the extra infrastructure                                            |
 
 These later tools are not required to run Week 1 and are not yet installed by this
-repository. Avoid global ML/GPU/toolchain installs and additional services before
-their use case and resource requirements are agreed. Python 3.12 is available on
-the current developer machine; the ML stage will create an isolated, ignored
-environment and a separate locked requirement set.
+repository. Neo4j and Python ML are mandatory in their scheduled stages; installation
+timing does not make them optional. Pin supported versions and verify real
+connectivity/imports when those stages begin. Use an isolated, ignored Python
+environment and a locked requirement set rather than a global ML installation.
+Python 3.12 is available on the current developer machine. ZK/vector dependencies
+remain separate use-case decisions and cannot displace the mandatory components.
+
+The [required capability contract](../architecture/required-capabilities.md)
+defines meaningful Neo4j and ML use cases and the evidence required for completion.
 
 ## Source documentation checked during setup
 

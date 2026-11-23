@@ -164,11 +164,122 @@ No files were staged, committed or pushed by the assistant. Grades/evidence rema
 plaintext; RLS, institutional SSO, approval/grade-write APIs and cryptographic
 verification are not claimed.
 
+## 2026-11-23 - Mandatory graph, ML and tamper-verification scope
+
+- The owner confirmed cryptographic tamper verification, Neo4j provenance and
+  Python ML anomaly detection as required deliverables. This supersedes earlier
+  optional graph/ML descriptions; it does not retroactively claim implementation.
+- Kept ZK predicates and vector search as separate use-case decisions, as the
+  owner clarified. They cannot replace the required work.
+- Defined graph workloads, rules/tabular/graph-feature ML comparisons and integrated
+  integrity-versus-risk outcomes in the [capability contract](architecture/required-capabilities.md).
+- Revised the local roadmap: Week 8 mandatory Neo4j, Week 9 mandatory ML/anomaly
+  detection, Week 10 integrated tamper/witness/recovery evaluation. Week 4 captures
+  the authoritative provenance/events needed by those consumers.
+- Recorded formal normalization analysis as an open Week 2 deliverable to finish
+  before Week 4; separated schema tests do not prove every table is in 3NF.
+
+This change updates requirements and documentation only. Neo4j/ML services, model
+training and the independent cryptographic verifier remain pending. No dependencies
+were installed and no files were staged, committed or pushed.
+
+## 2026-11-23 - Week 4 branch and incremental commit agreement
+
+The owner merged Week 3 in PR #2 (`6da301b`) and authorised Week 4.
+The new working branch is `feat/record-transitions`, based on the fetched merged
+`origin/main`. The owner now permits assistant staging/committing only after
+permission for each focused update; pushes/merges remain manual. Preserve checked
+incremental commits rather than one week-sized implementation commit.
+
+## 2026-11-23 - Formal normalization review
+
+The [normalization review](architecture/normalization.md) is complete for the
+sixteen tables in migrations `0001`-`0005`. It documents minimal/conditional keys,
+FDs, partial dependencies, nullable/fixed-tag qualifications and lossless logical
+decompositions. Physical tenant/predecessor/projection exceptions remain explicit;
+this is not a blanket 3NF/BCNF certificate or an applied schema redesign. New Week 4
+relations need their own FD review when introduced.
+
+## 2026-11-23 - Atomic SQL workflow slice
+
+The first Week 4 implementation slice adds SQL migrations `0006`/`0007`: immutable
+requests/decisions/events, distinct-registrar approval, bound evidence and leased
+outbox delivery. Atomic rollback, retries, scope, temporal semantics and worker
+lease checks are covered in isolated PostgreSQL tests. Initial proposals also
+freeze their offering's academic context before the first grade exists. The
+[workflow contract](architecture/record-workflow.md) states the prototype policy
+and trust limits; its API/worker integration is a separate update. Development
+rollout has not yet been performed at this commit point.
+
+Verified all 27 PostgreSQL tests, including concurrent fresh migrations and cleanup
+of the generated test database. Formatting and diff checks passed. The runtime
+API/worker updates remain outside this database commit.
+
+## 2026-11-23 - Controlled HTTP workflow slice
+
+The HTTP workflow slice adds validated/shared proposal/status contracts and
+registrar proposal/approve/reject routes. SQL wrappers recheck sessions and scope;
+there is no caller-supplied actor identity or direct grade-table write. Approval
+returns 202 for committed SQL state and visible pending delivery. The API-only
+integration entry point passed all 25 reported HTTP/SQL/Mongo tests, including
+concurrent corrections and an unavailable document store after evidence staging.
+Worker runtime/provisioning remains a separate update.
+
+Shared contracts/API type checks and all 22 API tests passed. The API integration
+entry point includes the new workflow tests without importing the worker package,
+so this update is independently reviewable from worker provisioning/delivery.
+
+## 2026-11-23 - Recoverable MongoDB projection worker
+
+The worker now consumes committed workflow events using a separate restricted
+SQL/Mongo identity. Immutable receipts/revisions support exact retries; the
+latest-recorded-version pointer cannot regress under delayed delivery. Leases,
+backoff and quarantine are durable SQL state. Replay rebuilds missing derived
+documents from one journal snapshot without acknowledging another worker's leases.
+The [worker guide](../apps/worker/README.md) documents bounds and operator limits.
+
+All eight worker unit tests and 36 reported isolated integration tests passed,
+including partial writes, expired/stale leases, disjoint concurrent claims, Mongo
+outage/recovery, permission drift, Unicode reasons, interruption and journal
+replay. Generated test resources were removed. Development provisioning and the
+compiled full-workflow demonstration remain the next focused update.
+
+## 2026-11-23 - Week 4 local rollout and operator demonstration
+
+Applied migrations `0006`/`0007` to the existing development database without
+rewriting historical migrations or resetting data. Provisioned the restricted
+worker and two separate synthetic registrars/record. Repeated provisioning
+preserved `.env`, `.env.api`, `.env.worker` and both demo account files byte for
+byte; credentials and fixture metadata remain ignored.
+
+Added a live, institutionally scoped registrar `change-context` endpoint so
+proposals can use the latest recorded version even when a future-effective
+revision differs from the transcript. SQL still rechecks the precondition.
+HTTP/SQL/Mongo reasons now consistently support 500 Unicode codepoints.
+
+`npm run check` passed lint, formatting, types and all 39 reported tooling/API/
+worker tests. All 27 isolated SQL tests and 37 reported integration checks passed;
+generated resources were removed. `npm run build`, compiled access smoke and the
+compiled API proposal/independent approval/worker projection smoke passed. Both
+temporary API processes were stopped. The initial sandboxed quality attempt
+could not connect to its loopback HTTP servers; the permitted service-access run
+passed. CI now defines worker provisioning and the full workflow smoke, but remote
+CI has not run for these unpublished commits.
+
+The local worker CLI also completed an empty one-shot batch and replayed both
+committed demo events idempotently. Migration status confirms `0001`-`0007` applied.
+
+The technical Week 4 slice is locally verified. This does not approve the
+institutional grading policy, provide administrator-resistant proofs or complete
+the product UI. Those boundaries remain explicit in the architecture documents.
+
 ## Next milestone
 
-Review/merge the Week 3 PR after published CI and diff review. Before Week 4 grade
-writes, settle the provisional grading/attempt and approval policy, then implement
-controlled issue/correct transitions with audit and durable outbox delivery.
+Publish/review the Week 4 branch through the owner's manual Git workflow, then
+start Week 5's canonicalization, hashing and Merkle-verification work. Owner
+diagrams and institutional grading/attempt rules remain open review items;
+implementation assumptions must remain explicit. Neo4j and ML/anomaly detection
+remain mandatory later milestones.
 
 ## Entry format
 

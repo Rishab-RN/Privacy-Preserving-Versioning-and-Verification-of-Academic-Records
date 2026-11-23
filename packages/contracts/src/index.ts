@@ -22,3 +22,37 @@ export interface EvidenceReceipt {
   digestSha256: string;
   sizeBytes: number;
 }
+
+export type GradeOutcome = 'passed' | 'failed' | 'withdrawn' | 'incomplete';
+export interface ChangeProposalInput {
+  expectedVersion: number;
+  gradePoints: string | null;
+  outcome: GradeOutcome;
+  validFrom: string;
+  validUntil: string | null;
+  evidenceId: string;
+  reason: string;
+}
+export interface ChangeRequestStatus extends ChangeProposalInput {
+  requestId: string;
+  recordId: string;
+  submittedBy: string;
+  submittedAt: string;
+  currentVersion: number;
+  stale: boolean;
+  decision: null | {
+    code: 'approved' | 'rejected';
+    actorId: string;
+    reason: string;
+    versionNo: number | null;
+    decidedAt: string;
+  };
+  deliveries: {
+    eventId: string;
+    kind: 'request.submitted' | 'request.rejected' | 'grade.accepted';
+    state: 'pending' | 'leased' | 'delivered' | 'quarantined';
+    attempts: number;
+    nextAttemptAt: string;
+    lastErrorCode: string | null;
+  }[];
+}

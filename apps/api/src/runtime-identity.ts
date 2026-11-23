@@ -21,6 +21,7 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
           OR m.roleid IS DISTINCT FROM (SELECT oid FROM identities WHERE NOT is_login)
       )
       AND NOT EXISTS (SELECT 1 FROM pg_database WHERE datdba IN (SELECT oid FROM identities))
+      AND NOT EXISTS (SELECT 1 FROM identities i WHERE has_database_privilege(i.oid,current_database(),'CREATE'))
       AND NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner IN (SELECT oid FROM identities))
       AND NOT EXISTS (SELECT 1 FROM pg_class WHERE relowner IN (SELECT oid FROM identities))
       AND NOT EXISTS (SELECT 1 FROM pg_proc WHERE proowner IN (SELECT oid FROM identities))
@@ -34,6 +35,12 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
         WHERE n.nspname='academic' AND c.relkind IN ('r','p','v','m','f')
           AND (has_table_privilege(i.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
             OR has_any_column_privilege(i.oid,c.oid,'INSERT,UPDATE,REFERENCES'))
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN identities i
+        WHERE n.nspname='workflow' AND c.relkind IN ('r','p','v','m','f')
+          AND (has_table_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+            OR has_any_column_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
       )
       AND NOT EXISTS (
         SELECT 1 FROM identities i WHERE has_function_privilege(i.oid,
@@ -71,6 +78,12 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
           AND has_table_privilege(i.oid,'evidence.reference','INSERT')
           AND has_column_privilege(i.oid,'evidence.reference','state','UPDATE')
           AND has_function_privilege(i.oid,'academic.transcript_as_of(uuid,timestamptz,timestamptz)','EXECUTE')
+          AND has_schema_privilege(i.oid,'workflow','USAGE')
+          AND has_function_privilege(i.oid,'workflow.propose_change(text,uuid,uuid,integer,numeric,text,timestamptz,timestamptz,uuid,text)','EXECUTE')
+          AND has_function_privilege(i.oid,'workflow.approve_change(text,uuid,text)','EXECUTE')
+          AND has_function_privilege(i.oid,'workflow.reject_change(text,uuid,text)','EXECUTE')
+          AND has_function_privilege(i.oid,'workflow.get_change(text,uuid)','EXECUTE')
+          AND NOT has_function_privilege(i.oid,'workflow.claim_deliveries(integer,integer)','EXECUTE')
           AND NOT EXISTS (
             SELECT 1 FROM unnest(ARRAY[
               'academic.institution','academic.app_user','academic.role_assignment','academic.student',

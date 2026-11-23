@@ -28,6 +28,13 @@ derived projection. This is controlled redundancy, not a claim that every table
 is in third normal form. No stored GPA is maintained; official aggregation rules
 remain undecided.
 
+The [formal normalization review](normalization.md) now records the keys/FDs and
+normal-form results for all sixteen Week 2/3 business tables. In particular,
+some tenant copies create partial dependencies; adding UUID primary keys does
+not make those tables 3NF. The review gives lossless logical decompositions and
+explains the retained composite-FK consistency tradeoff without rewriting applied
+migrations.
+
 There is no MongoDB academic authority, approval workflow, credential format,
 Merkle log, encryption, erasure operation, or cryptographic proof in this migration.
 They remain later stages. Grade facts are currently plaintext under database access

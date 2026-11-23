@@ -23,11 +23,11 @@ export interface EvidenceReference {
 }
 
 // Re-evaluate live institutional/subject permissions inside each resource query.
-const scope = (student = 's', auditor = false) => `EXISTS (
+const scope = (student = 's', auditor = false, registrarOnly = false) => `EXISTS (
   SELECT 1 FROM academic.role_assignment ra JOIN academic.app_user u ON u.user_id=ra.user_id
   WHERE ra.user_id=$1 AND u.account_state='active' AND ra.institution_id=${student}.institution_id
   AND (ra.role_code IN ('registrar'${auditor ? ", 'auditor'" : ''})
-       OR (ra.role_code='student' AND ${student}.user_id=$1)))`;
+       ${registrarOnly ? '' : `OR (ra.role_code='student' AND ${student}.user_id=$1)`}))`;
 const columns = 'r.*, r.created_at::text AS created_at';
 
 export class Repository {
@@ -99,10 +99,14 @@ export class Repository {
       .filter((row) => row.record_id !== null)
       .map(({ student_id: _student, ...row }) => row);
   }
-  async record(userId: string, recordId: string) {
-    const result = await this.sql.query<{ institution_id: string }>(
-      `SELECT gr.institution_id FROM academic.grade_record gr JOIN academic.enrolment e USING(enrolment_id)
-       JOIN academic.student s USING(student_id) WHERE gr.record_id=$2 AND ${scope()}`,
+  async record(userId: string, recordId: string, registrarOnly = false) {
+    const result = await this.sql.query<{
+      institution_id: string;
+      latest_recorded_version: number;
+    }>(
+      `SELECT gr.institution_id,coalesce(gr.latest_version_no,0) AS latest_recorded_version
+       FROM academic.grade_record gr JOIN academic.enrolment e USING(enrolment_id)
+       JOIN academic.student s USING(student_id) WHERE gr.record_id=$2 AND ${scope('s', false, registrarOnly)}`,
       [userId, recordId],
     );
     return result.rows[0] ?? null;

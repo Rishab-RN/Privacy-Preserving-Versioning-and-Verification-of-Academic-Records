@@ -7,9 +7,15 @@ invariants before extending the model; explicitly label any owner-requested
 provisional implementation and its unresolved assumptions. Update documentation
 in the same change as the behaviour it describes.
 
-Staging, commits and pushes are performed manually by the project owner. Assistants
-may edit and verify authorised work but must not run `git add`, `git commit` or
-`git push` under the current project instructions.
+Assistants may edit and verify authorised work. Before staging/committing a
+focused update, present its exact files, validation and proposed commit message,
+then obtain the owner's permission for that commit. Approval of one commit does
+not approve later commits. Pushes and merges remain manual owner actions unless
+separately authorised.
+
+Commit coherent, checked updates throughout each stage instead of accumulating a
+whole week's implementation into one commit. Keep a change's meaningful tests and
+required migration/docs together so every approved commit is reviewable.
 
 ## Branches
 

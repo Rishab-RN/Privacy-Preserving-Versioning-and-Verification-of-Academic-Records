@@ -7,9 +7,10 @@ the first commit on `main`. Its `origin` is:
 https://github.com/Rishab-RN/Privacy-Preserving-Versioning-and-Verification-of-Academic-Records.git
 ```
 
-The commands below are for contributors to run manually. Under the current working
-agreement, assistants may edit and verify authorised work but must not run
-`git add`, `git commit` or `git push`.
+The commands below describe the contributor workflow. Assistants may prepare and
+verify authorised changes, then stage/commit a specific update only after the
+owner approves its file list and commit message. Obtain permission for each commit.
+Pushes and merges remain manual owner actions unless separately authorised.
 
 ## Start a focused branch
 
@@ -76,8 +77,8 @@ shared branch or rewrite another contributor's commits.
 Create the PR once a coherent change is committed/pushed and local checks pass.
 Merge after its diff is reviewed and the published GitHub checks pass. At each
 assistant handoff, distinguish **ready for PR** from **ready to merge**; a local
-pass alone does not establish the latter. Staging, commits, pushes and merges stay
-under the owner's manual control.
+pass alone does not establish the latter. An assistant can stage/commit an approved
+update; pushes and merges stay under the owner's manual control.
 
 ## GitHub repository settings
 
@@ -90,6 +91,10 @@ enabled before they are configured.
 ## Maintenance conventions
 
 - Keep one coherent change per branch and commit.
+- Prepare focused commits as updates pass their checks; do not wait to bundle a
+  whole week. Include relevant tests/migrations/docs with the behaviour they verify.
+- Ask for commit permission only after the change is concrete and reviewable.
+  Name the exact files, checks and short message; stage only that approved set.
 - Keep Conventional Commit subjects short; explain non-obvious reasons in the body.
 - Commit the npm lockfile with intentional dependency changes.
 - Update setup documentation when commands change and the journey at meaningful

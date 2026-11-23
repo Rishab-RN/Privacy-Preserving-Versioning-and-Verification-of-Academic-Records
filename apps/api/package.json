@@ -17,7 +17,9 @@
     "access:setup": "tsx --env-file-if-exists=../../.env scripts/access/setup.ts",
     "access:demo": "tsx --env-file-if-exists=../../.env scripts/access/demo.ts",
     "access:smoke": "tsx scripts/access/smoke.ts",
-    "test:integration": "tsx --env-file-if-exists=../../.env scripts/access/test.ts"
+    "test:integration": "tsx --env-file-if-exists=../../.env scripts/access/test.ts",
+    "workflow:demo": "tsx --env-file-if-exists=../../.env scripts/workflow/demo.ts",
+    "workflow:smoke": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.worker scripts/workflow/smoke.ts"
   },
   "dependencies": {
     "@scholarproof/contracts": "0.1.0",
