@@ -46,7 +46,9 @@
     "worker:setup": "npm run setup --workspace @scholarproof/worker",
     "worker:once": "npm run once --workspace @scholarproof/worker",
     "worker:replay": "npm run replay --workspace @scholarproof/worker",
-    "dev:worker": "npm run dev --workspace @scholarproof/worker"
+    "dev:worker": "npm run dev --workspace @scholarproof/worker",
+    "workflow:demo": "npm run workflow:demo --workspace @scholarproof/api",
+    "workflow:smoke": "npm run workflow:smoke --workspace @scholarproof/api"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

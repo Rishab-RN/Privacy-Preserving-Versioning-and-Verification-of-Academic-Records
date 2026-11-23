@@ -13,8 +13,9 @@ Record diagram versions and review status here when the owner supplies them.
 
 The [normalization review](normalization.md) covers migrations `0001`-`0005`,
 candidate keys, functional dependencies, logical decompositions and intentional
-physical exceptions. It does not claim every physical table is in 3NF/BCNF or
-replace institutional-policy review.
+physical exceptions, with a separate appendix for the four Week 4 workflow
+relations. It does not claim every physical table is in 3NF/BCNF or replace
+institutional-policy review.
 
 The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
 approval, the atomic SQL change/audit/outbox boundary and recoverable derived

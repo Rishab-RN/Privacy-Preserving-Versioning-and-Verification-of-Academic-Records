@@ -159,6 +159,14 @@ test('HTTP academic changes require distinct scoped registrars and retain durabl
   await context.test(
     'available evidence and a proposal leave academic facts untouched until independent approval',
     async () => {
+      const preparation = await request(`/records/${f.id('record')}/change-context`, {
+        token: proposer.token,
+      });
+      assert.equal(preparation.status, 200);
+      assert.deepEqual(preparation.body, {
+        recordId: f.id('record'),
+        latestRecordedVersion: 0,
+      });
       const evidence = await post(
         `/records/${f.id('record')}/evidence`,
         proposer.token,
@@ -195,9 +203,38 @@ test('HTTP academic changes require distinct scoped registrars and retain durabl
   await context.test(
     'HTTP role, tenant, session and strict-input checks reject unauthorized transitions',
     async () => {
+      const preparationPath = `/records/${f.id('record')}/change-context`;
       for (const token of [student.token, auditor.token, examiner.token]) {
         assert.equal((await propose(body(0), token)).status, 403);
         assert.equal((await approve(initialRequest, token)).status, 403);
+        assert.equal((await request(preparationPath, { token })).status, 403);
+      }
+      assert.equal((await request(preparationPath)).status, 401);
+      assert.equal((await request(preparationPath, { token: disabled.token })).status, 401);
+      assert.equal((await request(preparationPath, { token: foreign.token })).status, 404);
+      assert.equal(
+        (await request('/records/not-a-uuid/change-context', { token: proposer.token })).status,
+        400,
+      );
+      const revoked = await session(proposer.userId);
+      await admin.query(
+        'UPDATE access_control.api_session SET revoked_at=clock_timestamp() WHERE token_digest=$1',
+        [digestToken(revoked)],
+      );
+      assert.equal((await request(preparationPath, { token: revoked })).status, 401);
+      // A registrar role elsewhere must not turn a linked student into an
+      // institutional registrar through the evidence endpoint's broader scope.
+      await admin.query(
+        "INSERT INTO academic.role_assignment(institution_id,user_id,role_code) VALUES($1,$2,'registrar')",
+        [other.id('institution'), student.userId],
+      );
+      try {
+        assert.equal((await request(preparationPath, { token: student.token })).status, 404);
+      } finally {
+        await admin.query(
+          "DELETE FROM academic.role_assignment WHERE institution_id=$1 AND user_id=$2 AND role_code='registrar'",
+          [other.id('institution'), student.userId],
+        );
       }
       assert.equal((await propose(body(0), foreign.token)).status, 404);
       assert.equal((await approve(initialRequest, foreign.token)).status, 404);
@@ -332,6 +369,11 @@ test('HTTP academic changes require distinct scoped registrars and retain durabl
       const accepted = await approve(change(result).requestId);
       assert.equal(accepted.status, 202);
       assert.equal(change(accepted).currentVersion, 3);
+      const preparation = await request(`/records/${f.id('record')}/change-context`, {
+        token: proposer.token,
+      });
+      assert.equal(preparation.status, 200);
+      assert.equal(preparation.body.latestRecordedVersion, 3);
       const known = await admin.query<{ known: string }>(
         `SELECT to_char(recorded_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS known
       FROM academic.grade_version WHERE record_id=$1 AND version_no=3`,
@@ -383,6 +425,15 @@ test('HTTP academic changes require distinct scoped registrars and retain durabl
       assert.equal(unknown.status, 404);
     },
   );
+  await context.test('HTTP reason limits match PostgreSQL Unicode codepoints', async () => {
+    assert.equal((await propose({ ...body(4), reason: '😀'.repeat(501) })).status, 400);
+    const proposed = await propose({ ...body(4), reason: '😀'.repeat(500) });
+    assert.equal(proposed.status, 201);
+    const path = `/change-requests/${change(proposed).requestId}/reject`;
+    assert.equal((await post(path, approver.token, { reason: '😀'.repeat(501) })).status, 400);
+    assert.equal((await post(path, approver.token, { reason: '😀'.repeat(500) })).status, 200);
+    assert.equal(await gradeCount(), 4);
+  });
   await context.test('startup rejects database CREATE privileges on the API identity', async () => {
     const identity = process.env.API_POSTGRES_USER ?? '';
     assert.match(identity, /^scholarproof_http_[a-f0-9]{32}$/);

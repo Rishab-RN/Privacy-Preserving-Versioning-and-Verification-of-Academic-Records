@@ -244,11 +244,42 @@ outage/recovery, permission drift, Unicode reasons, interruption and journal
 replay. Generated test resources were removed. Development provisioning and the
 compiled full-workflow demonstration remain the next focused update.
 
+## 2026-11-23 - Week 4 local rollout and operator demonstration
+
+Applied migrations `0006`/`0007` to the existing development database without
+rewriting historical migrations or resetting data. Provisioned the restricted
+worker and two separate synthetic registrars/record. Repeated provisioning
+preserved `.env`, `.env.api`, `.env.worker` and both demo account files byte for
+byte; credentials and fixture metadata remain ignored.
+
+Added a live, institutionally scoped registrar `change-context` endpoint so
+proposals can use the latest recorded version even when a future-effective
+revision differs from the transcript. SQL still rechecks the precondition.
+HTTP/SQL/Mongo reasons now consistently support 500 Unicode codepoints.
+
+`npm run check` passed lint, formatting, types and all 39 reported tooling/API/
+worker tests. All 27 isolated SQL tests and 37 reported integration checks passed;
+generated resources were removed. `npm run build`, compiled access smoke and the
+compiled API proposal/independent approval/worker projection smoke passed. Both
+temporary API processes were stopped. The initial sandboxed quality attempt
+could not connect to its loopback HTTP servers; the permitted service-access run
+passed. CI now defines worker provisioning and the full workflow smoke, but remote
+CI has not run for these unpublished commits.
+
+The local worker CLI also completed an empty one-shot batch and replayed both
+committed demo events idempotently. Migration status confirms `0001`-`0007` applied.
+
+The technical Week 4 slice is locally verified. This does not approve the
+institutional grading policy, provide administrator-resistant proofs or complete
+the product UI. Those boundaries remain explicit in the architecture documents.
+
 ## Next milestone
 
-Complete development rollout and the compiled end-to-end demo as a focused
-update. Owner diagrams and institutional grading/attempt rules
-remain open review items; implementation assumptions must remain explicit.
+Publish/review the Week 4 branch through the owner's manual Git workflow, then
+start Week 5's canonicalization, hashing and Merkle-verification work. Owner
+diagrams and institutional grading/attempt rules remain open review items;
+implementation assumptions must remain explicit. Neo4j and ML/anomaly detection
+remain mandatory later milestones.
 
 ## Entry format
 

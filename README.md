@@ -3,9 +3,11 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 3 - scoped access and evidence.** The SQL foundation now has
-authenticated transcript reads, revocable sessions and integrity-checked MongoDB
-evidence forms. Grade writes, approval workflows and product UI remain later stages.
+**Current phase: Week 4 - approved record changes and durable delivery.** Scoped
+transcript/evidence access now supports immutable change requests, approval by a
+different institutional registrar and atomic SQL grade revisions. A restricted
+worker delivers recoverable MongoDB projections. Product UI and cryptographic
+verification remain later stages.
 The academic model is provisional pending the owner's diagrams and policy review.
 
 ## Problem
@@ -39,9 +41,10 @@ will depend on measured evidence.
 | Area                       | Direction                                                           |
 | -------------------------- | ------------------------------------------------------------------- |
 | Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending      |
-| API                        | Node.js/Express/TypeScript; local sessions and scoped reads         |
-| Academic authority         | PostgreSQL 18; migrations, version history and temporal queries     |
-| Flexible evidence/packages | MongoDB; bounded validated evidence, SQL references and digests     |
+| API                        | Node.js/Express/TypeScript; scoped access and registrar approval    |
+| Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox     |
+| Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies    |
+| Background delivery        | Restricted Node worker; leased retries and bounded journal replay   |
 | Verification               | Signed credentials and Merkle proofs planned; no verifier yet       |
 | Required graph provenance  | Neo4j and Cypher queries; implementation pending                    |
 | Required anomaly detection | Python ML, rules and graph-derived features; implementation pending |
@@ -64,7 +67,7 @@ signal rather than proof of fraud.
 apps/
   api/                      API startup, configuration and HTTP tests
   web/                      Installed frontend toolchain; product UI pending
-  worker/                   Reserved durable-job boundary
+  worker/                   Restricted outbox consumer and Mongo projections
 packages/
   contracts/                Shared transport types
   verification/             Reserved independent verification boundary
@@ -74,7 +77,7 @@ scripts/                    Repository maintenance utilities
 tests/                      PostgreSQL and real HTTP/SQL/Mongo integration checks
 .github/                    CI, issue and pull-request templates
 docs/
-  architecture/             Reviewed diagrams and design documentation
+  architecture/             Design contracts and schema reviews; owner diagrams pending
   development/              Contributor and Git workflow documentation
   project-journey.md         Dated milestones and decisions
 CONTRIBUTING.md              Collaboration and review conventions
@@ -155,8 +158,35 @@ npm run dev:api
 in ignored `.env.api`. `access:demo` provisions three synthetic logins with random
 passwords in ignored `.runtime/demo-accounts.json`; credentials are never printed.
 See the [API walkthrough](docs/development/api.md) and
-[access/evidence design](docs/architecture/access-and-evidence.md). These routes
-do not issue or correct grades, and stored data is currently plaintext.
+[access/evidence design](docs/architecture/access-and-evidence.md). Stored academic
+and evidence data is currently plaintext.
+
+For approved academic changes, provision the separate worker identity after the
+migrations above:
+
+```powershell
+npm run worker:setup
+npm run worker:once
+# Keep delivery running in a separate terminal:
+npm run dev:worker
+# Replay retained events into missing derived documents:
+npm run worker:replay
+```
+
+The API accepts a proposal from one registrar and approval or rejection from a
+different registrar in that institution. Approval returns 202 after the SQL
+transition commits; request status tracks Mongo delivery separately. The worker
+preserves immutable copies and advances a latest-recorded-version pointer;
+effective-time transcript queries remain authoritative in SQL. Read the
+[workflow contract](docs/architecture/record-workflow.md) and
+[worker guide](apps/worker/README.md) for retry, replay and trust limits.
+`.env.worker` contains generated worker credentials and stays Git-ignored.
+
+For a repeatable local demonstration after `npm run build`, run `npm run
+workflow:demo` then `npm run workflow:smoke`. This creates separate synthetic
+registrars/record, approves a change and confirms its Mongo projection. Each smoke
+run appends a synthetic version. Stop other local workers before this check; see
+the API guide for the ignored demo account files.
 
 The CI definition runs quality checks and builds on Windows and Linux, plus a
 PostgreSQL 18/MongoDB 8 integration job on Linux, for topic-branch pushes and pull requests.

@@ -1,7 +1,7 @@
 import type { Router } from 'express';
 import type { ChangeProposalInput, ChangeRequestStatus } from '@scholarproof/contracts';
 import { z } from 'zod';
-import { ApiFailure } from './errors.js';
+import { ApiFailure, forbidden, notFound } from './errors.js';
 import { parse, uuid } from './inputs.js';
 import type { Platform } from './platform.js';
 
@@ -9,7 +9,7 @@ const timestamp = z.iso.datetime({ offset: true }).refine((value) => !/\.\d{7,}/
 const reason = z
   .string()
   .min(1)
-  .max(500)
+  .refine((value) => Array.from(value).length <= 500)
   .refine((value) => value.trim().length > 0);
 const proposal = z
   .object({
@@ -56,6 +56,16 @@ export function workflowFailure(error: unknown): never {
 }
 
 export function installWorkflowRoutes(router: Router, platform: Platform) {
+  router.get('/records/:recordId/change-context', async (request, response) => {
+    const { principal } = await platform.authenticate(request.get('authorization'));
+    const recordId = parse(uuid, request.params.recordId);
+    if (!principal.roles.some(({ role }) => role === 'registrar')) throw forbidden();
+    const record = await platform.repository.record(principal.userId, recordId, true);
+    if (!record) throw notFound();
+    // Advisory preparation only: SQL checks the expected version again when
+    // proposing and applying a change, including concurrent corrections.
+    response.json({ recordId, latestRecordedVersion: record.latest_recorded_version });
+  });
   const status = async (digest: string, requestId: string) => {
     const result = await platform.repository.sql.query<{ value: ChangeRequestStatus }>(
       'SELECT workflow.get_change($1,$2) AS value',

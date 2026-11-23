@@ -79,12 +79,13 @@ proposes; the other approves/applies or rejects. Students/examiners cannot use
 these routes, and auditors can only read request status in their institution.
 This is a prototype policy, pending institutional review.
 
-| Method/path                                       | Input/result                                                                            |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| POST `/api/v1/records/:recordId/change-requests`  | Bearer + UUID `Idempotency-Key`; proposal JSON below; 201 with immutable request/status |
-| GET `/api/v1/change-requests/:requestId`          | Scoped request, decision, current revision/staleness and delivery states                |
-| POST `/api/v1/change-requests/:requestId/approve` | JSON `{reason}`; 202 after atomic SQL acceptance                                        |
-| POST `/api/v1/change-requests/:requestId/reject`  | JSON `{reason}`; 200 with immutable rejection; no grade append                          |
+| Method/path                                       | Input/result                                                                              |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| GET `/api/v1/records/:recordId/change-context`    | Institutional registrar only; `{recordId,latestRecordedVersion}` for proposal preparation |
+| POST `/api/v1/records/:recordId/change-requests`  | Bearer + UUID `Idempotency-Key`; proposal JSON below; 201 with immutable request/status   |
+| GET `/api/v1/change-requests/:requestId`          | Scoped request, decision, current revision/staleness and delivery states                  |
+| POST `/api/v1/change-requests/:requestId/approve` | JSON `{reason}`; 202 after atomic SQL acceptance                                          |
+| POST `/api/v1/change-requests/:requestId/reject`  | JSON `{reason}`; 200 with immutable rejection; no grade append                            |
 
 ```json
 {
@@ -101,7 +102,9 @@ This is a prototype policy, pending institutional review.
 The example evidence ID is a placeholder: use a real `available` evidence receipt
 bound to the target record. Grade points are decimal strings (at most two decimal
 places), or null for `withdrawn`/`incomplete`. Version 0 issues the first result;
-corrections use the latest recorded version as their precondition. Valid-time
+corrections use the latest recorded version from `change-context` as their
+precondition. This read is advisory: a concurrent approval can still make a
+proposal stale, and SQL checks the precondition again at approval. Valid-time
 queries still distinguish future/partial corrections from current-effective grades.
 
 Same-key proposal retries with the same semantic numeric/time values and other
@@ -123,6 +126,9 @@ npm run build
 npm run test:db
 npm run test:integration
 npm run access:smoke
+npm run worker:setup
+npm run workflow:demo
+npm run workflow:smoke
 ```
 
 The integration harness creates isolated SQL/Mongo databases and restricted
@@ -135,3 +141,12 @@ manual cleanup. GitHub CI defines the same checks with disposable service contai
 It starts/stops a temporary compiled server and adds one synthetic evidence note
 to the demo record. It checks the actual packaged API, including seeded IDs; it
 does not reset local data. CI performs this demo against its disposable services.
+
+`workflow:demo` adds two distinct synthetic registrars and a separate synthetic
+record. It preserves passwords in ignored `.runtime/workflow-accounts.json` and
+record metadata in `.runtime/workflow-fixture.json`. `workflow:smoke` starts a
+temporary compiled API, stages evidence, proposes a change, approves as the second
+registrar and confirms delivery using the restricted worker. Each run appends one
+synthetic version; it does not reset history. Run it without another worker
+processing this local demo queue. Neither command prints credentials or tokens.
+See the [worker guide](../../apps/worker/README.md) for retry and replay limits.

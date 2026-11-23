@@ -8,7 +8,7 @@ root unless a guide explicitly says otherwise.
 apps/
   api/                      HTTP API and backend composition
   web/                      React/Vite/Tailwind toolchain; UI entry pending
-  worker/                   Reserved background processing boundary (README only)
+  worker/                   Restricted outbox consumer and MongoDB projections
 packages/
   contracts/                Shared request/response types and data contracts
   verification/             Reserved verification boundary (README only)
@@ -32,8 +32,9 @@ docs/
 The API startup slice and shared contracts package contain implemented source.
 The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependencies
 installed, plus a type-checked Vite configuration. It has no UI entry or runnable
-frontend yet. Worker and verification directories contain ownership notes only;
-they do not establish that a job pipeline or cryptographic verifier exists.
+frontend yet. The worker contains the implemented MongoDB projection consumer,
+provisioning and journal replay. The verification directory remains reserved;
+there is no independent cryptographic verifier yet.
 
 Repository automation lives in `scripts/` and is exposed through root npm
 commands. `setup` creates missing local configuration without replacing an
@@ -58,8 +59,10 @@ Administrative access provisioning/demo/test harnesses live in
 `apps/api/scripts/access/`, separately from request handlers. Cross-store HTTP
 checks are in `tests/integration/`. No new dependency was added for this slice.
 
-- Applications may use shared packages. Avoid importing another application's
-  internal source files directly.
+- Runtime applications may use shared packages; they do not import another
+  application's internal source files. Administrative demo and integration scripts
+  may compose API/worker helpers to verify the full workflow. Those scripts stay
+  outside the HTTP server's runtime dependency graph.
 - `packages/contracts/` defines shared interfaces; it must not create a second
   source of academic truth or depend on a specific application's database client.
 - `packages/verification/` will contain verification logic that can be checked

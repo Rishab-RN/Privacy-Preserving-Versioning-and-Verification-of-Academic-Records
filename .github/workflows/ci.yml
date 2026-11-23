@@ -93,5 +93,8 @@ jobs:
       - run: npm run db:plan
       - run: npm run access:setup
       - run: npm run access:demo
+      - run: npm run worker:setup
+      - run: npm run workflow:demo
       - run: npm run build
       - run: npm run access:smoke
+      - run: npm run workflow:smoke
