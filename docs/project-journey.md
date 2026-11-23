@@ -191,10 +191,19 @@ The new working branch is `feat/record-transitions`, based on the fetched merged
 permission for each focused update; pushes/merges remain manual. Preserve checked
 incremental commits rather than one week-sized implementation commit.
 
+## 2026-11-23 - Formal normalization review
+
+The [normalization review](architecture/normalization.md) is complete for the
+sixteen tables in migrations `0001`-`0005`. It documents minimal/conditional keys,
+FDs, partial dependencies, nullable/fixed-tag qualifications and lossless logical
+decompositions. Physical tenant/predecessor/projection exceptions remain explicit;
+this is not a blanket 3NF/BCNF certificate or an applied schema redesign. New Week 4
+relations need their own FD review when introduced.
+
 ## Next milestone
 
-Finish the formal normalization analysis, state the prototype approval policy and
-implement controlled issue/correct transitions with audit and durable outbox
+State the prototype approval policy and implement controlled issue/correct
+transitions with audit and durable outbox
 delivery. Owner diagrams and institutional grading/attempt rules remain open
 review items; implementation assumptions must remain explicit.
 

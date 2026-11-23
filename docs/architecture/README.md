@@ -11,6 +11,11 @@ the workflows. Implemented behaviour is not institutional-policy approval.
 
 Record diagram versions and review status here when the owner supplies them.
 
+The [normalization review](normalization.md) covers migrations `0001`-`0005`,
+candidate keys, functional dependencies, logical decompositions and intentional
+physical exceptions. It does not claim every physical table is in 3NF/BCNF or
+replace institutional-policy review.
+
 The [Week 3 access/evidence design](access-and-evidence.md) records the local
 identity adapter, authorization matrix, restricted database identities, document
 encoding and recoverable SQL/Mongo staging protocol. It preserves the pending
