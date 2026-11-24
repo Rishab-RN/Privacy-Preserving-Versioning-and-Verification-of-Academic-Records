@@ -11,16 +11,16 @@ test('tenant-safe foreign keys and enrolment uniqueness', async (context) => {
   const f = await fixture(client);
   await assert.rejects(
     client.query(
-      "INSERT INTO academic.student(institution_id,programme_id,student_code,admission_year) VALUES($1,$2,'CROSS_TENANT',2026)",
+      "SELECT academic.register_student(gen_random_uuid(),$1,$2,'CROSS_TENANT',2026::smallint)",
       [f.id('institution'), f.id('otherProgramme')],
     ),
     code('23503'),
   );
   await assert.rejects(
-    client.query(
-      'INSERT INTO academic.enrolment(institution_id,student_id,offering_id) VALUES($1,$2,$3)',
-      [f.id('institution'), f.id('student'), f.id('offering')],
-    ),
+    client.query('INSERT INTO academic.enrolment(student_id,offering_id) VALUES($1,$2)', [
+      f.id('student'),
+      f.id('offering'),
+    ]),
     code('23505'),
   );
   await assert.rejects(
@@ -124,18 +124,15 @@ test('direct inserts cannot skip history or supply their own recorded timestamp'
   const f = await fixture(client);
   await f.append(0, 6);
   const insert = `INSERT INTO academic.grade_version
-    (record_id,version_no,institution_id,grade_points,outcome,valid_during,recorded_at,author_id,reason)
-    VALUES($1,$2,$3,8,'passed',tstzrange('2026-01-01',NULL,'[)'), '1900-01-01',$4,'Synthetic direct SQL')`;
+    (record_id,version_no,grade_points,outcome,valid_during,recorded_at,author_id,reason)
+    VALUES($1,$2,8,'passed',tstzrange('2026-01-01',NULL,'[)'), '1900-01-01',$3,'Synthetic direct SQL')`;
+  await assert.rejects(client.query(insert, [f.id('record'), 3, f.id('author')]), code('23514'));
   await assert.rejects(
-    client.query(insert, [f.id('record'), 3, f.id('institution'), f.id('author')]),
-    code('23514'),
-  );
-  await assert.rejects(
-    client.query(insert, [f.id('record'), 2, f.id('otherInstitution'), f.id('author')]),
+    client.query(insert, [f.id('otherInstitution'), 1, f.id('author')]),
     code('23503'),
   );
   const known = await f.recorded(1);
-  await client.query(insert, [f.id('record'), 2, f.id('institution'), f.id('author')]);
+  await client.query(insert, [f.id('record'), 2, f.id('author')]);
   const clock = await client.query<{ monotonic: boolean }>(
     'SELECT recorded_at > $2::timestamptz AS monotonic FROM academic.grade_version WHERE record_id=$1 AND version_no=2',
     [f.id('record'), known],
@@ -172,7 +169,7 @@ test('partial correction splits valid time, keeps outside pieces and uses half-o
   assert.equal(segments.rows[0]?.count, '3');
   await assert.rejects(
     client.query(
-      'INSERT INTO academic.grade_temporal_segment(institution_id,record_id,version_no,valid_during,system_during) SELECT institution_id,record_id,version_no,valid_during,system_during FROM academic.grade_temporal_segment WHERE record_id=$1 AND upper_inf(system_during) LIMIT 1',
+      'INSERT INTO academic.grade_temporal_segment(record_id,version_no,valid_during,system_during) SELECT record_id,version_no,valid_during,system_during FROM academic.grade_temporal_segment WHERE record_id=$1 AND upper_inf(system_during) LIMIT 1',
       [f.id('record')],
     ),
     code('23P01'),
@@ -256,16 +253,16 @@ test('enrolments cannot reassign historical grades to another student or offerin
   const f = await fixture(client);
   await f.append(0, 7);
   await client.query(
-    "INSERT INTO academic.student(student_id,institution_id,programme_id,student_code,admission_year) VALUES(gen_random_uuid(),$1,$2,'OTHER_STUDENT',2026)",
+    "SELECT academic.register_student(gen_random_uuid(),$1,$2,'OTHER_STUDENT',2026::smallint)",
     [f.id('institution'), f.id('programme')],
   );
   await client.query(
-    "INSERT INTO academic.course_offering(institution_id,course_id,term_id,scheme_id,credits,section_code) VALUES($1,$2,$3,$4,3,'B')",
-    [f.id('institution'), f.id('course'), f.id('term'), f.id('scheme')],
+    "INSERT INTO academic.course_offering(course_id,term_id,scheme_id,credits,section_code) VALUES($1,$2,$3,3,'B')",
+    [f.id('course'), f.id('term'), f.id('scheme')],
   );
   for (const reassignment of [
     "student_id=(SELECT student_id FROM academic.student WHERE institution_id=$2 AND student_code='OTHER_STUDENT')",
-    "offering_id=(SELECT offering_id FROM academic.course_offering WHERE institution_id=$2 AND section_code='B')",
+    "offering_id=(SELECT offering_id FROM academic.course_offering_context WHERE institution_id=$2 AND section_code='B')",
   ]) {
     await assert.rejects(
       client.query(`UPDATE academic.enrolment SET ${reassignment} WHERE enrolment_id=$1`, [

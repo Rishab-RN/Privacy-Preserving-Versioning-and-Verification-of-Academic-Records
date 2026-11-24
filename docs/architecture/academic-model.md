@@ -1,126 +1,142 @@
-# Academic data model - Week 2 provisional implementation
+# Academic data model
 
-This is a provisional implementation of the existing written project specification.
-The owner will supply the ER/DFD diagrams; this change does not generate replacements
-or claim that those diagrams have been reviewed. Reconcile their differences before
-extending the model. All fixtures must be synthetic.
+The implemented model separates academic identity, catalogue, enrolment, grade
+history, authenticated access, evidence and approval/delivery facts. The owner
+requires BCNF physical storage; forward migrations `0008`/`0009` decompose the
+earlier twenty-table design into 21 academic/access/workflow relations without
+rewriting applied history. Migration `0010` adds three BCNF transparency relations,
+giving **24 domain tables plus two metadata tables**. Actual migration/runtime
+validation is recorded in the [project journey](../project-journey.md).
 
-## Scope and ownership
+All demonstration fixtures are synthetic. The model's selected grade bounds and
+approval rules are explicit application assumptions, not an assertion of official
+institutional regulations.
 
-PostgreSQL owns the academic catalogue, institutional references, enrolments and
-grade history. The first three migrations create thirteen tables in `academic`:
+## Authority and relation groups
 
-- Identity/catalogue: `institution`, `app_user`, `role_assignment`, `programme`,
-  `student`, `academic_term`, `grading_scheme`, `course`, `course_offering`.
-- Academic facts: `enrolment`, `grade_record`, `grade_version`.
-- Derived history: `grade_temporal_segment`.
+PostgreSQL is authoritative for:
 
-Institution identifiers are carried through composite foreign keys so a student,
-offering or record cannot silently reference another institution's entity. User
-accounts are global; role assignments supply institutional scope. A revision author
-must be an active registrar/examiner in the record's institution. This database
-check is not a replacement for future authenticated API access and approval policy.
+- Academic identity/catalogue: `institution`, `app_user`, `role_assignment`,
+  `programme`, `student`, `student_programme`, `academic_term`, `grading_scheme`,
+  `course` and `course_offering`.
+- Enrolment/history: `enrolment`, `grade_record`, `grade_version` and
+  `grade_temporal_segment`.
+- Authentication: `access_control.password_credential` and `api_session`.
+- Evidence manifest: `evidence.reference`.
+- Controlled changes: `workflow.change_request`, `decision`, `domain_event` and
+  `outbox_delivery`.
 
-Catalogue, policy, enrolment and grade facts are separated to avoid copying course
-or student details into every revision. Repeated institution keys deliberately
-support composite foreign-key isolation; the temporal segment is an explicitly
-derived projection. This is controlled redundancy, not a claim that every table
-is in third normal form. No stored GPA is maintained; official aggregation rules
-remain undecided.
+MongoDB holds evidence content and rebuildable receipts, revisions and a
+latest-recorded-version pointer. It does not become a second transcript authority.
+Academic/evidence data remains plaintext under access restrictions.
 
-The [formal normalization review](normalization.md) now records the keys/FDs and
-normal-form results for all sixteen Week 2/3 business tables. In particular,
-some tenant copies create partial dependencies; adding UUID primary keys does
-not make those tables 3NF. The review gives lossless logical decompositions and
-explains the retained composite-FK consistency tradeoff without rewriting applied
-migrations.
+## BCNF storage and scoped integrity
 
-There is no MongoDB academic authority, approval workflow, credential format,
-Merkle log, encryption, erasure operation, or cryptographic proof in this migration.
-They remain later stages. Grade facts are currently plaintext under database access
-controls; deleting a future document key would not erase these facts.
+The [normalization analysis](normalization.md) lists every physical relation's
+candidate keys, FDs and 1NF/2NF/3NF/BCNF result. Student programme membership is a
+separate keyed relation. Offering and enrolment do not store institution copies;
+grade versions and temporal segments do not store tenant copies; versions compute
+their predecessor; evidence/requests/events reconstruct parent-derived identities.
+Fixed credential/schema/consumer tags and the reconstructible approved/rejected
+decision label are computed read values.
 
-## Explicit assumptions
+`grade_record` retains institution because enrolment ID is a candidate key. The
+normal-form argument considers determinants rather than removing every repeated
+identifier indiscriminately. Physical facts are BCNF under the identified FDs;
+read views and immutable JSON transport artifacts are analyzed at their declared
+domain boundary, not claimed as normalized mutable relations.
 
-- One enrolment is unique per student/offering; one final-grade record per enrolment.
-  Enrolment rows cannot be updated and cannot reassign existing grade history to
-  another student or offering. Retakes can use a new offering. Institutional
-  attempt/replacement and withdrawal rules still need owner review.
-- Credits are positive, at most 30 per offering and represented to two decimal
-  places. This is a prototype bound, not an official academic regulation.
-- Grade points are between zero and the selected scheme maximum, capped at 10 in
-  this prototype. Schemes are immutable versions with a declared pass threshold.
-- `passed`/`failed` require points and must agree with that scheme's threshold;
-  `withdrawn`/`incomplete` have no grade points. No official GPA/rounding or degree
-  eligibility policy is asserted. The append function rejects excess precision.
-- Historical grade values and grade-used offering credits/policy/identity are
-  protected. Course titles and other catalogue display metadata are current labels,
-  not a fully bitemporal university catalogue.
+Primary/unique/foreign keys preserve row identity and referenced existence. Locked
+scope guards preserve the cross-institution agreement previously represented by
+composite tenant copies. Referenced institution identities are immutable, preventing
+parent changes from racing or bypassing child-side checks. Every committed student
+must have a same-institution programme link. `academic.register_student` creates
+student identity and membership transactionally; it is an administrative interface,
+not a newly public API permission.
+
+The `*_context` views reconstruct older read shapes where useful. They may show a
+derived institution, predecessor or protocol tag without storing those attributes
+again. API/worker identities do not receive write access to these projections.
+
+## Academic assumptions
+
+- A student/offering pair has one enrolment; an enrolment has at most one grade
+  record. Enrolment identity is immutable. A retake can use a new offering.
+- Offering credits are positive, at most 30 and represented to two decimal places.
+  Credits, course, term and selected scheme are frozen when referenced by a proposal
+  or accepted grade.
+- Schemes are immutable versions with a declared maximum and pass threshold.
+  Grade points are between zero and the selected maximum, capped at 10. The append
+  interface rejects excess precision.
+- `passed`/`failed` require points and agree with the selected threshold;
+  `withdrawn`/`incomplete` have no points. No stored GPA or official rounding,
+  degree-eligibility or attempt-replacement policy is inferred from demo values.
+- One active registrar proposes; a different active registrar in the same
+  institution approves/applies or rejects. Students retain own transcript/evidence
+  access; auditors have institutional reads; examiner-only accounts have no granted
+  academic data operations.
+- Grade values are historical facts. Course titles and other display metadata are
+  current catalogue labels, not a fully bitemporal university catalogue.
 
 ## Two time dimensions
 
-`grade_version` is append-only and stores immutable grade facts, validity range,
-author, reason and database-assigned `recorded_at`. All ranges are half-open
-`[start,end)`, with a finite lower bound and an optional unbounded upper end.
+`grade_version` is append-only and stores record/version identity, grade, outcome,
+validity, author, reason and database-assigned `recorded_at`. Ranges are half-open
+`[start,end)`, with finite lower and optional unbounded upper limits.
 
-`grade_temporal_segment` is a controlled derived query projection. A correction
-closes overlapping old belief intervals in system time, retains their historical
-rows, and carries forward any unaffected valid-time pieces. A GiST exclusion
-constraint prevents overlap on institution + record + both validity dimensions.
-The version payload is never rewritten just to close a history interval.
+`grade_temporal_segment` is a derived query projection. A correction closes old
+belief intervals in system time, keeps their historical rows, and carries forward
+unaffected valid-time pieces. A record-based GiST exclusion prevents contradictory
+overlap across valid and system ranges. Version payloads are never rewritten to
+close a historical interval.
 
-For example, an original grade valid from January can be corrected only for
-April-June. A later known-at query sees the corrected grade during that range and
-the original grade outside it; an earlier known-at query still sees the old belief.
+For example, a correction valid only during April-June changes a later known-at
+answer in that range while preserving the prior grade outside it. An earlier
+known-at query still returns the old belief. `grade_record.latest_version_no`
+means latest recorded revision, which can differ from the grade effective today.
+The `current_transcript` view filters the temporal projection accordingly.
 
-`grade_record.latest_version_no` means the latest recorded revision. It is not
-necessarily the grade effective today: a future-effective correction must not be
-reported as already active. `current_transcript` filters the valid-time projection.
+Recorded time is monotonic per record and asserted by PostgreSQL, not externally
+attested or a global commit order. Preserve microseconds when comparing exact
+boundaries; JavaScript `Date` alone loses that precision.
 
-Recorded time uses a monotonic database clock per record, not an externally
-attested timestamp or exact commit timestamp. Preserve PostgreSQL timestamp
-precision when comparing exact event boundaries; JavaScript `Date` loses
-microseconds, so tests can use `recorded_at::text` for round trips.
-
-## Write and read interfaces
+## Read and controlled write boundaries
 
 ```sql
-SELECT academic.append_grade_version(
-  record_id, expected_version, grade_points, outcome,
-  valid_from, valid_until, author_id, reason
-);
-
 SELECT * FROM academic.transcript_as_of(student_id, known_at, effective_at);
 SELECT * FROM academic.current_transcript;
 ```
 
-Expected version `0` creates the first revision. A record lock serializes revision
-attempts; an outdated expected version raises SQLSTATE `40001`. Immutable-version
-triggers reject UPDATE/DELETE (`55000`). The insert trigger validates contiguous
-predecessors, author scope and grading policy, then the projection/head update
-occurs in the same transaction. Direct normal SQL inserts cannot skip that trigger.
+The API uses authenticated workflow wrappers for proposal, approval, rejection and
+status. It cannot directly append grades. Internally,
+`academic.append_grade_version(record_id,expected_version,grade_points,outcome,
+valid_from,valid_until,author_id,reason)` takes a record lock, validates policy and
+creates the next contiguous revision. Expected version 0 issues the first result;
+stale expectations raise `40001`. Immutable guards reject UPDATE/DELETE (`55000`).
+The head/projection effects share the acceptance transaction.
 
-## Permissions and limits
+Session/account/role scope is rechecked on HTTP operations and inside controlled
+transitions. Runtime groups remain non-owners with narrow privileges. The original
+`scholarproof_runtime` group is a database demonstration reader, not the API login;
+its existence does not establish per-student RLS. Administrative migrations require
+permission to install `btree_gist` and provision/harden roles.
 
-`scholarproof_runtime` is a NOLOGIN, non-owner read-only group. It has schema/table
-read access and the as-of query function, with no grant to append grades or mutate
-base tables. A login/password and API authorization remain later work. These grants
-allow database-level read demonstrations, not per-student or tenant RLS isolation.
+## Verification and trust
 
-Week 3 implements the separate API login/group, local sessions and scoped reads;
-see [access/evidence](access-and-evidence.md). The original read-only group remains
-a database demonstration role and is not the API login.
+Upgrade checks must retain existing student IDs, memberships, grade history,
+temporal answers, credentials and event envelopes. Existing synthetic seed checksums
+remain immutable; normalized seeding carries the existing fixture forward instead
+of replaying inserts or resetting history. Fresh fixture creation uses normalized
+columns and the administrative registration operation.
 
-Migrations need an administrative database connection, including permission to
-install `btree_gist` and provision the read-only group. An already-existing unsafe
-role causes migration failure rather than silently changing that role.
-
-Triggers and permissions protect ordinary application roles. A database owner or
-superuser can disable/replace them; external checkpoints and cryptographic auditing
-will be separate future mechanisms. Do not describe this stage as tamper-proof.
+Constraints and wrappers protect ordinary runtime identities. An administrative
+database owner can replace logic, and a compromised API credential can manage
+sessions. Evidence digest checking therefore does not establish resistance to a
+malicious database administrator or cryptographic individual non-repudiation.
 
 ## Implementation references
 
-- [PostgreSQL 18 ranges, multiranges and exclusion constraints](https://www.postgresql.org/docs/18/rangetypes.html)
+- [PostgreSQL 18 constraints](https://www.postgresql.org/docs/18/ddl-constraints.html)
+- [PostgreSQL 18 ranges and exclusion constraints](https://www.postgresql.org/docs/18/rangetypes.html)
 - [PostgreSQL 18 explicit locks](https://www.postgresql.org/docs/18/explicit-locking.html)
 - [node-postgres transactions](https://node-postgres.com/features/transactions)

@@ -9,9 +9,10 @@ apps/
   api/                      HTTP API and backend composition
   web/                      React/Vite/Tailwind toolchain; UI entry pending
   worker/                   Restricted outbox consumer and MongoDB projections
+  log/                      Restricted signed-log operator and actual-source audit
 packages/
   contracts/                Shared request/response types and data contracts
-  verification/             Reserved verification boundary (README only)
+  verification/             Independent commitments, signatures, Merkle proofs and CLI
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
   seeds/                    Deterministic synthetic development data
@@ -33,8 +34,10 @@ The API startup slice and shared contracts package contain implemented source.
 The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependencies
 installed, plus a type-checked Vite configuration. It has no UI entry or runnable
 frontend yet. The worker contains the implemented MongoDB projection consumer,
-provisioning and journal replay. The verification directory remains reserved;
-there is no independent cryptographic verifier yet.
+provisioning and journal replay. The verification package implements canonical
+commitments, signed checkpoints, inclusion/consistency proofs and an offline CLI.
+The log workspace owns database observation, publication, private export and
+actual-source auditing separately from HTTP handlers.
 
 Repository automation lives in `scripts/` and is exposed through root npm
 commands. `setup` creates missing local configuration without replacing an
@@ -65,9 +68,10 @@ checks are in `tests/integration/`. No new dependency was added for this slice.
   outside the HTTP server's runtime dependency graph.
 - `packages/contracts/` defines shared interfaces; it must not create a second
   source of academic truth or depend on a specific application's database client.
-- `packages/verification/` will contain verification logic that can be checked
-  independently of the issuer's mutable database. Do not add permissive placeholder
-  verification that reports success.
+- `packages/verification/` verifies proofs independently of the issuer's databases
+  and signing keys. It depends only on Node built-ins. Its result binds a pinned
+  public key and externally expected event/log identity; retained observations
+  establish the checked history extension, not current credential status.
 - The API owns request handling and application composition. Background job
   processing belongs in the worker when a durable job workflow is introduced.
 - Database migrations are the schema history. Application startup must not silently

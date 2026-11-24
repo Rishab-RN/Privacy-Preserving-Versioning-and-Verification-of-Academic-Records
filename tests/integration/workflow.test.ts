@@ -263,23 +263,16 @@ test('HTTP academic changes require distinct scoped registrars and retain durabl
   );
 
   await context.test('pending or wrong-record evidence cannot authorize a change', async () => {
-    for (const [recordId, institutionId, available] of [
-      [f.id('record'), f.id('institution'), false],
-      [other.id('record'), other.id('institution'), true],
+    for (const [recordId, available] of [
+      [f.id('record'), false],
+      [other.id('record'), true],
     ] as const) {
       const id = randomUUID();
       await admin.query(
         `INSERT INTO evidence.reference
-        (evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
-        VALUES($1,$2,$3,$4,$5,'supporting_note',$6,128)`,
-        [
-          id,
-          institutionId,
-          recordId,
-          proposer.userId,
-          randomUUID(),
-          randomBytes(32).toString('hex'),
-        ],
+        (evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+        VALUES($1,$2,$3,$4,'supporting_note',$5,128)`,
+        [id, recordId, proposer.userId, randomUUID(), randomBytes(32).toString('hex')],
       );
       if (available)
         await admin.query("UPDATE evidence.reference SET state='available' WHERE evidence_id=$1", [

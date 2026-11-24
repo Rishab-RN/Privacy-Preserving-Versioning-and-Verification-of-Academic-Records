@@ -1,21 +1,27 @@
 # Architecture
 
-The project owner will provide the ER and data-flow diagrams. No replacement
-diagrams are generated. Diagram review remains open.
+The owner supplied ER/data-flow diagrams and requested implementation-matched
+college materials. Those local drafts are intentionally ignored. The repository's
+written model and physical migration history define the current implementation;
+draft diagrams are not assertions of official institutional policy.
 
-At the owner's request to proceed to Week 2, the written specification is now
-implemented as a [provisional academic model](academic-model.md). It documents SQL
-authority, keys, temporal semantics, prototype grading assumptions and access
-limits. Reconcile it with the owner's diagrams and grading rules before extending
-the workflows. Implemented behaviour is not institutional-policy approval.
+The [academic model](academic-model.md) documents SQL authority, normalized
+identities, temporal semantics, selected grading assumptions and access limits.
+Implemented behavior is not institutional-policy approval.
 
-Record diagram versions and review status here when the owner supplies them.
+The [normalization review](normalization.md) covers the forward BCNF decomposition
+in migrations `0008`/`0009` and the `0010` transparency extension: 24 domain tables, candidate keys, identified
+functional dependencies, explicit 1NF/2NF/3NF/BCNF results and lossless reconstruction
+through read views. It supersedes the earlier twenty-table physical-exception
+analysis. Migration/upgrade/runtime acceptance and rollout are tracked separately
+in the journey; a table classification alone does not prove runtime integrity.
 
-The [normalization review](normalization.md) covers migrations `0001`-`0005`,
-candidate keys, functional dependencies, logical decompositions and intentional
-physical exceptions, with a separate appendix for the four Week 4 workflow
-relations. It does not claim every physical table is in 3NF/BCNF or replace
-institutional-policy review.
+The [transparency log](transparency-log.md) adds transactional institutional order,
+private salted commitments and signed checkpoints. The
+[operator](../../apps/log/README.md) and
+[offline verifier](../../packages/verification/README.md) document independent
+proof checking and retained-observation limits. Historical inclusion does not
+establish current credential status.
 
 The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
 approval, the atomic SQL change/audit/outbox boundary and recoverable derived

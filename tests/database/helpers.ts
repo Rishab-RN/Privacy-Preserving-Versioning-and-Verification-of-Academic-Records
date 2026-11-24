@@ -50,10 +50,11 @@ export async function fixture(client: Client) {
     "INSERT INTO academic.programme(programme_id,institution_id,programme_code,name) VALUES($1,$2,'DEMO','Synthetic programme'),($3,$4,'DEMO','Other synthetic programme')",
     [get('programme'), get('institution'), get('otherProgramme'), get('otherInstitution')],
   );
-  await client.query(
-    "INSERT INTO academic.student(student_id,institution_id,programme_id,student_code,admission_year) VALUES($1,$2,$3,'SYNTHETIC',2026)",
-    [get('student'), get('institution'), get('programme')],
-  );
+  await client.query("SELECT academic.register_student($1,$2,$3,'SYNTHETIC',2026::smallint)", [
+    get('student'),
+    get('institution'),
+    get('programme'),
+  ]);
   await client.query(
     "INSERT INTO academic.academic_term(term_id,institution_id,term_code,starts_on,ends_on) VALUES($1,$2,'DEMO','2026-01-01','2026-12-31')",
     [get('term'), get('institution')],
@@ -67,12 +68,12 @@ export async function fixture(client: Client) {
     [get('course'), get('institution')],
   );
   await client.query(
-    'INSERT INTO academic.course_offering(offering_id,institution_id,course_id,term_id,scheme_id,credits) VALUES($1,$2,$3,$4,$5,4)',
-    [get('offering'), get('institution'), get('course'), get('term'), get('scheme')],
+    'INSERT INTO academic.course_offering(offering_id,course_id,term_id,scheme_id,credits) VALUES($1,$2,$3,$4,4)',
+    [get('offering'), get('course'), get('term'), get('scheme')],
   );
   await client.query(
-    'INSERT INTO academic.enrolment(enrolment_id,institution_id,student_id,offering_id) VALUES($1,$2,$3,$4)',
-    [get('enrolment'), get('institution'), get('student'), get('offering')],
+    'INSERT INTO academic.enrolment(enrolment_id,student_id,offering_id) VALUES($1,$2,$3)',
+    [get('enrolment'), get('student'), get('offering')],
   );
   await client.query(
     'INSERT INTO academic.grade_record(record_id,institution_id,enrolment_id) VALUES($1,$2,$3)',

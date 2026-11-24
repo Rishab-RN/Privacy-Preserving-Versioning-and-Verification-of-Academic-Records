@@ -273,13 +273,99 @@ The technical Week 4 slice is locally verified. This does not approve the
 institutional grading policy, provide administrator-resistant proofs or complete
 the product UI. Those boundaries remain explicit in the architecture documents.
 
+## 2026-11-24 - BCNF physical storage and lab evidence
+
+The owner confirmed that every physical application table must reach BCNF.
+Forward migrations `0008`/`0009` decompose the existing storage into 21 domain
+relations, including a separate student/programme assignment. Two repository
+metadata relations also satisfy the identified BCNF dependencies. The
+[normalization analysis](architecture/normalization.md) lists the candidate keys,
+FDs, normal forms and lossless reconstruction argument. Range/JSON values retain
+their declared domain boundary; computed context views are not physical tables.
+
+Removed tenant, predecessor, fixed protocol and derived decision-status copies
+are reconstructed by read views. Normalized foreign keys, locked scope guards,
+immutable parent ownership and deferred programme participation preserve the
+integrity rules. Event identity checks explicitly reject JSON null. API and worker
+permissions retain their separate controlled boundaries.
+
+All 34 isolated PostgreSQL tests and 37 reported integration checks passed. These
+include a populated legacy-schema upgrade preserving every prior row through
+reconstruction, immutable credentials/history/events, accepted and rejected
+decisions, and queued delivery state. Concurrent fresh migration and repeatable
+seed checks passed. Lint, formatting, types, all 39 tooling/API/worker tests and
+the build passed. The compiled access and complete workflow demonstrations passed
+against the migrated development services.
+
+Applied both forward migrations to the backed-up local database. Historical
+migrations and the original seed remain unchanged. Provisioning verified existing
+accounts and restricted runtimes; six local environment/account/fixture files
+remained byte-for-byte unchanged. No data reset or credential rotation occurred.
+
+Generated an ignored catalogue register for all 23 physical relations and four
+fresh screenshots from a local API demonstration interface using synthetic data.
+The capture passed 16 HTTP checks, appended version 7 from version 6, retained the
+version-6 historical answer and confirmed MongoDB delivery at version 7. The lab
+reports and capture tools remain ignored. This interface presents the implemented
+API; it does not complete the product React UI or later tamper/graph/ML milestones.
+
+## 2026-11-25 - Week 5 signed workflow history
+
+Verified remote Week 4 merge PR #3 (`fabcabe`) and started the single active branch
+`codex/signed-transparency-log`. With owner approval, committed the BCNF follow-up
+as `5222037` and `d5caf69`; no report, secret, dump or planning file was included.
+
+Migration `0010` adds three BCNF relations for institutional log state, private
+salted event positions and immutable checkpoints. Transactional row locking orders
+new appends and rollback leaves no gap. Existing events have an explicitly signed
+bootstrap boundary: their import order is deterministic, their original SQL commit
+order is unknown. The schema now has 24 domain and two metadata relations.
+
+The independent verification package implements bounded canonical JSON, salted
+domain-separated commitments, SHA-256 Merkle inclusion/consistency and Ed25519
+checkpoints. Its offline CLI pins a supplied trusted public key plus expected
+log/event identity. It verifies retained-observation consistency without database
+credentials. Independent fixed vectors and every leaf/prefix for sizes 0-65 cover
+the tree implementation; larger safe integer tests avoid 32-bit truncation.
+
+The restricted log operator validates actual SQL event/grade/request/decision
+facts, SQL head consistency, raw Mongo evidence bytes and derived projections.
+Publication checks retained history before signing and returns only after SQL
+commit. Local observation locking, identity inheritance checks, exact function
+grants, key preservation and actual restricted-password authentication are tested
+or verified by provisioning. Invalid integrity, pending delivery and unavailable
+observations remain distinct.
+
+All 42 isolated SQL tests and 46 reported integration checks passed. These include
+actual grade/evidence mutation, position deletion/reordering, source reconstruction,
+offline proof verification and inherited privilege drift. The shorter-observation
+case models rollback with a retained checkpoint; it is not a complete SQL/Mongo
+backup-restore experiment. Quality/build checks passed all 74 reported tooling,
+API, worker, verification and log tests. Temporary test resources were removed.
+
+Backed up the development database and applied `0010`. The live demo extended the
+signed log from 14 to 16 events with bootstrap size 14. Offline inclusion and
+consistency passed; payload/path/signature changes, signed rollback and conflicting
+roots were rejected. The live audit checked 16 events and eight evidence documents
+with valid integrity and complete projection. Repeat setup preserved all previous
+environment/account/fixture files, `.env.log` and signing keys byte for byte.
+
+Audit coverage explicitly reports 102 seeded/admin grade versions without workflow
+events. Catalogue metadata and the SQL temporal cache are not cryptographically
+committed; heads receive a structural check. Same-host retained files demonstrate
+the observation protocol, not independent witness control. Historical inclusion
+does not prove factual correctness or current credential status. Remote CI has
+not run at the local acceptance point; inspect the published GitHub run before
+merging.
+
 ## Next milestone
 
-Publish/review the Week 4 branch through the owner's manual Git workflow, then
-start Week 5's canonicalization, hashing and Merkle-verification work. Owner
-diagrams and institutional grading/attempt rules remain open review items;
-implementation assumptions must remain explicit. Neo4j and ML/anomaly detection
-remain mandatory later milestones.
+Review and publish the Week 5 commits after owner approval, inspect remote CI and
+merge its PR before starting the next feature branch. Week 6 adds exact signed
+credential artifacts, selective disclosure and explicit status/freshness semantics.
+Institutional grading/attempt rules remain open review items. Neo4j provenance,
+Python ML/anomaly detection and later integrated witness/recovery experiments
+remain mandatory scheduled milestones.
 
 ## Entry format
 

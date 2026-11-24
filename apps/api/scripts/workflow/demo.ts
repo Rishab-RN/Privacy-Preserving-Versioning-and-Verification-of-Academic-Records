@@ -80,7 +80,7 @@ await runDatabaseCommand(async (client) => {
         [fixture.institution_id, id],
       );
       const existing = await client.query<PasswordMaterial>(
-        'SELECT profile,salt_hex,derived_key_hex FROM access_control.password_credential WHERE user_id=$1',
+        'SELECT profile,salt_hex,derived_key_hex FROM access_control.password_credential_context WHERE user_id=$1',
         [id],
       );
       if (existing.rows[0]) {
@@ -89,8 +89,8 @@ await runDatabaseCommand(async (client) => {
       } else {
         const material = await hashPassword(account.password);
         await client.query(
-          'INSERT INTO access_control.password_credential(user_id,profile,salt_hex,derived_key_hex) VALUES($1,$2,$3,$4)',
-          [id, material.profile, material.salt_hex, material.derived_key_hex],
+          'INSERT INTO access_control.password_credential(user_id,salt_hex,derived_key_hex) VALUES($1,$2,$3)',
+          [id, material.salt_hex, material.derived_key_hex],
         );
       }
     }
@@ -108,14 +108,14 @@ await runDatabaseCommand(async (client) => {
         )
       ).rows[0]!.course_id;
     await client.query(
-      `INSERT INTO academic.course_offering(offering_id,institution_id,course_id,term_id,scheme_id,credits)
-      VALUES(md5('demo:workflow:offering')::uuid,$1,$2,$3,$4,4) ON CONFLICT(offering_id) DO NOTHING`,
-      [fixture.institution_id, courseId, fixture.term_id, fixture.scheme_id],
+      `INSERT INTO academic.course_offering(offering_id,course_id,term_id,scheme_id,credits)
+      VALUES(md5('demo:workflow:offering')::uuid,$1,$2,$3,4) ON CONFLICT(offering_id) DO NOTHING`,
+      [courseId, fixture.term_id, fixture.scheme_id],
     );
     await client.query(
-      `INSERT INTO academic.enrolment(enrolment_id,institution_id,student_id,offering_id)
-      VALUES(md5('demo:workflow:enrolment')::uuid,$1,$2,md5('demo:workflow:offering')::uuid) ON CONFLICT(enrolment_id) DO NOTHING`,
-      [fixture.institution_id, fixture.student_id],
+      `INSERT INTO academic.enrolment(enrolment_id,student_id,offering_id)
+      VALUES(md5('demo:workflow:enrolment')::uuid,$1,md5('demo:workflow:offering')::uuid) ON CONFLICT(enrolment_id) DO NOTHING`,
+      [fixture.student_id],
     );
     await client.query(
       `INSERT INTO academic.grade_record(record_id,institution_id,enrolment_id)

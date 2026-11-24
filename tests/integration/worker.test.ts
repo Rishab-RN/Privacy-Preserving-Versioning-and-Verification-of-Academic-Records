@@ -61,15 +61,8 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
     );
     const evidence = randomUUID();
     await admin.query(
-      "INSERT INTO evidence.reference(evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes) VALUES($1,$2,$3,$4,$5,'supporting_note',$6,10)",
-      [
-        evidence,
-        f.id('institution'),
-        f.id('record'),
-        f.id('author'),
-        randomUUID(),
-        randomBytes(32).toString('hex'),
-      ],
+      "INSERT INTO evidence.reference(evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes) VALUES($1,$2,$3,$4,'supporting_note',$5,10)",
+      [evidence, f.id('record'), f.id('author'), randomUUID(), randomBytes(32).toString('hex')],
     );
     await admin.query("UPDATE evidence.reference SET state='available' WHERE evidence_id=$1", [
       evidence,
@@ -126,7 +119,7 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
       await other.transition(0, '6.00');
       await other.transition(1, '8.00');
       const events = await admin.query<{ payload: unknown }>(
-        "SELECT payload FROM workflow.domain_event WHERE record_id=$1 AND kind='grade.accepted' ORDER BY (payload->'revision'->>'versionNo')::int",
+        "SELECT payload FROM workflow.domain_event_context WHERE record_id=$1 AND kind='grade.accepted' ORDER BY (payload->'revision'->>'versionNo')::int",
         [other.f.id('record')],
       );
       await projectEvent(runtime.db, events.rows[1]!.payload);
@@ -260,7 +253,7 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
       await unavailable.close();
     }
     const state = await admin.query(
-      'SELECT d.last_error_code,d.delivered_at FROM workflow.outbox_delivery d JOIN workflow.domain_event e USING(event_id) WHERE e.record_id=$1',
+      'SELECT d.last_error_code,d.delivered_at FROM workflow.outbox_delivery d JOIN workflow.domain_event_context e USING(event_id) WHERE e.record_id=$1',
       [other.f.id('record')],
     );
     assert.equal(
@@ -270,7 +263,7 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
       true,
     );
     await admin.query(
-      'UPDATE workflow.outbox_delivery SET next_attempt_at=clock_timestamp() WHERE event_id IN (SELECT event_id FROM workflow.domain_event WHERE record_id=$1)',
+      'UPDATE workflow.outbox_delivery SET next_attempt_at=clock_timestamp() WHERE event_id IN (SELECT event_id FROM workflow.domain_event_context WHERE record_id=$1)',
       [other.f.id('record')],
     );
     await drain();
@@ -324,7 +317,7 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
         replayed,
       );
       const expected = await admin.query(
-        "SELECT record_id,max((payload->'revision'->>'versionNo')::int) AS version FROM workflow.domain_event WHERE kind='grade.accepted' GROUP BY record_id",
+        "SELECT record_id,max((payload->'revision'->>'versionNo')::int) AS version FROM workflow.domain_event_context WHERE kind='grade.accepted' GROUP BY record_id",
       );
       for (const row of expected.rows)
         assert.equal(
@@ -364,7 +357,7 @@ test('restricted worker delivers, recovers and rebuilds committed projections', 
       assert.equal(stopped.claimed, 2);
       assert.equal(stopped.delivered, 1);
       const pending = await admin.query(
-        'SELECT d.event_id,d.lease_token FROM workflow.outbox_delivery d JOIN workflow.domain_event e USING(event_id) WHERE e.record_id=$1 AND d.delivered_at IS NULL',
+        'SELECT d.event_id,d.lease_token FROM workflow.outbox_delivery d JOIN workflow.domain_event_context e USING(event_id) WHERE e.record_id=$1 AND d.delivered_at IS NULL',
         [other.f.id('record')],
       );
       assert.equal(pending.rowCount, 1);

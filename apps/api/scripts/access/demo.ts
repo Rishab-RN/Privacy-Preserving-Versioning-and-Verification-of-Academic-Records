@@ -74,7 +74,7 @@ await runDatabaseCommand(async (client) => {
         [institutionId, userId, account.role],
       );
       const existing = await client.query<PasswordMaterial>(
-        'SELECT profile,salt_hex,derived_key_hex FROM access_control.password_credential WHERE user_id=$1',
+        'SELECT profile,salt_hex,derived_key_hex FROM access_control.password_credential_context WHERE user_id=$1',
         [userId],
       );
       if (existing.rows[0]) {
@@ -83,8 +83,8 @@ await runDatabaseCommand(async (client) => {
       } else {
         const material = await hashPassword(account.password);
         await client.query(
-          'INSERT INTO access_control.password_credential(user_id,profile,salt_hex,derived_key_hex) VALUES($1,$2,$3,$4)',
-          [userId, material.profile, material.salt_hex, material.derived_key_hex],
+          'INSERT INTO access_control.password_credential(user_id,salt_hex,derived_key_hex) VALUES($1,$2,$3)',
+          [userId, material.salt_hex, material.derived_key_hex],
         );
       }
       if (account.role === 'student') {

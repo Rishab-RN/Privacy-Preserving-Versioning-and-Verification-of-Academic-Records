@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**', 'chore/**', 'docs/**', 'test/**']
+    branches: [main, 'feat/**', 'fix/**', 'chore/**', 'docs/**', 'test/**', 'codex/**']
   pull_request:
   workflow_dispatch:
 
@@ -98,3 +98,5 @@ jobs:
       - run: npm run build
       - run: npm run access:smoke
       - run: npm run workflow:smoke
+      - run: npm run log:setup
+      - run: npm run log:demo

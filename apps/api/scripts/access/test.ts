@@ -200,6 +200,7 @@ try {
       '--test-concurrency=1',
       join(projectRoot, 'tests/integration/api.test.ts'),
       join(projectRoot, 'tests/integration/workflow.test.ts'),
+      join(projectRoot, 'tests/integration/transparency.test.ts'),
       join(projectRoot, 'tests/integration/worker.test.ts'),
     ],
     {

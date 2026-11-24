@@ -41,7 +41,7 @@ test('the deterministic synthetic seed can be loaded twice without duplicate rec
     SELECT
       (SELECT count(*)::text FROM academic.student s JOIN academic.institution i USING(institution_id) WHERE i.institution_code='DEMO_UNIVERSITY') AS students,
       (SELECT count(*)::text FROM academic.grade_record g JOIN academic.institution i USING(institution_id) WHERE i.institution_code='DEMO_UNIVERSITY') AS records,
-      (SELECT count(*)::text FROM academic.grade_version v JOIN academic.institution i USING(institution_id) WHERE i.institution_code='DEMO_UNIVERSITY') AS versions
+      (SELECT count(*)::text FROM academic.grade_version_context v JOIN academic.institution i USING(institution_id) WHERE i.institution_code='DEMO_UNIVERSITY') AS versions
   `);
   assert.deepEqual(counts.rows[0], { students: '25', records: '100', versions: '102' });
 });

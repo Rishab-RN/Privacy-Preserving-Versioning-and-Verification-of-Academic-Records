@@ -24,9 +24,9 @@ support below TypeScript 6.1; TypeScript 6.0.3 was chosen to keep the tooling wi
 its declared compatibility range. Change this choice through a tested dependency
 update rather than bypassing peer checks.
 
-The root `build` compiles the API, shared contracts and worker. `typecheck` also
-checks scripts, tests and the installed frontend configuration. Product pages and
-the independent verifier have not been implemented yet.
+The root `build` compiles the API, contracts, worker, independent verifier and log
+operator. `typecheck` also checks scripts, tests and the installed frontend
+configuration. Product pages remain pending.
 
 Week 2 uses the existing `pg` client and Node tooling for migrations and fixtures;
 no new npm dependency was added. PostgreSQL's `btree_gist` extension supports the
@@ -45,6 +45,21 @@ receipts/revisions and a latest-recorded-version pointer. Provisioning runs with
 administrative local credentials; API and worker runtime identities remain separate
 and restricted. See the [workflow contract](../architecture/record-workflow.md) and
 [worker guide](../../apps/worker/README.md) for failure and replay limits.
+
+The BCNF storage follow-up also uses existing dependencies. Forward migrations
+`0008`/`0009` decompose the physical relations, rebuild controlled SQL interfaces and
+provide computed context views. The normalized seed is `0002_bcnf_demo.sql`; its
+runner preserves and verifies the original `0001_demo.sql` checksum when carrying
+forward an existing fixture. It never rewrites historical migrations, rotates
+credentials or resets academic history to satisfy a report.
+
+Week 5 adds two local workspaces and no new external npm dependency. The verifier
+uses bounded RFC 8785 JSON serialization, SHA-256 and native Node Ed25519; its
+RFC 9162 Merkle tree/proof algorithms are checked with independent vectors. This
+is an application checkpoint profile, not Certificate Transparency wire-format
+interoperability. The log operator reuses pinned `pg`/MongoDB drivers. PostgreSQL
+`pgcrypto` supplies private random salts; keys and observations stay outside SQL.
+See the [operator guide](../../apps/log/README.md) for setup and trust boundaries.
 
 ## Introduce dependencies with their implementation stage
 

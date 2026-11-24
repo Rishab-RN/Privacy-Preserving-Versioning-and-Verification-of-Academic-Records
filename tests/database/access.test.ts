@@ -13,9 +13,9 @@ async function insertReference(client: Client, f: Awaited<ReturnType<typeof fixt
   const evidenceId = randomUUID();
   await client.query(
     `INSERT INTO evidence.reference
-      (evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
-      VALUES($1,$2,$3,$4,$5,'supporting_note',$6,256)`,
-    [evidenceId, f.id('institution'), f.id('record'), f.id('author'), randomUUID(), tokenDigest()],
+      (evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+      VALUES($1,$2,$3,$4,'supporting_note',$5,256)`,
+    [evidenceId, f.id('record'), f.id('author'), randomUUID(), tokenDigest()],
   );
   return evidenceId;
 }
@@ -25,16 +25,25 @@ test('credentials and sessions enforce their profiles, finite lifetime and irrev
   context.after(() => client.end());
   const f = await fixture(client);
   const credential =
-    'INSERT INTO access_control.password_credential(user_id,profile,salt_hex,derived_key_hex) VALUES($1,$2,$3,$4)';
+    'INSERT INTO access_control.password_credential(user_id,salt_hex,derived_key_hex) VALUES($1,$2,$3)';
   await assert.rejects(
-    client.query(credential, [f.id('author'), 'unknown', '0'.repeat(32), '0'.repeat(128)]),
+    client.query(credential, [f.id('author'), '0'.repeat(32), '0'.repeat(127)]),
     code('23514'),
   );
   await assert.rejects(
-    client.query(credential, [f.id('author'), 'scrypt-v1', '0'.repeat(31), '0'.repeat(128)]),
+    client.query(credential, [f.id('author'), '0'.repeat(31), '0'.repeat(128)]),
     code('23514'),
   );
-  await client.query(credential, [f.id('author'), 'scrypt-v1', '0'.repeat(32), '0'.repeat(128)]);
+  await client.query(credential, [f.id('author'), '0'.repeat(32), '0'.repeat(128)]);
+  assert.equal(
+    (
+      await client.query(
+        'SELECT profile FROM access_control.password_credential_context WHERE user_id=$1',
+        [f.id('author')],
+      )
+    ).rows[0]?.profile,
+    'scrypt-v1',
+  );
   const session =
     'INSERT INTO access_control.api_session(token_digest,user_id,created_at,expires_at) VALUES($1,$2,$3,$4)';
   for (const [created, expiry] of [
@@ -81,12 +90,11 @@ test('evidence metadata is scoped, bounded, unique and permits only pending to a
   context.after(() => client.end());
   const f = await fixture(client);
   const sql = `INSERT INTO evidence.reference
-    (evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8)`;
+    (evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+    VALUES($1,$2,$3,$4,$5,$6,$7)`;
   const requestKey = randomUUID();
   const args = [
     randomUUID(),
-    f.id('institution'),
     f.id('record'),
     f.id('author'),
     requestKey,
@@ -95,30 +103,23 @@ test('evidence metadata is scoped, bounded, unique and permits only pending to a
     256,
   ];
   await assert.rejects(
-    client.query(sql, [randomUUID(), f.id('otherInstitution'), ...args.slice(2)]),
+    client.query(sql, [randomUUID(), randomUUID(), ...args.slice(2)]),
     code('23503'),
   );
   for (const invalidSize of [0, 65537]) {
-    await assert.rejects(client.query(sql, [...args.slice(0, 7), invalidSize]), code('23514'));
+    await assert.rejects(client.query(sql, [...args.slice(0, 6), invalidSize]), code('23514'));
   }
   await assert.rejects(
-    client.query(sql, [...args.slice(0, 5), 'unknown', ...args.slice(6)]),
+    client.query(sql, [...args.slice(0, 4), 'unknown', ...args.slice(5)]),
     code('23514'),
   );
   await client.query(sql, args);
   await assert.rejects(
     client.query(
       `INSERT INTO evidence.reference
-        (evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes,state)
-        VALUES($1,$2,$3,$4,$5,'supporting_note',$6,256,'available')`,
-      [
-        randomUUID(),
-        f.id('institution'),
-        f.id('record'),
-        f.id('author'),
-        randomUUID(),
-        tokenDigest(),
-      ],
+        (evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes,state)
+        VALUES($1,$2,$3,$4,'supporting_note',$5,256,'available')`,
+      [randomUUID(), f.id('record'), f.id('author'), randomUUID(), tokenDigest()],
     ),
     code('23514'),
   );
@@ -165,7 +166,7 @@ test('API group can verify credentials, create/revoke sessions and store evidenc
     assert.equal(
       (
         await client.query(
-          'SELECT profile FROM access_control.password_credential WHERE user_id=$1',
+          'SELECT profile FROM access_control.password_credential_context WHERE user_id=$1',
           [f.id('author')],
         )
       ).rows[0]?.profile,
