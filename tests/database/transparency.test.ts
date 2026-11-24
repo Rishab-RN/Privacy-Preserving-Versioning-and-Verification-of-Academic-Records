@@ -149,6 +149,7 @@ test('transparency storage has minimal BCNF keys and private runtime boundaries'
       table_name: 'event_position',
       columns: ['event_id', 'institution_id', 'leaf_index', 'salt'],
     },
+    { table_name: 'event_source', columns: ['event_id'] },
     { table_name: 'log_state', columns: ['institution_id', 'tree_size', 'bootstrap_size'] },
   ]);
   const keys = await client.query<{ relation: string; definition: string }>(`
@@ -163,6 +164,7 @@ test('transparency storage has minimal BCNF keys and private runtime boundaries'
       relation: 'transparency.event_position',
       definition: 'UNIQUE (institution_id, leaf_index)',
     },
+    { relation: 'transparency.event_source', definition: 'PRIMARY KEY (event_id)' },
     { relation: 'transparency.log_state', definition: 'PRIMARY KEY (institution_id)' },
   ]);
   for (const role of ['scholarproof_api_access', 'scholarproof_worker_access']) {
@@ -558,7 +560,9 @@ test('populated upgrade marks deterministic bootstrap import order and repeats w
     created = true;
     target = createDatabaseClient(database);
     await target.connect();
-    const migrations = loadMigrations();
+    // This fixture exercises the original Week 5 bootstrap migration in isolation.
+    // Later forward upgrades have their own populated-history compatibility checks.
+    const migrations = loadMigrations().filter((migration) => Number(migration.version) <= 10);
     await applyMigrations(
       target,
       migrations.filter((migration) => Number(migration.version) <= 9),

@@ -45,6 +45,7 @@ try {
       join(projectRoot, 'tests/database/bcnf.test.ts'),
       join(projectRoot, 'tests/database/bcnf-upgrade.test.ts'),
       join(projectRoot, 'tests/database/transparency.test.ts'),
+      join(projectRoot, 'tests/database/event-sources.test.ts'),
       join(projectRoot, 'tests/database/migrations.test.ts'),
     ],
     {

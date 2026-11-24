@@ -360,12 +360,36 @@ merging.
 
 ## Next milestone
 
-Review and publish the Week 5 commits after owner approval, inspect remote CI and
-merge its PR before starting the next feature branch. Week 6 adds exact signed
+The owner merged Week 5 in PR #4 (`c2aaea6`), after its remote CI passed. Week 6
+continues on `feat/credential-profile`; future branches use standard feature/fix/docs
+prefixes at the owner's request. Week 6 adds exact signed
 credential artifacts, selective disclosure and explicit status/freshness semantics.
 Institutional grading/attempt rules remain open review items. Neo4j provenance,
 Python ML/anomaly detection and later integrated witness/recovery experiments
 remain mandatory scheduled milestones.
+
+## 2026-11-25 - Week 6 event-source compatibility slice
+
+Migration `0011` introduces a BCNF unary event registry and a shared computed
+event context. Workflow events still own their facts and atomic Mongo delivery;
+existing salts, event payloads, positions, bootstrap state and checkpoints remain
+unchanged. Deferred participation checks reject orphan identities. The API and
+worker remain unable to read the registry, and the log reader cannot write it.
+
+The log reader uses the common interface and checks each source/kind pairing.
+Source classification stays outside commitment bytes and exported event entries.
+Unit fixtures prepare the distinction between workflow projection work and future
+credential-only events; SQL currently accepts only workflow sources. No credential
+issuance, holder disclosure, status or replay-protection endpoint is complete yet.
+
+Quality checks and build passed, including 76 tooling/unit tests. All 45 isolated
+SQL checks and 46 integration checks passed. A populated `0010` upgrade preserves
+a genuine signed checkpoint byte for byte, then validates its historical proof
+after another append. Orphan/immutability, rollback and restricted-read tests pass.
+The schema target has 25 domain plus two metadata tables; development migration
+rollout has not occurred. Unfinished service scaffolding is preserved in ignored
+local runtime drafts and is excluded from the reviewable slice. Nothing has been
+staged or committed for this slice; owner approval remains required.
 
 ## Entry format
 

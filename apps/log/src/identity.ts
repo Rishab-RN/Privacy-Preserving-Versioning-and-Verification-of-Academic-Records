@@ -22,13 +22,13 @@ export async function assertLogSqlIdentity(sql: Pick<Client, 'query'>): Promise<
     AND NOT EXISTS(SELECT 1 FROM pg_class WHERE relowner=r.oid)
     AND NOT EXISTS(SELECT 1 FROM pg_proc WHERE proowner=r.oid)
     AND NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency')
+      WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency','credential')
         AND c.relkind IN ('r','p','v','m','f') AND
         (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
          OR has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE,REFERENCES')
-         OR (n.nspname='access_control' AND (has_table_privilege(r.oid,c.oid,'SELECT') OR has_any_column_privilege(r.oid,c.oid,'SELECT')))))
+         OR (n.nspname IN ('access_control','credential') AND (has_table_privilege(r.oid,c.oid,'SELECT') OR has_any_column_privilege(r.oid,c.oid,'SELECT')))))
     AND NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-      WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency')
+      WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency','credential')
         AND has_function_privilege(r.oid,p.oid,'EXECUTE')
         AND p.oid<>coalesce(to_regprocedure('transparency.record_checkpoint(uuid,bigint,bytea,timestamptz,text,bytea)'),0)
         AND p.oid<>coalesce(to_regprocedure('transparency.read_expected_event(uuid)'),0)

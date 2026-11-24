@@ -8,6 +8,21 @@ have different responsibilities.
 
 ## Event ordering and the bootstrap boundary
 
+Forward migration `0011_event_sources.sql` introduces a unary event-identity
+registry and the invoker-scoped `event_context` view. The log reader uses this
+shared interface while source facts remain authoritative in workflow storage.
+The event-position foreign key now targets the registry. A deferred foreign key
+and source-membership trigger ensure each registered identity has its workflow
+source; immutable guards prohibit registry reassignment or deletion. The append
+function inserts identity and position in the same transaction.
+
+This upgrade preserves all existing payload bytes, indices, salts, heads,
+bootstrap boundaries and signed checkpoints. No old leaf is re-encoded. The
+reader can distinguish source types without treating future credential events
+as Mongo grade-projection work. Only workflow sources are currently accepted by
+SQL; credential issuance, status and presentation endpoints remain subsequent
+Week 6 work and need a forward subtype/permission migration.
+
 Migration `0010_transparency_log.sql` adds one log per institution. An `AFTER
 INSERT` trigger on `workflow.domain_event` derives the institution from the frozen
 request, evidence reference and academic record. A separate `NOLOGIN` function

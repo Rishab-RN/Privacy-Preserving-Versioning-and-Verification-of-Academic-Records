@@ -4,8 +4,8 @@ The owner requires every physical application relation to reach BCNF, and theref
 1NF, 2NF and 3NF. The forward decomposition in migrations `0008`/`0009` replaces the
 earlier tenant/predecessor/protocol copies with normalized facts and computed read
 views. Historical migrations `0001`-`0007` remain unchanged. The schema contains
-**24 domain tables**, including `academic.student_programme` and the three
-transparency relations added by `0010`.
+**25 domain tables**, including `academic.student_programme`, the three
+transparency relations added by `0010`, and the unary event registry in `0011`.
 
 This document reviews the normalized target implemented by those forward
 migrations. Migration, upgrade, integrity and runtime validation are acceptance
@@ -68,20 +68,28 @@ Nullable uniqueness and nonminimal tenant superkeys are qualified below.
 | `transparency.log_state`             | `institution_id -> tree_size,bootstrap_size`                                                               | Yes | Yes | Yes | Yes  |
 | `transparency.event_position`        | `event_id`; `(institution_id,leaf_index)`; each K -> row                                                   | Yes | Yes | Yes | Yes  |
 | `transparency.checkpoint`            | `(institution_id,tree_size) -> root_hash,issued_at,key_id,signature`                                       | Yes | Yes | Yes | Yes  |
+| `transparency.event_source`          | `event_id` is the sole attribute and key; no nontrivial functional dependency                              | Yes | Yes | Yes | Yes  |
 
-The repository's infrastructure tables are outside the 24-domain-table count but
+The repository's infrastructure tables are outside the 25-domain-table count but
 are also considered. `scholarproof_meta.schema_migrations` has keys `version` and
 `name`, each determining checksum/time. `scholarproof_meta.seed_runs` has key
 `name`, determining checksum/time. Under these FDs both are BCNF and consequently
 satisfy the preceding normal forms. PostgreSQL system catalogues are engine-owned
 relations, not application tables redesigned by this project.
 
-The current application therefore has **26 physical relations** including the two
+The current migration target therefore has **27 physical relations** including the two
 metadata tables. Transparency storage has no copied payload, profile/algorithm
 constant, public key or bootstrap boundary in each checkpoint row. The signed
 artifact reconstructs bootstrap metadata from its keyed parent. A signing key may
 serve several institutional logs; no key-to-institution dependency is assumed.
 See [transparency invariants](transparency-log.md) for append/checkpoint guards.
+
+The `0011` registry stores only event identity. Source kind and institutional scope
+are computed through `transparency.event_context`; neither becomes a dependent
+copy in the registry. The source-to-registry foreign key and deferred membership
+trigger enforce participation in both directions. Existing event rows, positions,
+salts and checkpoints remain unchanged. Credential subtypes require their own
+forward migration; this registry alone does not implement credential issuance.
 
 ## Keys and SQL qualifications
 

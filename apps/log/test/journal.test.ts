@@ -37,6 +37,7 @@ function fixture(size = 2) {
     };
     return {
       event_id: eventId(index),
+      source_kind: 'workflow',
       institution_id: logId,
       leaf_index: String(index),
       salt: Buffer.alloc(32, index + 1),
@@ -181,6 +182,43 @@ test('bounded reader refuses oversized logs without certifying a truncated prefi
   source.setSize(100_001);
   await assert.rejects(readJournal(source.client, logId), { code: 'JOURNAL_LIMIT' });
   assert.equal(source.commands.length, 3);
+});
+
+test('mixed-source logs preserve the workflow prefix and exclude credential events from grade delivery', async () => {
+  const original = await readJournal(fixture(1).client, logId);
+  const source = fixture(2);
+  const row = source.rows[1]!;
+  row.source_kind = 'credential';
+  row.payload = {
+    schemaVersion: 1,
+    eventId: eventId(1),
+    institutionId: logId,
+    kind: 'credential.issued',
+    credentialId: actorId,
+    artifactDigest: 'b'.repeat(64),
+  };
+  row.expected_payload = structuredClone(row.payload);
+  for (const field of [
+    'delivery_event_id',
+    'evidence_id',
+    'record_id',
+    'submitted_by',
+    'category',
+    'digest_sha256',
+    'size_bytes',
+    'state',
+  ])
+    row[field] = null;
+  const snapshot = await readJournal(source.client, logId);
+  assert.equal(snapshot.entries[1]!.sourceKind, 'credential');
+  assert.equal(snapshot.entries[1]!.delivered, false);
+  assert.equal(snapshot.evidence.length, 1);
+  assert.deepEqual(journalCommitments(snapshot).slice(0, 1), journalCommitments(original));
+  row.delivery_event_id = eventId(1);
+  await assert.rejects(readJournal(source.client, logId), { code: 'JOURNAL_INTEGRITY' });
+  row.delivery_event_id = null;
+  row.source_kind = 'workflow';
+  await assert.rejects(readJournal(source.client, logId), { code: 'JOURNAL_INTEGRITY' });
 });
 
 test('SQL reconstruction integrity exceptions retain their invalid classification', async () => {

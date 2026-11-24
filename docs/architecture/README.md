@@ -10,7 +10,7 @@ identities, temporal semantics, selected grading assumptions and access limits.
 Implemented behavior is not institutional-policy approval.
 
 The [normalization review](normalization.md) covers the forward BCNF decomposition
-in migrations `0008`/`0009` and the `0010` transparency extension: 24 domain tables, candidate keys, identified
+in migrations `0008`/`0009` and the `0010`/`0011` transparency extensions: 25 domain tables, candidate keys, identified
 functional dependencies, explicit 1NF/2NF/3NF/BCNF results and lossless reconstruction
 through read views. It supersedes the earlier twenty-table physical-exception
 analysis. Migration/upgrade/runtime acceptance and rollout are tracked separately
