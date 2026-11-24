@@ -155,7 +155,7 @@ async function provisionPostgres(admin: Client, environment: WorkerEnvironment):
        AND NOT EXISTS(SELECT 1 FROM pg_proc WHERE proowner=r.oid)
        AND NOT EXISTS(
          SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-         WHERE n.nspname IN ('academic','access_control','evidence','workflow')
+         WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency')
            AND c.relkind IN ('r','p','v','m','f')
            AND (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
              OR has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE,REFERENCES')
@@ -164,7 +164,7 @@ async function provisionPostgres(admin: Client, environment: WorkerEnvironment):
        )
        AND NOT EXISTS(
          SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-         WHERE n.nspname IN ('academic','access_control','evidence','workflow')
+         WHERE n.nspname IN ('academic','access_control','evidence','workflow','transparency')
            AND p.oid NOT IN (
              to_regprocedure('workflow.claim_deliveries(integer,integer)'),
              to_regprocedure('workflow.ack_delivery(uuid,uuid)'),

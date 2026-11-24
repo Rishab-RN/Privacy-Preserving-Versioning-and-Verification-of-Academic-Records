@@ -1,0 +1,16 @@
+{
+  "name": "@academic-records/log",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
+    "run": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.log src/main.ts"
+  },
+  "dependencies": {
+    "@academic-records/verification": "0.1.0",
+    "mongodb": "7.9.1",
+    "pg": "8.23.1"
+  }
+}
