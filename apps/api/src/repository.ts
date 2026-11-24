@@ -37,7 +37,7 @@ export class Repository {
       PasswordMaterial & { user_id: string; account_state: string }
     >(
       `SELECT c.profile,c.salt_hex,c.derived_key_hex,u.user_id,u.account_state
-       FROM access_control.password_credential c JOIN academic.app_user u USING(user_id) WHERE u.auth_subject=$1`,
+       FROM access_control.password_credential_context c JOIN academic.app_user u USING(user_id) WHERE u.auth_subject=$1`,
       [subject],
     );
     return result.rows[0];
@@ -114,29 +114,27 @@ export class Repository {
   async reserve(reference: Omit<EvidenceReference, 'created_at' | 'state'>) {
     await this.sql.query(
       `INSERT INTO evidence.reference
-      (evidence_id,institution_id,record_id,submitted_by,request_key,category,document_schema_version,digest_sha256,size_bytes)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(submitted_by,request_key) DO NOTHING`,
+      (evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+      VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(submitted_by,request_key) DO NOTHING`,
       [
         reference.evidence_id,
-        reference.institution_id,
         reference.record_id,
         reference.submitted_by,
         reference.request_key,
         reference.category,
-        reference.document_schema_version,
         reference.digest_sha256,
         reference.size_bytes,
       ],
     );
     const result = await this.sql.query<EvidenceReference>(
-      `SELECT ${columns} FROM evidence.reference r WHERE r.submitted_by=$1 AND r.request_key=$2`,
+      `SELECT ${columns} FROM evidence.reference_context r WHERE r.submitted_by=$1 AND r.request_key=$2`,
       [reference.submitted_by, reference.request_key],
     );
     return result.rows[0]!;
   }
   async evidence(userId: string, evidenceId: string) {
     const result = await this.sql.query<EvidenceReference>(
-      `SELECT ${columns} FROM evidence.reference r JOIN academic.grade_record gr ON gr.record_id=r.record_id
+      `SELECT ${columns} FROM evidence.reference_context r JOIN academic.grade_record gr ON gr.record_id=r.record_id
        JOIN academic.enrolment e ON e.enrolment_id=gr.enrolment_id JOIN academic.student s USING(student_id)
        WHERE r.evidence_id=$2 AND ${scope()}`,
       [userId, evidenceId],

@@ -45,12 +45,21 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
       AND NOT EXISTS (
         SELECT 1 FROM identities i WHERE has_function_privilege(i.oid,
           'academic.append_grade_version(uuid,integer,numeric,text,timestamptz,timestamptz,uuid,text)','EXECUTE')
+          OR has_function_privilege(i.oid,
+          'academic.register_student(uuid,uuid,uuid,text,smallint,uuid)','EXECUTE')
       )
       AND NOT EXISTS (
         SELECT 1 FROM identities i
         WHERE has_table_privilege(i.oid,'access_control.password_credential',
                 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
           OR has_any_column_privilege(i.oid,'access_control.password_credential','INSERT,UPDATE,REFERENCES')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM identities i CROSS JOIN unnest(ARRAY[
+          'access_control.password_credential_context','evidence.reference_context'
+        ]) AS projection(name)
+        WHERE has_table_privilege(i.oid,projection.name,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+          OR has_any_column_privilege(i.oid,projection.name,'INSERT,UPDATE,REFERENCES')
       )
       AND NOT EXISTS (
         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -71,10 +80,12 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
           AND has_schema_privilege(i.oid,'access_control','USAGE')
           AND has_schema_privilege(i.oid,'evidence','USAGE')
           AND has_table_privilege(i.oid,'access_control.password_credential','SELECT')
+          AND has_table_privilege(i.oid,'access_control.password_credential_context','SELECT')
           AND has_table_privilege(i.oid,'access_control.api_session','SELECT')
           AND has_table_privilege(i.oid,'access_control.api_session','INSERT')
           AND has_column_privilege(i.oid,'access_control.api_session','revoked_at','UPDATE')
           AND has_table_privilege(i.oid,'evidence.reference','SELECT')
+          AND has_table_privilege(i.oid,'evidence.reference_context','SELECT')
           AND has_table_privilege(i.oid,'evidence.reference','INSERT')
           AND has_column_privilege(i.oid,'evidence.reference','state','UPDATE')
           AND has_function_privilege(i.oid,'academic.transcript_as_of(uuid,timestamptz,timestamptz)','EXECUTE')

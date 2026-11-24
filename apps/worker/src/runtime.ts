@@ -84,10 +84,11 @@ export async function openWorkerRuntime(config: ReturnType<typeof workerConfig>)
         WHERE n.nspname IN ('academic','access_control','evidence','workflow') AND c.relkind IN ('r','p','v','m','f')
           AND (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN') OR has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE,REFERENCES')))
       AND NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-        WHERE n.nspname='access_control' AND c.relname IN ('password_credential','api_session')
+        WHERE n.nspname IN ('academic','access_control','evidence','workflow') AND c.relkind IN ('r','p','v','m','f')
+          AND (n.nspname,c.relname)<>('workflow','domain_event')
           AND (has_table_privilege(r.oid,c.oid,'SELECT') OR has_any_column_privilege(r.oid,c.oid,'SELECT')))
       AND NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-        WHERE ((n.nspname='academic' AND p.proname='append_grade_version') OR
+        WHERE ((n.nspname='academic' AND p.proname IN ('append_grade_version','register_student')) OR
                (n.nspname='workflow' AND p.proname IN ('approve_change','propose_change','reject_change','get_change')))
           AND has_function_privilege(r.oid,p.oid,'EXECUTE'))
       AND has_function_privilege(r.oid,'workflow.claim_deliveries(integer,integer)','EXECUTE')

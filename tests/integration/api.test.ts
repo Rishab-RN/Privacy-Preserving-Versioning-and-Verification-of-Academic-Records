@@ -103,8 +103,8 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
   async function credential(userId: string) {
     const material = await hashPassword(password);
     await admin.query(
-      'INSERT INTO access_control.password_credential(user_id,profile,salt_hex,derived_key_hex) VALUES($1,$2,$3,$4)',
-      [userId, material.profile, material.salt_hex, material.derived_key_hex],
+      'INSERT INTO access_control.password_credential(user_id,salt_hex,derived_key_hex) VALUES($1,$2,$3)',
+      [userId, material.salt_hex, material.derived_key_hex],
     );
   }
   async function session(userId: string, expired = false) {
@@ -130,13 +130,15 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
   const peerStudentId = randomUUID();
   const peerEnrolmentId = randomUUID();
   const peerRecordId = randomUUID();
+  await admin.query("SELECT academic.register_student($1,$2,$3,'PEER_STUDENT',2026::smallint,$4)", [
+    peerStudentId,
+    f.id('institution'),
+    f.id('programme'),
+    peer.userId,
+  ]);
   await admin.query(
-    "INSERT INTO academic.student(student_id,institution_id,programme_id,user_id,student_code,admission_year) VALUES($1,$2,$3,$4,'PEER_STUDENT',2026)",
-    [peerStudentId, f.id('institution'), f.id('programme'), peer.userId],
-  );
-  await admin.query(
-    'INSERT INTO academic.enrolment(enrolment_id,institution_id,student_id,offering_id) VALUES($1,$2,$3,$4)',
-    [peerEnrolmentId, f.id('institution'), peerStudentId, f.id('offering')],
+    'INSERT INTO academic.enrolment(enrolment_id,student_id,offering_id) VALUES($1,$2,$3)',
+    [peerEnrolmentId, peerStudentId, f.id('offering')],
   );
   await admin.query(
     'INSERT INTO academic.grade_record(record_id,institution_id,enrolment_id) VALUES($1,$2,$3)',

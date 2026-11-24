@@ -58,9 +58,9 @@ async function workflowFixture(client: Client) {
   const disabled = await actor('registrar', f.id('institution'), true);
   const evidenceId = randomUUID();
   await client.query(
-    `INSERT INTO evidence.reference(evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
-    VALUES($1,$2,$3,$4,$5,'supporting_note',$6,128)`,
-    [evidenceId, f.id('institution'), f.id('record'), proposer.id, randomUUID(), digest()],
+    `INSERT INTO evidence.reference(evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+    VALUES($1,$2,$3,$4,'supporting_note',$5,128)`,
+    [evidenceId, f.id('record'), proposer.id, randomUUID(), digest()],
   );
   await client.query("UPDATE evidence.reference SET state='available' WHERE evidence_id=$1", [
     evidenceId,
@@ -142,8 +142,8 @@ async function counts(client: Client, recordId: string) {
     (SELECT count(*)::int FROM academic.grade_version WHERE record_id=$1) AS versions,
     (SELECT latest_version_no FROM academic.grade_record WHERE record_id=$1) AS head,
     (SELECT count(*)::int FROM workflow.decision WHERE record_id=$1) AS decisions,
-    (SELECT count(*)::int FROM workflow.domain_event WHERE record_id=$1) AS events,
-    (SELECT count(*)::int FROM workflow.outbox_delivery d JOIN workflow.domain_event e USING(event_id) WHERE e.record_id=$1) AS deliveries`,
+    (SELECT count(*)::int FROM workflow.domain_event_context WHERE record_id=$1) AS events,
+    (SELECT count(*)::int FROM workflow.outbox_delivery d JOIN workflow.domain_event_context e USING(event_id) WHERE e.record_id=$1) AS deliveries`,
       [recordId],
     )
   ).rows[0];
@@ -318,9 +318,9 @@ test('workflow checks live sessions, institutional roles, separate approval and 
   await assert.rejects(w.approve(request), code('42501'));
   const pending = randomUUID();
   await client.query(
-    `INSERT INTO evidence.reference(evidence_id,institution_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
-    VALUES($1,$2,$3,$4,$5,'supporting_note',$6,128)`,
-    [pending, w.f.id('institution'), w.f.id('record'), w.proposer.id, randomUUID(), digest()],
+    `INSERT INTO evidence.reference(evidence_id,record_id,submitted_by,request_key,category,digest_sha256,size_bytes)
+    VALUES($1,$2,$3,$4,'supporting_note',$5,128)`,
+    [pending, w.f.id('record'), w.proposer.id, randomUUID(), digest()],
   );
   await assert.rejects(w.propose({ evidence: pending }), code('23514'));
   const other = await workflowFixture(client);
