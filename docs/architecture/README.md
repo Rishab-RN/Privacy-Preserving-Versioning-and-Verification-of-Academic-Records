@@ -23,6 +23,10 @@ private salted commitments and signed checkpoints. The
 proof checking and retained-observation limits. Historical inclusion does not
 establish current credential status.
 
+The [Week 6 credential profile](credential-profile.md) defines the implemented
+flat-claim SD-JWT library, pinned trust, exact consent and holder/Merkle binding.
+Its database persistence, status and single-use challenge gate remain pending.
+
 The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
 approval, the atomic SQL change/audit/outbox boundary and recoverable derived
 delivery. Its SQL/API/worker updates have separate validation and commit points.

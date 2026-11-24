@@ -3,12 +3,13 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 5 - signed workflow history and independent verification.**
+**Current phase: Week 6 - credential profile implementation in progress.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
-audits actual workflow facts and evidence. Product UI and selective-disclosure
-credentials remain later stages.
+audits actual workflow facts and evidence. The credential library now supports
+selective disclosure with holder-bound proofs; SQL credential persistence,
+revocation/status, one-use challenges and product UI remain pending.
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -58,8 +59,8 @@ does not prove that an entered grade is factually correct; historical inclusion 
 does not establish currentness.
 
 The owner's physical BCNF requirement is addressed through forward migrations
-`0008`/`0009`, with three additional normalized transparency relations in `0010`.
-The [normalization analysis](docs/architecture/normalization.md) covers 24 domain
+`0008`/`0009`, with normalized transparency relations in `0010`/`0011`.
+The [normalization analysis](docs/architecture/normalization.md) covers 25 domain
 tables and two metadata tables. Existing migrations, credential files and academic
 history are preserved; actual validation/rollout evidence is in the journey.
 

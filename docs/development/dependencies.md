@@ -63,6 +63,13 @@ See the [operator guide](../../apps/log/README.md) for setup and trust boundarie
 
 ## Introduce dependencies with their implementation stage
 
+Week 6 adds `packages/credentials` and pins `jose@6.2.18` for JOSE signing and
+verification. Flat RFC 9901 disclosure/consent semantics live in the application
+profile, with a published hash fixture and independent Node Ed25519 JWT fixtures.
+The root build, types and tests include this package. No credential database or
+HTTP service is installed by this library slice; see the
+[profile](../architecture/credential-profile.md) for its explicit limits.
+
 | Stage                         | Add when needed                                   | Decision gate                                                                                         |
 | ----------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Schema and API                | Migration/auth/session tooling                    | Reviewed model and authentication design                                                              |

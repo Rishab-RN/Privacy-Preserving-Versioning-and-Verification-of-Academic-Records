@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/contracts" },
     { "path": "packages/verification" },
+    { "path": "packages/credentials" },
     { "path": "apps/api" },
     { "path": "apps/worker" },
     { "path": "apps/log" }

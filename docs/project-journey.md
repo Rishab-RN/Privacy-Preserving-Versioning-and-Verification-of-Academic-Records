@@ -389,7 +389,38 @@ after another append. Orphan/immutability, rollback and restricted-read tests pa
 The schema target has 25 domain plus two metadata tables; development migration
 rollout has not occurred. Unfinished service scaffolding is preserved in ignored
 local runtime drafts and is excluded from the reviewable slice. Nothing has been
-staged or committed for this slice; owner approval remains required.
+staged or committed at that validation point. The owner subsequently approved
+commit `52c538f` (`refactor: introduce shared event source registry`); the reviewed
+15-file slice was committed on `feat/credential-profile` without pushing.
+
+## 2026-11-25 - Week 6 credential cryptography slice
+
+Added the private `@academic-records/credentials` library with pinned JOSE
+dependency `jose@6.2.18`. It issues a compact issuer-signed artifact and six private
+flat claim disclosures. Holder presentation verifies the trusted issuer and the
+complete private disclosure set before signing only selected claims. Verifier
+checks exact consent, pinned issuer, immutable version identity, exact artifact
+digest, holder signature, audience/nonce and bounded proof age.
+
+The optional log-evidence verifier binds a pinned-key inclusion proof to that same
+credential/artifact/version/holder. It rejects validly signed evidence about
+another artifact. Hidden values remain absent from the returned presentation;
+visible identifiers and holder keys remain linkable. This is a narrow RFC 9901
+application profile, not full SD-JWT VC or wallet-standard compliance.
+
+All 89 tooling/unit checks and the build passed, including 13 new credential
+tests. New fixtures cover the RFC's published disclosure hash, independently
+constructed Node Ed25519 JWTs, noncanonical valid JSON, exact consent, malformed
+encoding, duplicate JSON names, private/wrong keys, wrong audiences/nonces, stale
+proofs, modified disclosures and mismatched valid log evidence. SQL and integration
+checks were not rerun for this library-only slice; the preceding source-registry
+slice passed 45 SQL and 46 integration checks. No database or private key changed.
+
+Week 6 remains in progress. SQL persistence/approved-version authorization,
+holder-key registration, exact issuance retry, durable challenge consumption,
+revocation/supersession and signed current-status evidence are pending. Stateless
+verification alone cannot prevent a repeated presentation from passing within its
+validity window. The next slice must enforce these online boundaries atomically.
 
 ## Entry format
 

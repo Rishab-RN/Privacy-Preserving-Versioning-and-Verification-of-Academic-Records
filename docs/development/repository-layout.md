@@ -13,6 +13,7 @@ apps/
 packages/
   contracts/                Shared request/response types and data contracts
   verification/             Independent commitments, signatures, Merkle proofs and CLI
+  credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
   seeds/                    Deterministic synthetic development data
