@@ -1,0 +1,178 @@
+import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { readFileSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const accounts = JSON.parse(readFileSync(resolve('.runtime/demo-accounts.json'), 'utf8')) as {
+  subject: string;
+  password: string;
+  role: string;
+}[];
+const staff = JSON.parse(readFileSync(resolve('.runtime/workflow-accounts.json'), 'utf8')) as {
+  subject: string;
+  password: string;
+}[];
+const fixture = JSON.parse(readFileSync(resolve('.runtime/workflow-fixture.json'), 'utf8')) as {
+  recordId: string;
+  studentId: string;
+};
+const out = resolve('.runtime/frontend-evidence');
+async function login(page: Page, account: { subject: string; password: string }) {
+  await page.getByLabel('Account ID', { exact: true }).fill(account.subject);
+  await page.getByLabel('Password', { exact: true }).fill(account.password);
+  await page.getByRole('button', { name: 'Sign in to workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Records with a history.' })).toBeVisible();
+  await expect(page.getByLabel('Student', { exact: true })).toBeEnabled();
+}
+test('live student, auditor and independent registrar browser journeys', async ({ page }) => {
+  mkdirSync(out, { recursive: true });
+  const consoleErrors: string[] = [];
+  page.on('pageerror', (e) => consoleErrors.push(e.name));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '01-sign-in.png'), fullPage: true });
+  await page.getByLabel('Account ID', { exact: true }).fill('demo:student');
+  await page.getByLabel('Password', { exact: true }).fill('incorrect-synthetic-password');
+  await page.getByRole('button', { name: 'Sign in to workspace' }).click();
+  await expect(page.getByRole('alert')).toContainText('UNAUTHORIZED');
+
+  const student = accounts.find((a) => a.role === 'student')!;
+  await login(page, student);
+  await expect(
+    page.getByLabel('Student', { exact: true }).locator('option:not([disabled])'),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole('navigation').getByRole('button', { name: 'Evidence' }),
+  ).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '02-student-overview.png'), fullPage: true });
+  await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
+  await expect(page.getByRole('columnheader', { name: 'Recorded at' })).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Search course code' }).fill('NO_SUCH_COURSE');
+  await expect(page.getByText('No course codes match your search.')).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Search course code' }).fill('');
+  await page.getByLabel('Known at (local time)', { exact: true }).fill('1990-01-01T00:00');
+  await page.getByRole('button', { name: 'Apply time filters' }).click();
+  await expect(page.getByRole('heading', { name: 'No results in this view' })).toBeVisible();
+  await page.getByRole('button', { name: 'Current view' }).click();
+  await expect(page.getByRole('table')).toBeVisible();
+  await page.route('**/api/v1/students/*/transcript*', (route) => route.abort('failed'));
+  await page.getByRole('button', { name: 'Current view' }).click();
+  await expect(page.getByRole('alert')).toContainText('CONNECTION_UNAVAILABLE');
+  await page.unroute('**/api/v1/students/*/transcript*');
+  await page.getByRole('button', { name: 'Current view' }).click();
+  await expect(page.getByRole('table')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '03-mobile-records.png'), fullPage: true });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+  ).toBeTruthy();
+  await page.getByRole('navigation').getByRole('button', { name: 'Evidence' }).click();
+  await expect(page.getByRole('heading', { name: 'Propose a record correction' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(
+    page,
+    accounts.find((a) => a.role === 'auditor')!,
+  );
+  await expect(page.getByRole('navigation').getByRole('button', { name: 'Evidence' })).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await login(page, staff[0]!);
+  await page.getByRole('navigation').getByRole('button', { name: 'Evidence' }).click();
+  await page.getByLabel('Record ID', { exact: true }).fill(fixture.recordId);
+  await page
+    .getByLabel('Supporting note', { exact: true })
+    .fill('Synthetic browser journey evidence. No personal information.');
+  await page.getByRole('button', { name: 'Save evidence', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Available' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retrieve evidence', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Verified evidence content' })).toBeVisible();
+  await page.getByLabel('Grade points', { exact: true }).fill('8.00');
+  await page.getByLabel('Effective from (local time)', { exact: true }).fill('2000-01-01T00:00');
+  await page
+    .getByLabel('Reason for correction', { exact: true })
+    .fill('Synthetic UI correction for independent review');
+  const proposalKeys: string[] = [];
+  await page.route('**/api/v1/records/*/change-requests', async (route) => {
+    proposalKeys.push(route.request().headers()['idempotency-key']!);
+    const response = await route.fetch();
+    if (proposalKeys.length === 1) await route.abort('failed');
+    else await route.fulfill({ response });
+  });
+  await page.getByRole('button', { name: 'Submit for independent review' }).click();
+  await expect(page.getByRole('alert')).toContainText('CONNECTION_UNAVAILABLE');
+  await page.getByRole('button', { name: 'Submit for independent review' }).click();
+  const result = page.getByRole('status').filter({ hasText: 'Proposal submitted' });
+  await expect(result).toBeVisible();
+  expect(proposalKeys).toHaveLength(2);
+  expect(proposalKeys[0]).toBe(proposalKeys[1]);
+  await page.unroute('**/api/v1/records/*/change-requests');
+  const requestId = (await result.innerText()).match(
+    /[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}/,
+  )![0];
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '04-evidence-proposal.png'), fullPage: true });
+  await page.getByRole('navigation').getByRole('button', { name: 'Review' }).click();
+  await page.getByRole('button', { name: 'Find request', exact: true }).click();
+  await expect(page.getByText('A different registrar must review your proposal.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Approve correction', exact: true })).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await login(page, staff[1]!);
+  await page.getByRole('navigation').getByRole('button', { name: 'Review' }).click();
+  await page.getByLabel('Request ID', { exact: true }).fill(requestId);
+  await page.getByRole('button', { name: 'Find request', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Proposed correction', exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel('Decision reason', { exact: true })
+    .fill('Synthetic independent UI approval');
+  await page.getByRole('button', { name: 'Approve correction', exact: true }).click();
+  await expect(page.getByText('Confirm approval?', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByText('Confirm approval?', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Approve correction', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm approval', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Recorded decision' })).toBeVisible();
+  await expect(page.getByText('Academic revision accepted', { exact: true })).toBeVisible();
+  const applied = (
+    await page.locator('small').filter({ hasText: 'Applied version' }).innerText()
+  ).match(/Applied version (\d+)/)![1]!;
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '05-independent-approval.png'), fullPage: true });
+  await page.getByLabel('Student', { exact: true }).selectOption(fixture.studentId);
+  await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
+  await page.getByRole('button', { name: 'Current view', exact: true }).click();
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: fixture.recordId })).toContainText(
+    `v${applied}`,
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: resolve(out, '06-revised-record.png'), fullPage: true });
+  expect(
+    await page.evaluate(() => localStorage.length === 0 && sessionStorage.length === 0),
+  ).toBeTruthy();
+  await page.route('**/api/v1/students/*/transcript*', (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }),
+    }),
+  );
+  await page.getByRole('button', { name: 'Current view', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+  await page.unroute('**/api/v1/students/*/transcript*');
+  await login(page, student);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});

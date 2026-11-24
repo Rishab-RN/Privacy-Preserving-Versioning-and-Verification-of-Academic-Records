@@ -14,7 +14,7 @@ does not select an open-source licence. The owner still needs to choose reuse te
 | API            | Express 5, Zod 4                             | Scoped HTTP routes and strict domain input validation      |
 | SQL            | `pg` and its types                           | Migrations, temporal queries, approval wrappers and outbox |
 | Documents      | MongoDB Node driver                          | Validated evidence and recoverable workflow projections    |
-| Frontend       | React 19, Vite 8, Tailwind 4 and types       | Installed/type-checked configuration; UI pending           |
+| Frontend       | React 19, Vite 8, Tailwind 4 and types       | Live scoped workspace, forms and review screens            |
 | Local services | Docker Compose, PostgreSQL 18, MongoDB 8.0   | Optional development containers                            |
 | Test runner    | Node's test runner; TSX for TypeScript cases | Tooling/HTTP checks and isolated PostgreSQL tests          |
 
@@ -26,7 +26,9 @@ update rather than bypassing peer checks.
 
 The root `build` compiles the API, contracts, worker, independent verifier and log
 operator. `typecheck` also checks scripts, tests and the installed frontend
-configuration. Product pages remain pending.
+configuration. It now builds the frontend production bundle as well. Playwright
+`1.65.1` checks the live browser flow against synthetic API fixtures; local runs
+can use an installed Chrome executable, while CI installs Chromium.
 
 Week 2 uses the existing `pg` client and Node tooling for migrations and fixtures;
 no new npm dependency was added. PostgreSQL's `btree_gist` extension supports the

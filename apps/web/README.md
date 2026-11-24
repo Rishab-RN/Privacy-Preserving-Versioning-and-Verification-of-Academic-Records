@@ -1,11 +1,68 @@
 # Web application
 
-The React/TypeScript frontend toolchain is installed: React, Vite, Tailwind's Vite
-plugin, type definitions and a type-checked configuration. UI pages and the browser
-entry point are intentionally pending the weekly implementation work, so this is
-not yet a runnable frontend application.
+The React/TypeScript/Tailwind application is runnable and connected to the existing
+API. It includes sign-in, role-scoped overview, student selection, course search,
+historical transcript filters, supporting evidence, registrar proposals and
+independent approval/rejection with delivery status. Pages and shared controls are
+separate modules under `src/`; transport types come from `packages/contracts`.
 
-Vite's configured development address is `127.0.0.1:5173`. The registrar, student,
-verifier and auditor flows will be added incrementally. Share API types through
-`packages/contracts`; do not import server internals. Import Tailwind from the
-application stylesheet when that stylesheet is introduced.
+From the repository root, keep the API running in one terminal and the frontend
+in another:
+
+```powershell
+npm run dev:api
+```
+
+```powershell
+npm run dev:web
+```
+
+Open `http://127.0.0.1:5173`. Vite proxies `/api` to the loopback API on port 4000;
+`WEB_API_PORT` can select another local API port. Both development and build-preview
+use this proxy. No database credentials belong in a `VITE_*` variable.
+
+For initial local setup, follow the [API guide](../../docs/development/api.md).
+Synthetic login details remain in ignored `.runtime/demo-accounts.json` and
+`.runtime/workflow-accounts.json`; open those locally and use the account subject
+and password. Never include them in shared captures. No password is embedded in
+the frontend. Students see their own linked subject; registrars/auditors select
+subjects within their institution. Controls reflect roles while the API still
+enforces every permission.
+
+The session token and retry state stay in memory, without local/session storage.
+Refresh requires sign-in. A 401 or session expiry clears the workspace; failed
+logout reports when server-side revocation could not be confirmed. Evidence and
+proposal retries preserve their exact body/key while the same form remains open.
+Navigating away or refreshing clears that in-memory retry state.
+
+`npm run build` includes the frontend production bundle. `npm run preview:web`
+previews it on port 5173; this is a local preview, not a production hosting setup.
+The development `.env` files remain server-only and are never bundled.
+
+## Browser validation
+
+After access/worker/workflow fixture setup:
+
+```powershell
+npx playwright install chromium
+npm run test:web
+```
+
+The test starts its own API on 4017 and production preview on 5177, refuses to
+reuse occupied servers, and stops them afterwards. It uses local synthetic demo
+accounts and appends evidence plus one approved correction to the synthetic
+workflow record on each successful run. It does not reset history. Run against
+disposable services in CI. For local Chrome, set `WEB_BROWSER_EXECUTABLE` to its
+installed executable instead of downloading Chromium.
+
+The journey covers bad login, scoped student view, historical/empty/search states,
+network failure and recovery, mobile overflow, read-only auditor controls,
+evidence retrieval, a lost proposal response with exact retry, blocked self-review,
+approval confirmation/cancellation, distinct-registrar acceptance, revised-version
+rendering, 401 expiry and memory-only sessions. Screenshots are ignored under
+`.runtime/frontend-evidence`; no screenshots or traces capture entered passwords.
+
+Current credential cryptography remains a library; credential persistence/status
+and challenge services are pending. Those flows, Neo4j and ML do not have live UI
+screens yet. No successful credential, graph or ML result is simulated by these
+pages. See the [frontend walkthrough](../../docs/development/frontend.md).

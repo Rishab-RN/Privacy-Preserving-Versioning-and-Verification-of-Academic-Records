@@ -100,3 +100,5 @@ jobs:
       - run: npm run workflow:smoke
       - run: npm run log:setup
       - run: npm run log:demo
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:web

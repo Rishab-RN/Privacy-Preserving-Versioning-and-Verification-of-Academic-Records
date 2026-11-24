@@ -7,7 +7,7 @@ root unless a guide explicitly says otherwise.
 ```text
 apps/
   api/                      HTTP API and backend composition
-  web/                      React/Vite/Tailwind toolchain; UI entry pending
+  web/                      Live React/Vite/Tailwind workspace and API adapter
   worker/                   Restricted outbox consumer and MongoDB projections
   log/                      Restricted signed-log operator and actual-source audit
 packages/
@@ -33,8 +33,9 @@ docs/
 
 The API startup slice and shared contracts package contain implemented source.
 The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependencies
-installed, plus a type-checked Vite configuration. It has no UI entry or runnable
-frontend yet. The worker contains the implemented MongoDB projection consumer,
+installed, a runnable entry point, separate page modules and shared accessible
+controls. It connects existing HTTP workflows and has live browser checks; pending
+credential/graph/ML services have no simulated UI successes. The worker contains the implemented MongoDB projection consumer,
 provisioning and journal replay. The verification package implements canonical
 commitments, signed checkpoints, inclusion/consistency proofs and an offline CLI.
 The log workspace owns database observation, publication, private export and

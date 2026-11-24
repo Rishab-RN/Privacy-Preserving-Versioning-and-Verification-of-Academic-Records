@@ -429,8 +429,6 @@ the agreement at that time and are superseded for future commits. Normal topic
 pushes retain the owner's earlier authorisation; PR review and merging remain
 owner-controlled.
 
-## Entry format
-
 ## 2026-11-25 - Scoped frontend directory
 
 The owner prioritised the working UI before advancing to the next week. Added a
@@ -444,6 +442,49 @@ All 47 isolated integration checks passed, including the new directory scope and
 unauthenticated checks. The 89 tooling/unit checks passed. React browser entry and
 screens are being implemented separately on the same active feature branch; this
 directory update does not claim the UI is complete.
+
+## 2026-11-25 - Working academic records frontend
+
+Completed the current HTTP-backed React/Vite/Tailwind workspace before advancing
+the weekly plan. Separate page modules cover sign-in, a scoped overview/student
+selector, course search, known/effective-time transcript filters, supporting-note
+submission/retrieval, registrar proposals and independent decisions. Delivery
+history remains distinct from academic acceptance. No credential, graph or ML
+success is simulated for an unimplemented endpoint.
+
+Tokens and retry state remain in memory. A 401 or expiry clears the workspace;
+refresh requires sign-in. Role-specific controls supplement server enforcement.
+Exact retries retain the original version/body/key even after a committed response
+is lost. Transcript request generations reject stale responses. Explicit control
+labels/descriptions, a skip link, focus indicators, contained keyboard-scrollable
+tables, reduced motion and a mobile layout are included. Pages/controls are
+separate modules, not a single application component.
+
+The production bundle, formatting, lint, all types and 89 tooling/unit checks
+passed. All 47 isolated integration checks passed for the directory/API update.
+One complete live Playwright scenario passed after the final modular split; it
+covers student/auditor/registrar roles, invalid login, historical empty/search
+states, network recovery, a committed-but-lost proposal response with exact retry,
+blocked self-review, approval cancellation/confirmation by another registrar,
+revised-version rendering, 401 cleanup and refresh/memory semantics. Desktop and
+390-pixel mobile screenshots were rendered and inspected locally. Repeated browser
+runs append synthetic evidence/corrections; they do not reset development history.
+CI now builds the frontend and defines the same browser scenario with Chromium.
+
+Saved a PostgreSQL custom-format backup before deploying the already-tested
+`0011` registry migration locally. All nine existing environment/account/fixture/
+key files checked remained byte-for-byte unchanged. Drained eight synthetic
+projection events in two restricted worker batches, with zero failures. The log
+operator preserved the retained prefix and published size 24 (bootstrap 14).
+Final audit checked 24 events and 12 evidence documents: valid integrity,
+complete projection, no issues. The 102 seed/admin uncovered grade versions and
+currentness limits remain explicit. Backups, captures and local material stay ignored.
+
+The frontend for current HTTP workflows is ready for review. Week 6 still needs
+credential storage/authorisation, holder registration, one-use challenges and
+status/revocation services, followed by their live UI. The owner requires frontend
+work as an acceptance gate before advancing to another week. Published CI must
+pass and the owner must review before merging.
 
 ## Entry format
 

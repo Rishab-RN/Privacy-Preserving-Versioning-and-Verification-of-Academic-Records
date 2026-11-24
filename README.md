@@ -9,7 +9,9 @@ Canonical salted commitments, signed checkpoints, inclusion/consistency proofs a
 an offline verifier complement the recoverable MongoDB worker. A separate operator
 audits actual workflow facts and evidence. The credential library now supports
 selective disclosure with holder-bound proofs; SQL credential persistence,
-revocation/status, one-use challenges and product UI remain pending.
+revocation/status and one-use challenges remain pending. The responsive React
+workspace now connects sign-in, scoped transcripts, evidence and registrar reviews
+to the live API. Frontend completion is a gate before the next week.
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -43,7 +45,7 @@ will depend on measured evidence.
 
 | Area                       | Direction                                                                     |
 | -------------------------- | ----------------------------------------------------------------------------- |
-| Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending                |
+| Frontend                   | React/Vite/Tailwind; live scoped records, evidence and independent review     |
 | API                        | Node.js/Express/TypeScript; scoped access and registrar approval              |
 | Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox               |
 | Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies              |
@@ -75,7 +77,7 @@ signal rather than proof of fraud.
 ```text
 apps/
   api/                      API startup, configuration and HTTP tests
-  web/                      Installed frontend toolchain; product UI pending
+  web/                      Live React workspace for scoped records and review
   worker/                   Restricted outbox consumer and Mongo projections
   log/                      Separate signer, private proof export and source audit
 packages/
@@ -211,6 +213,11 @@ If you are using the existing `PrivacyPreservingRecords` working folder, its
 `origin` is already configured; do not clone a second repository inside it.
 
 ## Collaboration
+
+For the UI, run `npm run dev:api` and `npm run dev:web` in separate terminals, then
+open `http://127.0.0.1:5173`. Use locally provisioned accounts; no demo passwords are
+embedded in the application. See the [frontend walkthrough](docs/development/frontend.md)
+for screenshots, role-specific steps, browser testing and remaining backend gates.
 
 Use short-lived `feat/`, `fix/`, `docs/`, `test/` or `chore/` branches and pull
 requests into `main`. Keep commits focused, with short Conventional Commit messages.
