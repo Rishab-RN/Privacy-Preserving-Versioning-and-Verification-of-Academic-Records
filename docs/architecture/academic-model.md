@@ -3,9 +3,10 @@
 The implemented model separates academic identity, catalogue, enrolment, grade
 history, authenticated access, evidence and approval/delivery facts. The owner
 requires BCNF physical storage; forward migrations `0008`/`0009` decompose the
-earlier twenty-table design into **21 domain tables** without rewriting applied
-history. Fresh/upgrade and runtime validation remain acceptance gates until their
-results are recorded in the [project journey](../project-journey.md).
+earlier twenty-table design into 21 academic/access/workflow relations without
+rewriting applied history. Migration `0010` adds three BCNF transparency relations,
+giving **24 domain tables plus two metadata tables**. Actual migration/runtime
+validation is recorded in the [project journey](../project-journey.md).
 
 All demonstration fixtures are synthetic. The model's selected grade bounds and
 approval rules are explicit application assumptions, not an assertion of official

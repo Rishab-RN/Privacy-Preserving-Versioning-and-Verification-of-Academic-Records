@@ -3,11 +3,12 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 4 - approved record changes and durable delivery.** Scoped
-transcript/evidence access now supports immutable change requests, approval by a
-different institutional registrar and atomic SQL grade revisions. A restricted
-worker delivers recoverable MongoDB projections. Product UI and cryptographic
-verification remain later stages.
+**Current phase: Week 5 - signed workflow history and independent verification.**
+Scoped record changes now feed a transactionally ordered institutional log.
+Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
+an offline verifier complement the recoverable MongoDB worker. A separate operator
+audits actual workflow facts and evidence. Product UI and selective-disclosure
+credentials remain later stages.
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -39,17 +40,17 @@ will depend on measured evidence.
 
 ## Technology and implementation status
 
-| Area                       | Direction                                                           |
-| -------------------------- | ------------------------------------------------------------------- |
-| Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending      |
-| API                        | Node.js/Express/TypeScript; scoped access and registrar approval    |
-| Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox     |
-| Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies    |
-| Background delivery        | Restricted Node worker; leased retries and bounded journal replay   |
-| Verification               | Signed credentials and Merkle proofs planned; no verifier yet       |
-| Required graph provenance  | Neo4j and Cypher queries; implementation pending                    |
-| Required anomaly detection | Python ML, rules and graph-derived features; implementation pending |
-| Use-case decisions         | Bounded ZK predicates and vector search assessed separately         |
+| Area                       | Direction                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| Frontend toolchain         | React, TypeScript, Vite and Tailwind CSS installed; UI pending                |
+| API                        | Node.js/Express/TypeScript; scoped access and registrar approval              |
+| Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox               |
+| Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies              |
+| Background delivery        | Restricted Node worker; leased retries and bounded journal replay             |
+| Verification               | Canonical commitments, signed checkpoints, Merkle proofs and offline verifier |
+| Required graph provenance  | Neo4j and Cypher queries; implementation pending                              |
+| Required anomaly detection | Python ML, rules and graph-derived features; implementation pending           |
+| Use-case decisions         | Bounded ZK predicates and vector search assessed separately                   |
 
 See the [academic model](docs/architecture/academic-model.md) for assumptions and
 limits. Final policy choices will follow owner review. A valid signature
@@ -57,11 +58,10 @@ does not prove that an entered grade is factually correct; historical inclusion 
 does not establish currentness.
 
 The owner's physical BCNF requirement is addressed through forward migrations
-`0008`/`0009`, decomposing the earlier storage into twenty-one domain tables and
-computed read views. The [normalization analysis](docs/architecture/normalization.md)
-lists every relation's keys, dependencies and four normal-form results. Validation
-and development rollout of this follow-up are tracked separately in the journey;
-existing migrations, credential files and academic history must be preserved.
+`0008`/`0009`, with three additional normalized transparency relations in `0010`.
+The [normalization analysis](docs/architecture/normalization.md) covers 24 domain
+tables and two metadata tables. Existing migrations, credential files and academic
+history are preserved; actual validation/rollout evidence is in the journey.
 
 See [required capabilities](docs/architecture/required-capabilities.md) for the
 mandatory responsibilities and acceptance criteria. Deterministic tamper checks
@@ -76,9 +76,10 @@ apps/
   api/                      API startup, configuration and HTTP tests
   web/                      Installed frontend toolchain; product UI pending
   worker/                   Restricted outbox consumer and Mongo projections
+  log/                      Separate signer, private proof export and source audit
 packages/
   contracts/                Shared transport types
-  verification/             Reserved independent verification boundary
+  verification/             Canonicalization, signatures and Merkle verification
 db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
 scripts/                    Repository maintenance utilities
@@ -132,6 +133,11 @@ npm run infra:down
 ```
 
 See [Local development](docs/development/local-development.md) for details.
+
+For signed history, complete the normal database/API/worker setup, then run
+`npm run log:setup`, `npm run build` and `npm run log:demo`. The
+[operator guide](apps/log/README.md) explains private exports, pinned keys, retained
+observations, audit coverage and historical integrity versus currentness.
 `infra:up` waits up to 120 seconds for service health. `infra:check` reports
 authenticated PostgreSQL and MongoDB access independently. Apply the SQL model
 explicitly after the services are ready:

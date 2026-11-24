@@ -4,7 +4,8 @@ The owner requires every physical application relation to reach BCNF, and theref
 1NF, 2NF and 3NF. The forward decomposition in migrations `0008`/`0009` replaces the
 earlier tenant/predecessor/protocol copies with normalized facts and computed read
 views. Historical migrations `0001`-`0007` remain unchanged. The schema contains
-**21 domain tables**, including `academic.student_programme`.
+**24 domain tables**, including `academic.student_programme` and the three
+transparency relations added by `0010`.
 
 This document reviews the normalized target implemented by those forward
 migrations. Migration, upgrade, integrity and runtime validation are acceptance
@@ -64,13 +65,23 @@ Nullable uniqueness and nonminimal tenant superkeys are qualified below.
 | `workflow.decision`                  | `request_id -> record_id,decider_id,reason,version_no,decided_at`; decision label computed from result     | Yes | Yes | Yes | Yes  |
 | `workflow.domain_event`              | `event_id`; `(request_id,kind)`; identity-bound complete `payload` also identifies the row; no record copy | Yes | Yes | Yes | Yes  |
 | `workflow.outbox_delivery`           | `event_id -> delivery state`; no fixed consumer column                                                     | Yes | Yes | Yes | Yes  |
+| `transparency.log_state`             | `institution_id -> tree_size,bootstrap_size`                                                               | Yes | Yes | Yes | Yes  |
+| `transparency.event_position`        | `event_id`; `(institution_id,leaf_index)`; each K -> row                                                   | Yes | Yes | Yes | Yes  |
+| `transparency.checkpoint`            | `(institution_id,tree_size) -> root_hash,issued_at,key_id,signature`                                       | Yes | Yes | Yes | Yes  |
 
-The repository's infrastructure tables are outside the 21-domain-table count but
+The repository's infrastructure tables are outside the 24-domain-table count but
 are also considered. `scholarproof_meta.schema_migrations` has keys `version` and
 `name`, each determining checksum/time. `scholarproof_meta.seed_runs` has key
 `name`, determining checksum/time. Under these FDs both are BCNF and consequently
 satisfy the preceding normal forms. PostgreSQL system catalogues are engine-owned
 relations, not application tables redesigned by this project.
+
+The current application therefore has **26 physical relations** including the two
+metadata tables. Transparency storage has no copied payload, profile/algorithm
+constant, public key or bootstrap boundary in each checkpoint row. The signed
+artifact reconstructs bootstrap metadata from its keyed parent. A signing key may
+serve several institutional logs; no key-to-institution dependency is assumed.
+See [transparency invariants](transparency-log.md) for append/checkpoint guards.
 
 ## Keys and SQL qualifications
 
