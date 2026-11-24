@@ -431,6 +431,22 @@ owner-controlled.
 
 ## Entry format
 
+## 2026-11-25 - Scoped frontend directory
+
+The owner prioritised the working UI before advancing to the next week. Added a
+bounded, authenticated student directory containing only student ID/code and
+institution ID. It rechecks live role/account scope: students see their own linked
+subject, institutional registrars/auditors see scoped subjects, and examiners gain
+no directory visibility. No schema or runtime grants changed. Shared frontend
+session/transcript types preserve existing response shapes.
+
+All 47 isolated integration checks passed, including the new directory scope and
+unauthenticated checks. The 89 tooling/unit checks passed. React browser entry and
+screens are being implemented separately on the same active feature branch; this
+directory update does not claim the UI is complete.
+
+## Entry format
+
 For future milestones, record the date, concrete outcome, important decision and
 verification evidence. Link the relevant PR/commit once it exists. Do not create
 future-dated progress entries or mark planned work as complete.

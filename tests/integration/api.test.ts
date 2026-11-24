@@ -221,6 +221,37 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
   let evidenceId = '';
 
   await context.test(
+    'student directory returns only own or institution-scoped identifiers',
+    async () => {
+      assert.equal((await request('/students')).status, 401);
+      const self = await request('/students', { token: studentToken });
+      assert.deepEqual(self.body.students, [
+        {
+          studentId: f.id('student'),
+          studentCode: 'SYNTHETIC',
+          institutionId: f.id('institution'),
+        },
+      ]);
+      for (const token of [registrarToken, auditorToken]) {
+        const result = await request('/students', { token });
+        const rows = result.body.students as { studentId: string; institutionId: string }[];
+        assert.equal(result.status, 200);
+        assert.equal(rows.length, 2);
+        assert(rows.every((row) => row.institutionId === f.id('institution')));
+        assert(!rows.some((row) => row.studentId === foreign.id('student')));
+      }
+      assert.deepEqual((await request('/students', { token: examinerToken })).body.students, []);
+      assert.deepEqual((await request('/students', { token: peerToken })).body.students, [
+        {
+          studentId: peerStudentId,
+          studentCode: 'PEER_STUDENT',
+          institutionId: f.id('institution'),
+        },
+      ]);
+    },
+  );
+
+  await context.test(
     'real password login returns an opaque token and generic failures',
     async () => {
       const valid = await request('/auth/login', {

@@ -99,6 +99,18 @@ export class Repository {
       .filter((row) => row.record_id !== null)
       .map(({ student_id: _student, ...row }) => row);
   }
+  async students(userId: string) {
+    const result = await this.sql.query<{
+      studentId: string;
+      studentCode: string;
+      institutionId: string;
+    }>(
+      `SELECT s.student_id AS "studentId",s.student_code AS "studentCode",s.institution_id AS "institutionId"
+       FROM academic.student s WHERE ${scope('s', true)} ORDER BY s.student_code,s.student_id LIMIT 501`,
+      [userId],
+    );
+    return result.rows;
+  }
   async record(userId: string, recordId: string, registrarOnly = false) {
     const result = await this.sql.query<{
       institution_id: string;

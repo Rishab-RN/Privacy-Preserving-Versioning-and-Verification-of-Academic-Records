@@ -71,6 +71,17 @@ export function createApp(platform?: Platform) {
       await platform!.transcript(principal, id, query.knownAt ?? now, query.effectiveAt ?? now),
     );
   });
+  api.get('/students', async (request, response) => {
+    const { principal } = await platform!.authenticate(request.get('authorization'));
+    const students = await platform!.repository.students(principal.userId);
+    if (students.length > 500)
+      throw new ApiFailure(
+        413,
+        'RESULT_TOO_LARGE',
+        'Student directory exceeds prototype result limit',
+      );
+    response.json({ students });
+  });
   api.post('/records/:recordId/evidence', async (request, response) => {
     const { principal } = await platform!.authenticate(request.get('authorization'));
     const id = parse(uuid, request.params.recordId);

@@ -25,14 +25,15 @@ liveness works but `/api/v1` returns 503 rather than using admin credentials.
 
 ## Endpoints
 
-| Method/path                                  | Input                                                           | Result                                               |
-| -------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
-| POST `/api/v1/auth/login`                    | JSON `{subject,password}`                                       | `{token,tokenType:"Bearer",expiresAt}`               |
-| GET `/api/v1/auth/me`                        | Bearer header                                                   | Current user, roles and own linked student IDs       |
-| POST `/api/v1/auth/logout`                   | Bearer header, JSON `{}`                                        | 204; session revoked                                 |
-| GET `/api/v1/students/:studentId/transcript` | Bearer; optional `knownAt`, `effectiveAt` ISO8601 query strings | Scoped historical/current records                    |
-| POST `/api/v1/records/:recordId/evidence`    | Bearer; UUID `Idempotency-Key`; version 1 JSON form             | 201 after SQL/Mongo confirmation; stable evidence ID |
-| GET `/api/v1/evidence/:evidenceId`           | Bearer                                                          | Authorized, integrity-checked form                   |
+| Method/path                                  | Input                                                           | Result                                                                                         |
+| -------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/login`                    | JSON `{subject,password}`                                       | `{token,tokenType:"Bearer",expiresAt}`                                                         |
+| GET `/api/v1/auth/me`                        | Bearer header                                                   | Current user, roles and own linked student IDs                                                 |
+| POST `/api/v1/auth/logout`                   | Bearer header, JSON `{}`                                        | 204; session revoked                                                                           |
+| GET `/api/v1/students`                       | Bearer header                                                   | `{students:[{studentId,studentCode,institutionId}]}` within current live scope; bounded to 500 |
+| GET `/api/v1/students/:studentId/transcript` | Bearer; optional `knownAt`, `effectiveAt` ISO8601 query strings | Scoped historical/current records                                                              |
+| POST `/api/v1/records/:recordId/evidence`    | Bearer; UUID `Idempotency-Key`; version 1 JSON form             | 201 after SQL/Mongo confirmation; stable evidence ID                                           |
+| GET `/api/v1/evidence/:evidenceId`           | Bearer                                                          | Authorized, integrity-checked form                                                             |
 
 Every POST requires `Content-Type: application/json`; compressed bodies are
 unsupported. Unknown request fields and invalid UUID/timestamp inputs return 400;

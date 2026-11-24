@@ -23,6 +23,34 @@ export interface EvidenceReceipt {
   sizeBytes: number;
 }
 
+export interface UserPrincipal {
+  userId: string;
+  subject: string;
+  students: { studentId: string; institutionId: string }[];
+  roles: { institutionId: string; role: 'registrar' | 'examiner' | 'student' | 'auditor' }[];
+}
+export interface StudentSummary {
+  studentId: string;
+  studentCode: string;
+  institutionId: string;
+}
+export interface TranscriptRecord {
+  record_id: string;
+  version_no: number;
+  course_code: string;
+  credits: string;
+  grade_points: string | null;
+  outcome: GradeOutcome;
+  recorded_at: string;
+  valid_during: string;
+}
+export interface TranscriptResponse {
+  studentId: string;
+  knownAt: string;
+  effectiveAt: string;
+  records: TranscriptRecord[];
+}
+
 export type GradeOutcome = 'passed' | 'failed' | 'withdrawn' | 'incomplete';
 export interface ChangeProposalInput {
   expectedVersion: number;
