@@ -218,9 +218,9 @@ See [Contributing](CONTRIBUTING.md) and the
 [Git workflow](docs/development/git-workflow.md). Work is delivered in weekly slices;
 each slice should pass its checks before the next feature stage begins.
 
-Assistants may stage/commit each focused, verified update only after the owner
-approves its exact files and commit message. Keep commits incremental throughout
-the week. Pushes and merges remain manual owner actions unless separately authorised.
+The owner authorises assistants to make focused, verified commits and normal
+topic-branch pushes without requesting approval each time. Keep commits incremental
+throughout the week. PR review and merging remain under the owner's control.
 
 ## Project records
 

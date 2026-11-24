@@ -7,10 +7,11 @@ the first commit on `main`. Its `origin` is:
 https://github.com/Rishab-RN/Privacy-Preserving-Versioning-and-Verification-of-Academic-Records.git
 ```
 
-The commands below describe the contributor workflow. Assistants may prepare and
-verify authorised changes, then stage/commit a specific update only after the
-owner approves its file list and commit message. Obtain permission for each commit.
-Pushes and merges remain manual owner actions unless separately authorised.
+The commands below describe the contributor workflow. The owner authorises
+assistants to prepare, verify, stage and commit focused updates without requesting
+approval for each commit. Review the exact paths and diff before staging. Normal
+topic-branch pushes are also authorised; PR review and merging remain owner actions.
+Force pushes and shared-history rewrites are outside this authorisation.
 
 ## Start a focused branch
 
@@ -40,7 +41,7 @@ For this team, keep `main` plus one active working branch by default. Finish its
 review/merge before starting the next feature branch. A branch may contain several
 focused commits; creating one for every commit or calendar week is unnecessary.
 
-## Review, commit and publish manually
+## Review, commit and publish
 
 Stage explicit paths belonging to the change. For a documentation-only change,
 for example:
@@ -77,8 +78,8 @@ shared branch or rewrite another contributor's commits.
 Create the PR once a coherent change is committed/pushed and local checks pass.
 Merge after its diff is reviewed and the published GitHub checks pass. At each
 assistant handoff, distinguish **ready for PR** from **ready to merge**; a local
-pass alone does not establish the latter. An assistant can stage/commit an approved
-update; pushes and merges stay under the owner's manual control.
+pass alone does not establish the latter. An assistant can commit and push verified
+updates; PR review and merging stay under the owner's control.
 
 ## GitHub repository settings
 
@@ -93,8 +94,8 @@ enabled before they are configured.
 - Keep one coherent change per branch and commit.
 - Prepare focused commits as updates pass their checks; do not wait to bundle a
   whole week. Include relevant tests/migrations/docs with the behaviour they verify.
-- Ask for commit permission only after the change is concrete and reviewable.
-  Name the exact files, checks and short message; stage only that approved set.
+- Review exact files, relevant checks and the short message before staging.
+  Commit only that focused set; the owner has waived per-commit approval.
 - Keep Conventional Commit subjects short; explain non-obvious reasons in the body.
 - Commit the npm lockfile with intentional dependency changes.
 - Update setup documentation when commands change and the journey at meaningful

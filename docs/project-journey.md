@@ -422,6 +422,13 @@ revocation/supersession and signed current-status evidence are pending. Stateles
 verification alone cannot prevent a repeated presentation from passing within its
 validity window. The next slice must enforce these online boundaries atomically.
 
+The credential library slice was committed as `21b2a88`. The owner then explicitly
+waived per-commit approval for future work. Focused commits still require reviewed
+paths and relevant passing checks. Earlier permission-per-commit entries describe
+the agreement at that time and are superseded for future commits. Normal topic
+pushes retain the owner's earlier authorisation; PR review and merging remain
+owner-controlled.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
