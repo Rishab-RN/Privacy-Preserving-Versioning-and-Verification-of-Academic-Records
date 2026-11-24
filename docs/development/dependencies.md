@@ -46,6 +46,13 @@ administrative local credentials; API and worker runtime identities remain separ
 and restricted. See the [workflow contract](../architecture/record-workflow.md) and
 [worker guide](../../apps/worker/README.md) for failure and replay limits.
 
+The BCNF storage follow-up also uses existing dependencies. Forward migrations
+`0008`/`0009` decompose the physical relations, rebuild controlled SQL interfaces and
+provide computed context views. The normalized seed is `0002_bcnf_demo.sql`; its
+runner preserves and verifies the original `0001_demo.sql` checksum when carrying
+forward an existing fixture. It never rewrites historical migrations, rotates
+credentials or resets academic history to satisfy a report.
+
 ## Introduce dependencies with their implementation stage
 
 | Stage                         | Add when needed                                   | Decision gate                                                                                         |

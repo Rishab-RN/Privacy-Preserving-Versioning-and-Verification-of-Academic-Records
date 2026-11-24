@@ -8,7 +8,8 @@ transcript/evidence access now supports immutable change requests, approval by a
 different institutional registrar and atomic SQL grade revisions. A restricted
 worker delivers recoverable MongoDB projections. Product UI and cryptographic
 verification remain later stages.
-The academic model is provisional pending the owner's diagrams and policy review.
+The selected academic bounds and approval rules remain subject to institutional
+policy review.
 
 ## Problem
 
@@ -55,6 +56,13 @@ limits. Final policy choices will follow owner review. A valid signature
 does not prove that an entered grade is factually correct; historical inclusion alone
 does not establish currentness.
 
+The owner's physical BCNF requirement is addressed through forward migrations
+`0008`/`0009`, decomposing the earlier storage into twenty-one domain tables and
+computed read views. The [normalization analysis](docs/architecture/normalization.md)
+lists every relation's keys, dependencies and four normal-form results. Validation
+and development rollout of this follow-up are tracked separately in the journey;
+existing migrations, credential files and academic history must be preserved.
+
 See [required capabilities](docs/architecture/required-capabilities.md) for the
 mandatory responsibilities and acceptance criteria. Deterministic tamper checks
 and ML anomaly scores answer different questions: an integrity failure cannot be
@@ -77,7 +85,7 @@ scripts/                    Repository maintenance utilities
 tests/                      PostgreSQL and real HTTP/SQL/Mongo integration checks
 .github/                    CI, issue and pull-request templates
 docs/
-  architecture/             Design contracts and schema reviews; owner diagrams pending
+  architecture/             Design contracts and schema reviews
   development/              Contributor and Git workflow documentation
   project-journey.md         Dated milestones and decisions
 CONTRIBUTING.md              Collaboration and review conventions

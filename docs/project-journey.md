@@ -273,6 +273,42 @@ The technical Week 4 slice is locally verified. This does not approve the
 institutional grading policy, provide administrator-resistant proofs or complete
 the product UI. Those boundaries remain explicit in the architecture documents.
 
+## 2026-11-24 - BCNF physical storage and lab evidence
+
+The owner confirmed that every physical application table must reach BCNF.
+Forward migrations `0008`/`0009` decompose the existing storage into 21 domain
+relations, including a separate student/programme assignment. Two repository
+metadata relations also satisfy the identified BCNF dependencies. The
+[normalization analysis](architecture/normalization.md) lists the candidate keys,
+FDs, normal forms and lossless reconstruction argument. Range/JSON values retain
+their declared domain boundary; computed context views are not physical tables.
+
+Removed tenant, predecessor, fixed protocol and derived decision-status copies
+are reconstructed by read views. Normalized foreign keys, locked scope guards,
+immutable parent ownership and deferred programme participation preserve the
+integrity rules. Event identity checks explicitly reject JSON null. API and worker
+permissions retain their separate controlled boundaries.
+
+All 34 isolated PostgreSQL tests and 37 reported integration checks passed. These
+include a populated legacy-schema upgrade preserving every prior row through
+reconstruction, immutable credentials/history/events, accepted and rejected
+decisions, and queued delivery state. Concurrent fresh migration and repeatable
+seed checks passed. Lint, formatting, types, all 39 tooling/API/worker tests and
+the build passed. The compiled access and complete workflow demonstrations passed
+against the migrated development services.
+
+Applied both forward migrations to the backed-up local database. Historical
+migrations and the original seed remain unchanged. Provisioning verified existing
+accounts and restricted runtimes; six local environment/account/fixture files
+remained byte-for-byte unchanged. No data reset or credential rotation occurred.
+
+Generated an ignored catalogue register for all 23 physical relations and four
+fresh screenshots from a local API demonstration interface using synthetic data.
+The capture passed 16 HTTP checks, appended version 7 from version 6, retained the
+version-6 historical answer and confirmed MongoDB delivery at version 7. The lab
+reports and capture tools remain ignored. This interface presents the implemented
+API; it does not complete the product React UI or later tamper/graph/ML milestones.
+
 ## Next milestone
 
 Publish/review the Week 4 branch through the owner's manual Git workflow, then

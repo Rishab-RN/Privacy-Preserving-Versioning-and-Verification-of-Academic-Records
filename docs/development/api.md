@@ -74,6 +74,13 @@ described below; the student walkthrough itself submits evidence only.
 
 ## Controlled academic changes - Week 4
 
+The BCNF storage follow-up preserves these transport contracts. Institution,
+predecessor and protocol tags can be reconstructed by SQL context views without
+being repeated physical fields. Evidence writes target normalized base columns;
+credential reads obtain their fixed profile through a read interface. Migrations
+`0008`/`0009` and updated code must be deployed together. The API fails closed when
+its expected context-view permissions are unavailable or unsafe.
+
 Two different active registrars in the record's institution are required. One
 proposes; the other approves/applies or rejects. Students/examiners cannot use
 these routes, and auditors can only read request status in their institution.

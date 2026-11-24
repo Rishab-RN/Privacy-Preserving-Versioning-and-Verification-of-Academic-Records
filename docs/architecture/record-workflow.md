@@ -4,6 +4,12 @@ This defines the complete Week 4 contract. SQL, API and worker implementation
 updates are reviewed and committed separately; the journey records which slices
 have been verified. It is not a claim that one migration implements the whole app.
 
+The BCNF follow-up uses forward migrations `0008`/`0009` to normalize storage while
+preserving this HTTP/event contract. Existing data/history must survive the upgrade;
+acceptance results are recorded separately in the journey. The physical request
+derives its record through evidence, the event derives it through the request, and
+context views reconstruct those identities without stored redundant columns.
+
 This is a prototype approval policy, not a statement of official institutional
 rules. One active registrar proposes an initial result or correction; a different
 active registrar in the same institution approves/applies or rejects it. Students
@@ -13,13 +19,16 @@ course/staff assignments are explicitly modelled. There is no self-withdraw path
 
 ## Immutable requests and decisions
 
-`workflow.change_request` freezes the target record, expected revision, proposed
-grade/outcome, valid-time interval, reason and available evidence reference. A UUID
+`workflow.change_request` freezes expected revision, proposed grade/outcome,
+valid-time interval, reason and available evidence reference. The target record is
+resolved through that immutable reference rather than copied into the request. A UUID
 idempotency key is unique per proposer. Equivalent numeric/time values and the same
 remaining inputs return the original request, including after the head advances;
 different input under that key conflicts. A proposal alone does not change a grade.
 
 `workflow.decision` stores one immutable approved/rejected result per request.
+Its physical nullable version result identifies approval versus rejection; the
+read interface computes that label rather than storing the same state twice.
 Exact decision retries by the same actor/reason return the stored outcome; another
 decision conflicts. Rejection creates no grade version. A stale expected revision
 cannot be approved; another request must be reviewed against the accepted head.
@@ -80,7 +89,9 @@ UUIDs and database timestamps are not a global committed log order. Week 5 must
 define its signed log prefix/order independently. Events are not currently signed
 credentials or externally trusted checkpoints.
 
-`workflow.outbox_delivery` tracks the implemented `mongo-records-v1` consumer.
+`workflow.outbox_delivery` is keyed by event ID for the implemented
+`mongo-records-v1` consumer. The fixed consumer name is computed by the read
+interface rather than stored with every delivery.
 Absent Neo4j/ML handlers are not marked delivered; their later consumers can
 backfill the retained journal. Claims use bounded batches, `FOR UPDATE SKIP LOCKED`
 and expiring random leases. Only the matching unexpired token can acknowledge or

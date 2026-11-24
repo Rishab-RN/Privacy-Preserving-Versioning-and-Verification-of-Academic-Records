@@ -1,271 +1,207 @@
-# Normalization review of the academic record schema
+# Normalization of the physical relational schema
 
-Reviewed on 23 November 2026 against migrations `0001` through `0005`: thirteen
-`academic` tables, two `access_control` tables and `evidence.reference`. Migration
-runner metadata and future workflow/outbox tables are outside this review.
+The owner requires every physical application relation to reach BCNF, and therefore
+1NF, 2NF and 3NF. The forward decomposition in migrations `0008`/`0009` replaces the
+earlier tenant/predecessor/protocol copies with normalized facts and computed read
+views. Historical migrations `0001`-`0007` remain unchanged. The schema contains
+**21 domain tables**, including `academic.student_programme`.
 
-The normalization analysis is complete for this schema snapshot, with the
-exceptions below documented. **The physical schema is not uniformly in 3NF or
-BCNF.** It combines separated business entities with deliberate tenant-key copies,
-an explicit predecessor and derived temporal/head state. This is not a strict 3NF
-certification or approval of institutional grading rules. No applied migration
-was edited and no decomposition described here has been applied to the database.
+This document reviews the normalized target implemented by those forward
+migrations. Migration, upgrade, integrity and runtime validation are acceptance
+gates; their actual results belong in the [project journey](../project-journey.md).
+The earlier twenty-table snapshot had physical normal-form exceptions and is not
+the schema assessed by this analysis.
 
-## Definitions and analysis boundary
+## Definitions and scope
 
-For `X → Y`, equal `X` values in legal rows require equal `Y` values. A superkey
-identifies a row; a candidate key is a superkey with no removable attribute. A
-prime attribute appears in a candidate key.
+For a functional dependency `X -> Y`, equal values of `X` require equal values of
+`Y` in every legal state. A superkey identifies a row. A candidate key is a superkey
+with no removable attribute; a prime attribute belongs to a candidate key.
 
-- **1NF:** one value per cell in the chosen domain, without repeating groups.
+- **1NF:** one value per cell in the declared domain, without repeating groups.
 - **2NF:** no non-prime attribute depends on only part of a candidate key.
-- **3NF:** every nontrivial `X → A` has a superkey determinant or a prime `A`.
+- **3NF:** each nontrivial `X -> A` has a superkey determinant or a prime `A`.
 - **BCNF:** every nontrivial determinant is a superkey.
 
-These definitions and the distinction between lossless and dependency-preserving
-decomposition follow the authors' [Database System Concepts normalization slides](https://www.db-book.com/slides-dir/PDF-dir/ch7.pdf).
+These definitions and the lossless-decomposition criterion follow the authors'
+[Database System Concepts normalization chapter](https://www.db-book.com/slides-dir/PDF-dir/ch7.pdf).
+The claim concerns physical attributes and identified business FDs, not every
+hypothetical university rule. Keys and FDs are justified from constraints and the
+model, not inferred from sample rows or a zero-mismatch query.
 
-The analysis concerns committed states satisfying the keys, foreign keys, checks
-and relevant triggers. It includes FDs implied by global referenced identifiers;
-looking only at a table's primary key would miss tenant redundancy. It does not
-infer new FDs from a small synthetic fixture or a presumed official grading policy.
+PostgreSQL ranges are single `tstzrange` domain values. A retained event JSON payload
+is a complete immutable transport artifact; nested properties are not additional
+relational columns in this analysis. JSON properties and MongoDB collections are
+not claimed to be normalized relations. Repeated information in read views or
+transport artifacts does not add a dependency to a physical base relation.
 
-PostgreSQL ranges are treated as single typed interval values here. Each grade
-version/role/enrolment occupies its own row; no student row contains a repeating
-list of courses or versions. Splitting interval bounds into scalar columns would
-not remove the tenant/predecessor dependencies discussed below.
+## Relation by relation normal form matrix
 
-Three SQL qualifications matter:
+`K -> row` means each listed candidate key determines the remaining attributes.
+All four results apply **after the forward decomposition**, under the listed FDs.
+Nullable uniqueness and nonminimal tenant superkeys are qualified below.
 
-1. `student.user_id` is nullable. Its `UNIQUE (institution_id, user_id)` restricts
-   linked accounts, but is not an unconditional candidate key: ordinary PostgreSQL
-   uniqueness permits several NULL values. In contrast, the other alternate keys
-   listed as declared keys have non-null attributes. See [PostgreSQL 18 constraints](https://www.postgresql.org/docs/18/ddl-constraints.html).
-2. `password_credential.profile` and `evidence.reference.document_schema_version`
-   are presently constrained to one literal value. The table below classifies
-   variable business fields, with these fixed protocol tags set aside. In a strict
-   FD model including constants, `∅ → profile` and `∅ → document_schema_version`
-   are additional non-key dependencies; the qualified business-field result must
-   not be presented as an unconditional physical BCNF result.
-3. Defaults, approximate uniqueness and cryptographic assumptions are not FDs.
-   Session defaults use a one-hour lifetime, but the CHECK permits shorter ones,
-   so `created_at → expires_at` is not assumed. Salt/digest fields are not candidate
-   keys. Neither `max_points → pass_points` nor `grade_points → outcome` holds
-   globally merely because the demo uses one grading scheme.
+| Physical domain table                | Candidate keys and relevant dependencies                                                                   | 1NF | 2NF | 3NF | BCNF |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- | --- | --- | --- | ---- |
+| `academic.institution`               | `institution_id`; `institution_code`; each K -> row                                                        | Yes | Yes | Yes | Yes  |
+| `academic.app_user`                  | `user_id`; `auth_subject`; each K -> row                                                                   | Yes | Yes | Yes | Yes  |
+| `academic.role_assignment`           | `assignment_id`; `(institution_id,user_id,role_code)`; each K -> row                                       | Yes | Yes | Yes | Yes  |
+| `academic.programme`                 | `programme_id`; `(institution_id,programme_code)`; each K -> row                                           | Yes | Yes | Yes | Yes  |
+| `academic.student`                   | `student_id`; `(institution_id,student_code)`; each K -> row; programme membership separate                | Yes | Yes | Yes | Yes  |
+| `academic.student_programme`         | `student_id -> programme_id`; student ID is the key                                                        | Yes | Yes | Yes | Yes  |
+| `academic.academic_term`             | `term_id`; `(institution_id,term_code)`; each K -> row                                                     | Yes | Yes | Yes | Yes  |
+| `academic.grading_scheme`            | `scheme_id`; `(institution_id,scheme_code,version)`; each K -> row                                         | Yes | Yes | Yes | Yes  |
+| `academic.course`                    | `course_id`; `(institution_id,course_code)`; each K -> row                                                 | Yes | Yes | Yes | Yes  |
+| `academic.course_offering`           | `offering_id`; `(course_id,term_id,section_code)`; each K -> row; no institution copy                      | Yes | Yes | Yes | Yes  |
+| `academic.enrolment`                 | `enrolment_id`; `(student_id,offering_id)`; each K -> row; no institution copy                             | Yes | Yes | Yes | Yes  |
+| `academic.grade_record`              | `record_id`; `enrolment_id`; each K -> row                                                                 | Yes | Yes | Yes | Yes  |
+| `academic.grade_version`             | `(record_id,version_no)`; per-record recorded time also identifies a revision; each K -> row               | Yes | Yes | Yes | Yes  |
+| `academic.grade_temporal_segment`    | `segment_id`; exclusion also implies `(record_id,valid_during,system_during)` identifies a segment         | Yes | Yes | Yes | Yes  |
+| `access_control.password_credential` | `user_id -> salt_hex,derived_key_hex,created_at`; no constant profile column                               | Yes | Yes | Yes | Yes  |
+| `access_control.api_session`         | `token_digest -> user_id,created_at,expires_at,revoked_at`                                                 | Yes | Yes | Yes | Yes  |
+| `evidence.reference`                 | `evidence_id`; `(submitted_by,request_key)`; each K -> row; institution/schema tag computed                | Yes | Yes | Yes | Yes  |
+| `workflow.change_request`            | `request_id`; `(proposer_id,idempotency_key)`; each K -> row; record resolved from evidence                | Yes | Yes | Yes | Yes  |
+| `workflow.decision`                  | `request_id -> record_id,decider_id,reason,version_no,decided_at`; decision label computed from result     | Yes | Yes | Yes | Yes  |
+| `workflow.domain_event`              | `event_id`; `(request_id,kind)`; identity-bound complete `payload` also identifies the row; no record copy | Yes | Yes | Yes | Yes  |
+| `workflow.outbox_delivery`           | `event_id -> delivery state`; no fixed consumer column                                                     | Yes | Yes | Yes | Yes  |
 
-## Keys and functional dependencies
+The repository's infrastructure tables are outside the 21-domain-table count but
+are also considered. `scholarproof_meta.schema_migrations` has keys `version` and
+`name`, each determining checksum/time. `scholarproof_meta.seed_runs` has key
+`name`, determining checksum/time. Under these FDs both are BCNF and consequently
+satisfy the preceding normal forms. PostgreSQL system catalogues are engine-owned
+relations, not application tables redesigned by this project.
 
-In the table, `K → row` means every listed key determines the remaining variable
-business attributes. A declared key is a minimal non-null primary/unique key.
-An implied key follows from other enforced dependencies even if it has no separate
-UNIQUE declaration. These are the keys used for this review; conditional account
-identifiers and trigger-derived temporal identifiers are distinguished explicitly.
+## Keys and SQL qualifications
 
-| Table                                | Declared minimal keys                                   | Additional implied keys / relevant FDs                                                                                             | Business-FD assessment                                                                       |
-| ------------------------------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `academic.institution`               | `institution_id`; `institution_code`                    | Each key → row                                                                                                                     | BCNF                                                                                         |
-| `academic.app_user`                  | `user_id`; `auth_subject`                               | Each key → row                                                                                                                     | BCNF; local subject namespace is an authentication assumption                                |
-| `academic.role_assignment`           | `assignment_id`; `(institution_id, user_id, role_code)` | Each key → row; a global user may have roles in several institutions                                                               | BCNF                                                                                         |
-| `academic.programme`                 | `programme_id`; `(institution_id, programme_code)`      | Each key → row                                                                                                                     | BCNF                                                                                         |
-| `academic.student`                   | `student_id`; `(institution_id, student_code)`          | Implied `(programme_id, student_code)`; `programme_id → institution_id`                                                            | 3NF, not BCNF: `programme_id` is not a superkey, but `institution_id` is prime               |
-| `academic.academic_term`             | `term_id`; `(institution_id, term_code)`                | Each key → row                                                                                                                     | BCNF                                                                                         |
-| `academic.grading_scheme`            | `scheme_id`; `(institution_id, scheme_code, version)`   | Each key → row; policy bounds are not extra uniqueness rules                                                                       | BCNF                                                                                         |
-| `academic.course`                    | `course_id`; `(institution_id, course_code)`            | Each key → row                                                                                                                     | BCNF                                                                                         |
-| `academic.course_offering`           | `offering_id`                                           | Implied `(course_id, term_id, section_code)`; each of `course_id`, `term_id`, `scheme_id` → `institution_id`                       | 1NF, not 2NF: tenant depends on a proper part of an implied candidate key                    |
-| `academic.enrolment`                 | `enrolment_id`; `(student_id, offering_id)`             | `student_id → institution_id`; `offering_id → institution_id`                                                                      | 1NF, not 2NF: partial tenant dependencies                                                    |
-| `academic.grade_record`              | `record_id`; `enrolment_id`                             | Each key → row; `enrolment_id → institution_id` has a key determinant                                                              | BCNF under local FDs; cached head is a separate consistency concern                          |
-| `academic.grade_version`             | `(record_id, version_no)`                               | `record_id → institution_id`; predecessor is determined by `version_no`; triggers also imply `(record_id, recorded_at)` uniqueness | 1NF, not 2NF: tenant/predecessor copies have partial dependencies                            |
-| `academic.grade_temporal_segment`    | `segment_id`                                            | Exclusion and tenant FKs imply `(record_id, valid_during, system_during)` uniqueness; `record_id → institution_id`                 | Derived projection, not 3NF/BCNF; including that implied natural key exposes a 2NF violation |
-| `access_control.password_credential` | `user_id`                                               | Key → salt, derived key and creation time                                                                                          | BCNF for variable business fields; fixed-profile qualification above applies                 |
-| `access_control.api_session`         | `token_digest`                                          | Key → user, lifetime and revocation; one user may have many sessions                                                               | BCNF                                                                                         |
-| `evidence.reference`                 | `evidence_id`; `(submitted_by, request_key)`            | `record_id → institution_id`; neither `record_id` nor its tenant is part of a minimal key                                          | 2NF, not 3NF, for variable business fields; fixed-version qualification above applies        |
+A declaration containing an existing key, such as `(institution_id,student_id)`,
+is a nonminimal superkey, not another candidate key. Student's nullable
+`UNIQUE(institution_id,user_id)` limits linked accounts but is not an unconditional
+non-null candidate key. Decision's unique record/version pair applies to approved
+results; rejected decisions have no version. See [PostgreSQL constraints](https://www.postgresql.org/docs/18/ddl-constraints.html).
 
-All sixteen tables satisfy the stated domain-level 1NF interpretation. The 3NF
-exceptions are not made normal by adding a surrogate UUID primary key: alternate
-keys and non-key determinants still matter.
+Password profile, evidence schema version and the single outbox consumer are
+computed read values, removing the earlier `empty-set -> constant-tag` physical
+dependencies. Session creation does not functionally determine expiry: the CHECK
+allows different valid lifetimes. Cryptographic uniqueness of digests/salts is not
+assumed. A grade alone does not globally determine an outcome; scheme and nullable
+withdrawn/incomplete semantics remain explicit domain constraints.
 
-### Why some UNIQUE declarations are not candidate keys
+## Physical decompositions and lossless reconstruction
 
-Declarations such as `UNIQUE (institution_id, programme_id)` retain the global
-primary key inside a larger set, so they are non-minimal superkeys. They support
-composite foreign keys rather than create a new minimal identity. The same applies
-to analogous tenant/global-ID declarations on student, term, scheme, course,
-offering, enrolment, record and version tables.
+### Student and programme membership
 
-For offerings, the declared `(institution_id, course_id, term_id, section_code)`
-UNIQUE set is also non-minimal. A course UUID already fixes its institution, so
-`(course_id, term_id, section_code)` determines that UNIQUE set and hence the row.
-None of these three attributes alone, or their pairs, is constrained to identify
-an offering. Removing institution from the candidate key exposes the partial
-`course_id → institution_id` dependency rather than hiding it in an oversized key.
-
-For students, `(programme_id, student_code)` similarly determines institution via
-programme and then the declared institutional student key. Institution remains
-prime because `(institution_id, student_code)` is itself minimal. Consequently
-the programme-to-institution FD violates BCNF but is permitted by 3NF. The nullable
-linked-user uniqueness is only a conditional identifier and does not change this
-unconditional-key analysis.
-
-For grade versions, per-record locking and the insert trigger make recorded time
-strictly increasing within a record. `(record_id, recorded_at)` is therefore an
-operationally implied identifier, not a declared UNIQUE constraint. Do not use
-`(record_id, previous_version_no)` as an unconditional SQL candidate key: the first
-revision has a NULL predecessor. The tenant partial dependency alone establishes
-the normal-form exception without relying on NULL-sensitive predecessor theory.
-
-The temporal projection's exclusion constraint rejects two nonempty segments for
-one record that overlap in both time dimensions. Identical valid/system intervals
-would overlap, so the exact interval tuple is unique. This does not imply that
-`(record_id, version_no)` is unique: one version may legitimately be represented
-by several carried-forward valid-time segments.
-
-## Logical decomposition and lossless reconstruction
-
-The following are logical alternatives showing how repeated tenant facts can be
-removed. They are not new physical tables or migration instructions. Each tenant
-mapping already exists as a projection of an authoritative parent relation.
-
-For a binary decomposition, the shared attributes determining one component are
-sufficient for lossless reconstruction under the relevant FDs. Dependency
-preservation is a different requirement; a lossless join does not automatically
-preserve every foreign-key, business uniqueness or cross-entity scope constraint.
-See the [normalization chapter's decomposition discussion](https://www.db-book.com/slides-dir/PDF-dir/ch7.pdf).
-
-### Course offering
+The earlier student relation stored `programme_id` and `institution_id` together;
+`programme_id -> institution_id` had a non-key determinant. It is decomposed into:
 
 ```text
-O(offering_id, course_id, term_id, scheme_id, section_code, credits)
-CourseTenant(course_id, institution_id)
+Student(student_id, institution_id, user_id, student_code, admission_year, created_at)
+StudentProgramme(student_id, programme_id)
 ```
 
-`O` retains every original offering attribute except tenant; `CourseTenant` is the
-`(course_id, institution_id)` projection of `academic.course`. Their shared
-`course_id` determines `CourseTenant`, and each offering has a referenced course.
-Joining therefore reconstructs exactly the original institution value without
-spurious offering rows. Under the listed FDs, `O` has keys `offering_id` and
-`(course_id, term_id, section_code)` and reaches BCNF; the tenant map also does.
+Student ID is a key in both components, so the shared attributes determine one
+component and the join is lossless. `StudentProgramme` contains a key-to-attribute
+dependency. Student retains its institution-scoped code and optional account-link
+uniqueness. Required programme membership and matching institution remain enforced;
+`academic.register_student` creates both facts transactionally.
 
-This decomposition preserves `course_id → institution_id` and the identifying
-offering FDs across its components. It does **not** by itself ensure that term and
-scheme belong to that same institution. Removing tenant copies would require a
-reviewed replacement for today's composite FKs, such as controlled transactional
-validation; simply deleting the column would weaken integrity.
+### Offering and enrolment
 
-### Enrolment
+An offering stores course, term, scheme, section and credits, not their institution
+copy. Institution is reconstructed through its course. Enrolment stores student,
+offering and creation time, not the institution determined by student ID. Its keys
+remain enrolment ID and the student/offering pair. Joining each relation to its
+referenced keyed parent restores the earlier institution value without spurious
+rows. Guards preserve agreement across course/term/scheme and student/offering.
 
-```text
-E(enrolment_id, student_id, offering_id, created_at)
-StudentTenant(student_id, institution_id)
-```
+`grade_record` retains institution because enrolment ID is a unique non-null
+candidate key: `enrolment_id -> institution_id` has a key determinant. An institution
+column is not automatically a violation; the determinant and candidate keys matter.
 
-The tenant map is a projection of `academic.student`. The shared `student_id` is
-its key, and the student FK gives each enrolment a matching parent, so the join is
-lossless. `E` retains the enrolment identity, student/offering pair and timestamp;
-its keys are `enrolment_id` and `(student_id, offering_id)`. Both components are
-BCNF under their projected business FDs.
+### Grade and temporal history
 
-The original agreement between student tenant and offering tenant remains a
-cross-entity constraint. It cannot be replaced by this join proof alone. Keeping
-the current tenant field permits the two composite FKs to enforce that agreement
-declaratively.
+Grade versions no longer store institution or the deterministic predecessor.
+Institution comes from the grade record; predecessor is `version_no - 1`, with NULL
+for version 1. Locked append guards preserve a contiguous same-record chain.
+Grade values, reasons, validity and recorded timestamps are preserved.
 
-### Grade version
+Temporal segments no longer copy institution. The record/version FK and
+record-based GiST exclusion preserve temporal identity and prevent contradictory
+overlap. No historical version is erased to normalize its storage. The current
+transcript remains a derived view over retained history.
 
-```text
-V(record_id, version_no, grade_points, outcome, valid_during,
-  recorded_at, author_id, reason)
-RecordTenant(record_id, institution_id)
-previous_version_no = CASE WHEN version_no = 1 THEN NULL ELSE version_no - 1 END
-```
+### Evidence request and event references
 
-`RecordTenant` is a projection of `academic.grade_record`; shared `record_id`
-determines that map. The join restores institution, while the defined expression
-restores the stored predecessor, including the first-version NULL case. All
-original attributes are therefore reconstructible; no historical grade value is
-discarded. The deterministic predecessor is represented by a computation rather
-than a table of integer pairs.
+Evidence no longer copies institution from its record. Requests no longer copy
+the record determined by evidence ID; events no longer copy the record determined
+through a request. Joins reconstruct these values for scope, status and transport.
+Each removed mapping has a key in its parent, giving lossless reconstruction.
 
-Removing these copies eliminates the identified partial dependencies in the
-logical grade fact relation. Other temporal/outcome policy constraints still need
-the stated interpretation: the optional grade and predecessor values are not
-classical non-null keys, and policy checks must not be invented from demo values.
-The present stored predecessor additionally supports an explicit self-FK; a
-physical redesign would need to preserve the intended contiguous-history checks.
+The decision can retain record ID because request ID is its primary key. Its
+relevant request-to-record determinant is therefore a key of that relation.
+Conditional accepted-result uniqueness is not confused with an unconditional key.
+The approved/rejected label is computed from whether a version result exists;
+storing that label again would introduce a non-key dependency on the nullable
+version result. The physical table keeps the facts, not the reconstructible label.
 
-The same tenant-map pattern can remove institution from `evidence.reference` or
-the temporal projection through `RecordTenant`. For evidence, the resulting
-variable-field relation has the existing two candidate keys and no identified
-non-key determinant. Fixed version tags retain the qualification already stated.
-The temporal relation remains a derived, constrained history projection even if
-its tenant copy is removed.
+### Protocol constants
 
-These alternatives demonstrate attribute reconstruction and the relevant
-lossless joins. They do not claim a dependency-preserving implementation of the
-entire schema, or replace current permission, author-scope, time-range and
-cross-institution checks.
+`scrypt-v1`, evidence schema version `1` and `mongo-records-v1` are supplied by
+read/transport interfaces rather than physical per-row columns. The current
+outbox physical key is event ID. Protocol compatibility does not require storing
+the same fixed tag with every credential, evidence reference or delivery.
 
-## Controlled redundancy and anomaly protection
+## Integrity constraints after decomposition
 
-| Stored redundancy                                  | Potential inconsistency                                                   | Current protection and limitation                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Child `institution_id` copies                      | A student/offering/version/evidence row could claim the wrong institution | Composite FKs require agreement with the referenced global identity; they deliberately retain the copy for declarative scope enforcement                                         |
-| `grade_version.previous_version_no`                | A revision could skip or claim an incorrect predecessor                   | CHECK, self-FK, insert trigger and record lock enforce the chain; immutable payloads prevent ordinary rewrites                                                                   |
-| `grade_record.latest_version_no`                   | Cached head could lag or point at a non-latest revision                   | Head/insert triggers, deferred FK and the append transaction keep it synchronized; latest recorded revision is not necessarily current-effective grade                           |
-| `grade_temporal_segment`                           | Query history could overlap, regress or lose a carried-forward interval   | Same-transaction projection, range checks, exclusion constraint and restricted runtime grants; an owner can still alter/rebuild it                                               |
-| Evidence identity/digest metadata in SQL and Mongo | Stores could disagree or only one write could complete                    | Immutable SQL metadata, strict Mongo validation, restricted insert/read role, digest verification and explicit pending-to-available retry; no distributed transaction is claimed |
+Normalization and integrity answer different questions. Removed composite tenant
+copies require replacement enforcement of the original business constraints:
 
-The cached head is an aggregate over a different relation. Its presence does not
-by itself violate a local FD normal form when both `record_id` and `enrolment_id`
-are keys. It nevertheless creates a synchronization responsibility. Conversely,
-tenant copies in enrolments/versions have actual local non-key/partial FDs even
-when constraints successfully prevent contradictory values. Constraint safety and
-normal form are different properties.
+- PKs, alternate uniqueness, nullability, domain/precision checks and parent-row
+  existence remain enforced on normalized facts.
+- Student, programme, offering, enrolment and grade record must agree on
+  institution. Scope validation locks referenced parents; their institution
+  identities cannot be reassigned to race or bypass child checks.
+- Every committed student has a required programme link. Administrative creation
+  is transactional, and historical enrolment identity cannot be reassigned.
+- Schemes, enrolments, grade versions and workflow facts retain their immutability
+  rules. Submitted proposals freeze relevant offering academic context.
+- Approval checks session, account, institutional role, distinct actors, available
+  bound evidence and expected revision. Version, head, temporal projection,
+  decision, event and delivery work commit or roll back together.
+- Session revocation, evidence pending-to-available, lease/token validation,
+  backoff and quarantine retain their controlled transitions.
+- Runtime identities remain non-owners. API writes use controlled wrappers;
+  workers cannot gain credential/academic access through context views.
 
-Separating catalogue and policy entities already avoids common anomalies:
-institutions/courses/schemes can be created before enrolment; removing the last
-enrolment does not remove course definitions; catalogue titles are maintained in
-one place rather than rewritten into every grade version. Programme/course/term
-display labels are current metadata, not a fully bitemporal catalogue. Used
-offering academic policy/credits are frozen and grading-scheme rows are immutable.
+These requirements need negative, concurrent and upgrade checks, not only row
+counts. Migration must preserve the retained fact projection before/after
+decomposition and roll back on a mismatch. The test results, deployment state and
+remaining acceptance work are recorded separately in the project journey.
 
-No presently demonstrated mismatch requires rewriting applied migrations before
-Week 4. The existing tenant/predecessor/projection exceptions are an explicit
-physical-design tradeoff with enforced consistency checks, not a claim of complete
-normalization. If the assessment requires every physical business table to be at
-least 3NF, a forward schema redesign and constraint/API migration must be reviewed
-as separate work; this document alone does not satisfy that stricter requirement.
-Future workflow, audit and outbox relations need their own key/FD review when added.
+## Read views and transport compatibility
 
-Runtime roles and triggers protect ordinary application paths. Owners/superusers
-can bypass them, and neither normalization nor FK checks provide cryptographic
-tamper evidence, factual-grade truth or institutional-policy approval.
+The student, offering, enrolment, grade-version, credential, evidence and workflow
+`*_context` views reconstruct selected earlier read shapes. They are not physical
+application tables and are not represented as BCNF storage. A predecessor, tenant,
+profile, schema tag, decision label or consumer can appear in a result without
+being stored again.
 
-## Week 4 additions - migrations 0006 and 0007
+HTTP contracts and Mongo evidence/event schemas keep their identifiers, decimal
+grade strings and microsecond timestamp text. Direct writers, fixtures and
+administrative commands use normalized base columns. Forward migrations decompose
+existing facts and update controlled interfaces; applied migration files remain
+immutable. The normalized seed carries forward the old fixture marker/history
+without resetting existing data.
 
-The preceding sixteen-table analysis remains a pinned snapshot. The workflow adds
-four relations; none changes the declared keys of the earlier academic tables.
-The extra evidence `(evidence_id, record_id)` UNIQUE set is a non-minimal superkey
-supporting a bound-reference FK, not a newly minimal evidence identity.
+## History and acceptance boundary
 
-| Relation                   | Identifying keys and relevant dependency                                                                                        | Physical design assessment                                                                                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workflow.change_request`  | `request_id`; `(proposer_id,idempotency_key)`; `evidence_id → record_id` through the immutable evidence reference               | The record copy is a non-key dependency: variable business fields are 2NF, not uniformly 3NF. The composite evidence FK enforces agreement.                                                               |
-| `workflow.decision`        | `request_id` determines its decision/actor/reason/result; `(record_id,version_no)` is unique only for non-null approved results | The request identifies the decision; nullable result/status encoding is enforced with CHECKs. Do not advertise its conditional result key as an unconditional key.                                        |
-| `workflow.domain_event`    | `event_id`; `(request_id,kind)`; `request_id → record_id`                                                                       | The request-to-record copy is partial on the alternate key. This is intentionally immutable audit data, not a normalized mutable business catalogue. The JSON envelope also repeats protocol identifiers. |
-| `workflow.outbox_delivery` | Declared `(event_id,consumer)`; the current consumer CHECK fixes one consumer, implying `event_id` identifies the current row   | Variable delivery state depends on its identity. The fixed consumer tag has the same constant-FD qualification as earlier protocol tags; future multiple consumers change the minimal key.                |
+The earlier sixteen-table review and Week 4 appendix identified the constrained
+copies at that time. The owner's 24 November 2026 requirement replaces that storage
+tradeoff with a physical BCNF gate. Twenty-table screenshots/reports are historical
+evidence until regenerated against the decomposed schema.
 
-A logical request decomposition could retain its proposal facts and evidence ID
-without a stored record ID, joining `EvidenceRecord(evidence_id,record_id)` to
-restore the record. Shared evidence ID determines the mapping, making that join
-lossless. Similarly, an event fact without the record copy can join
-`RequestRecord(request_id,record_id)`. Such decompositions do not preserve every
-current composite FK, query/permission boundary or historical snapshot requirement
-automatically. No physical decomposition is claimed by this documentation.
-
-Requests, decisions and events are immutable under ordinary application paths;
-controlled functions validate and bind references, and the approval transaction
-updates the head/projection/audit/outbox atomically. Mutable retry/lease state is
-separated from event facts, so retry does not rewrite historical events. This
-limits update anomalies while leaving the stated normal-form exceptions visible.
-See [record workflow](record-workflow.md) for the provisional approval and trust
-boundaries. A later strict-3NF redesign still requires reviewed forward migrations.
+BCNF is justified by keys and FDs. Tests establish that decomposition and
+replacement constraints preserve observed behavior; they do not discover every
+possible semantic FD or approve official university policy. Fresh/upgrade
+migrations, SQL integrity, HTTP, worker and compiled demonstrations must pass
+before development rollout is described as complete.
