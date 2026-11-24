@@ -360,12 +360,74 @@ merging.
 
 ## Next milestone
 
-Review and publish the Week 5 commits after owner approval, inspect remote CI and
-merge its PR before starting the next feature branch. Week 6 adds exact signed
+The owner merged Week 5 in PR #4 (`c2aaea6`), after its remote CI passed. Week 6
+continues on `feat/credential-profile`; future branches use standard feature/fix/docs
+prefixes at the owner's request. Week 6 adds exact signed
 credential artifacts, selective disclosure and explicit status/freshness semantics.
 Institutional grading/attempt rules remain open review items. Neo4j provenance,
 Python ML/anomaly detection and later integrated witness/recovery experiments
 remain mandatory scheduled milestones.
+
+## 2026-11-25 - Week 6 event-source compatibility slice
+
+Migration `0011` introduces a BCNF unary event registry and a shared computed
+event context. Workflow events still own their facts and atomic Mongo delivery;
+existing salts, event payloads, positions, bootstrap state and checkpoints remain
+unchanged. Deferred participation checks reject orphan identities. The API and
+worker remain unable to read the registry, and the log reader cannot write it.
+
+The log reader uses the common interface and checks each source/kind pairing.
+Source classification stays outside commitment bytes and exported event entries.
+Unit fixtures prepare the distinction between workflow projection work and future
+credential-only events; SQL currently accepts only workflow sources. No credential
+issuance, holder disclosure, status or replay-protection endpoint is complete yet.
+
+Quality checks and build passed, including 76 tooling/unit tests. All 45 isolated
+SQL checks and 46 integration checks passed. A populated `0010` upgrade preserves
+a genuine signed checkpoint byte for byte, then validates its historical proof
+after another append. Orphan/immutability, rollback and restricted-read tests pass.
+The schema target has 25 domain plus two metadata tables; development migration
+rollout has not occurred. Unfinished service scaffolding is preserved in ignored
+local runtime drafts and is excluded from the reviewable slice. Nothing has been
+staged or committed at that validation point. The owner subsequently approved
+commit `52c538f` (`refactor: introduce shared event source registry`); the reviewed
+15-file slice was committed on `feat/credential-profile` without pushing.
+
+## 2026-11-25 - Week 6 credential cryptography slice
+
+Added the private `@academic-records/credentials` library with pinned JOSE
+dependency `jose@6.2.18`. It issues a compact issuer-signed artifact and six private
+flat claim disclosures. Holder presentation verifies the trusted issuer and the
+complete private disclosure set before signing only selected claims. Verifier
+checks exact consent, pinned issuer, immutable version identity, exact artifact
+digest, holder signature, audience/nonce and bounded proof age.
+
+The optional log-evidence verifier binds a pinned-key inclusion proof to that same
+credential/artifact/version/holder. It rejects validly signed evidence about
+another artifact. Hidden values remain absent from the returned presentation;
+visible identifiers and holder keys remain linkable. This is a narrow RFC 9901
+application profile, not full SD-JWT VC or wallet-standard compliance.
+
+All 89 tooling/unit checks and the build passed, including 13 new credential
+tests. New fixtures cover the RFC's published disclosure hash, independently
+constructed Node Ed25519 JWTs, noncanonical valid JSON, exact consent, malformed
+encoding, duplicate JSON names, private/wrong keys, wrong audiences/nonces, stale
+proofs, modified disclosures and mismatched valid log evidence. SQL and integration
+checks were not rerun for this library-only slice; the preceding source-registry
+slice passed 45 SQL and 46 integration checks. No database or private key changed.
+
+Week 6 remains in progress. SQL persistence/approved-version authorization,
+holder-key registration, exact issuance retry, durable challenge consumption,
+revocation/supersession and signed current-status evidence are pending. Stateless
+verification alone cannot prevent a repeated presentation from passing within its
+validity window. The next slice must enforce these online boundaries atomically.
+
+The credential library slice was committed as `21b2a88`. The owner then explicitly
+waived per-commit approval for future work. Focused commits still require reviewed
+paths and relevant passing checks. Earlier permission-per-commit entries describe
+the agreement at that time and are superseded for future commits. Normal topic
+pushes retain the owner's earlier authorisation; PR review and merging remain
+owner-controlled.
 
 ## Entry format
 

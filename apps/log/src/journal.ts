@@ -33,6 +33,7 @@ export class JournalError extends Error {
 
 export interface JournalEntry extends EventEntry {
   eventId: string;
+  sourceKind: 'workflow' | 'credential';
   commitment: string;
   delivered: boolean;
 }
@@ -135,13 +136,13 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
     if (bootstrapSize > treeSize) invalid('Bootstrap boundary exceeds the journal');
     const rows = await client.query<Record<string, unknown>>(
       `
-      SELECT p.event_id,p.institution_id,p.leaf_index,p.salt,e.payload,
+      SELECT p.event_id,p.institution_id,p.leaf_index,p.salt,e.payload,e.source_kind,
         transparency.read_expected_event(p.event_id) AS expected_payload,
         d.event_id AS delivery_event_id,d.delivered_at IS NOT NULL AS delivered,
         er.evidence_id,er.record_id,er.submitted_by,er.category,er.digest_sha256,
         er.size_bytes,er.state
       FROM transparency.event_position p
-      LEFT JOIN workflow.domain_event e USING(event_id)
+      LEFT JOIN transparency.event_context e USING(event_id)
       LEFT JOIN workflow.outbox_delivery d USING(event_id)
       LEFT JOIN workflow.change_request q ON q.request_id=e.request_id
       LEFT JOIN evidence.reference er ON er.evidence_id=q.evidence_id
@@ -152,6 +153,9 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
     const evidence = new Map<string, JournalEvidence>();
     const seen = new Set<string>();
     const entries = rows.rows.map((row, index): JournalEntry => {
+      if (row.source_kind !== 'workflow' && row.source_kind !== 'credential') {
+        return invalid('Journal event has an unknown authoritative source');
+      }
       if (
         count(row.leaf_index) !== index ||
         row.institution_id !== logId ||
@@ -169,34 +173,45 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
       if (payload.eventId !== row.event_id || payload.institutionId !== logId) {
         return invalid('Event does not match its position scope');
       }
-      if (
-        row.delivery_event_id !== row.event_id ||
-        typeof row.delivered !== 'boolean' ||
-        typeof row.evidence_id !== 'string' ||
-        typeof row.record_id !== 'string' ||
-        typeof row.submitted_by !== 'string' ||
-        typeof row.category !== 'string' ||
-        typeof row.digest_sha256 !== 'string' ||
-        typeof row.state !== 'string'
-      )
-        invalid('Event reference facts are incomplete');
-      const reference: JournalEvidence = {
-        evidenceId: row.evidence_id,
-        recordId: row.record_id,
-        institutionId: logId,
-        submittedBy: row.submitted_by,
-        category: row.category,
-        digestSha256: row.digest_sha256,
-        sizeBytes: count(row.size_bytes),
-        state: row.state,
-      };
-      if (
-        evidence.has(reference.evidenceId) &&
-        !equal(evidence.get(reference.evidenceId), reference)
-      ) {
-        invalid('Evidence references disagree');
+      const expectedKinds =
+        row.source_kind === 'workflow'
+          ? ['request.submitted', 'request.rejected', 'grade.accepted']
+          : ['credential.issued', 'credential.revoked'];
+      if (!expectedKinds.includes(String(payload.kind))) {
+        return invalid('Event kind does not match its authoritative source');
       }
-      evidence.set(reference.evidenceId, reference);
+      if (row.source_kind === 'workflow') {
+        if (
+          row.delivery_event_id !== row.event_id ||
+          typeof row.delivered !== 'boolean' ||
+          typeof row.evidence_id !== 'string' ||
+          typeof row.record_id !== 'string' ||
+          typeof row.submitted_by !== 'string' ||
+          typeof row.category !== 'string' ||
+          typeof row.digest_sha256 !== 'string' ||
+          typeof row.state !== 'string'
+        )
+          invalid('Event reference facts are incomplete');
+        const reference: JournalEvidence = {
+          evidenceId: row.evidence_id,
+          recordId: row.record_id,
+          institutionId: logId,
+          submittedBy: row.submitted_by,
+          category: row.category,
+          digestSha256: row.digest_sha256,
+          sizeBytes: count(row.size_bytes),
+          state: row.state,
+        };
+        if (
+          evidence.has(reference.evidenceId) &&
+          !equal(evidence.get(reference.evidenceId), reference)
+        ) {
+          invalid('Evidence references disagree');
+        }
+        evidence.set(reference.evidenceId, reference);
+      } else if (row.delivery_event_id !== null || row.evidence_id !== null) {
+        invalid('Credential events must not use the grade projection queue');
+      }
       const entry: EventEntry = {
         logId,
         index,
@@ -206,22 +221,19 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
       return {
         ...entry,
         eventId: row.event_id,
-        delivered: row.delivered,
+        sourceKind: row.source_kind,
+        delivered: row.source_kind === 'workflow' && row.delivered === true,
         commitment: commitEvent(entry),
       };
     });
     const missing = await client.query<{ missing: unknown }>(
       `
-      SELECT count(*) AS missing FROM workflow.domain_event e
-      JOIN workflow.change_request q USING(request_id)
-      JOIN evidence.reference r USING(evidence_id)
-      JOIN academic.grade_record g USING(record_id)
+      SELECT count(*) AS missing FROM transparency.event_context e
       LEFT JOIN transparency.event_position p USING(event_id)
-      WHERE g.institution_id=$1 AND p.event_id IS NULL`,
+      WHERE e.institution_id=$1 AND p.event_id IS NULL`,
       [logId],
     );
-    if (count(missing.rows[0]?.missing) !== 0)
-      invalid('Committed workflow events lack journal positions');
+    if (count(missing.rows[0]?.missing) !== 0) invalid('Committed events lack journal positions');
     // The head is mutable derived state, not part of the immutable event
     // commitment. Check its structural agreement with the observed SQL history.
     const heads = await client.query<{ inconsistent_heads: unknown }>(
@@ -260,7 +272,7 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
       coverage: {
         uncoveredGradeVersions: count(uncovered.rows[0]?.uncovered),
         description:
-          'Committed workflow events, their SQL grade/request/decision facts, bound evidence and Mongo projections. Academic catalogue metadata and the SQL temporal projection cache are not cryptographically covered. SQL record heads are checked structurally against maximum stored versions.',
+          'Committed workflow and credential events, their authoritative SQL facts, exact signed credential artifact digests, bound workflow evidence and Mongo grade projections. Credential disclosure material stays private and has no Mongo grade delivery. Academic catalogue metadata and the SQL temporal projection cache are not cryptographically covered. SQL record heads are checked structurally against maximum stored versions.',
       },
     };
     await client.query('COMMIT');

@@ -38,13 +38,13 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
       )
       AND NOT EXISTS (
         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN identities i
-        WHERE n.nspname IN ('workflow','transparency') AND c.relkind IN ('r','p','v','m','f')
+        WHERE n.nspname IN ('workflow','transparency','credential') AND c.relkind IN ('r','p','v','m','f')
           AND (has_table_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
             OR has_any_column_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
       )
       AND NOT EXISTS (
         SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN identities i
-        WHERE n.nspname='transparency' AND has_function_privilege(i.oid,p.oid,'EXECUTE')
+        WHERE n.nspname IN ('transparency','credential') AND has_function_privilege(i.oid,p.oid,'EXECUTE')
       )
       AND NOT EXISTS (
         SELECT 1 FROM identities i WHERE has_function_privilege(i.oid,

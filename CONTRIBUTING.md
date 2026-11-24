@@ -7,15 +7,15 @@ invariants before extending the model; explicitly label any owner-requested
 provisional implementation and its unresolved assumptions. Update documentation
 in the same change as the behaviour it describes.
 
-Assistants may edit and verify authorised work. Before staging/committing a
-focused update, present its exact files, validation and proposed commit message,
-then obtain the owner's permission for that commit. Approval of one commit does
-not approve later commits. Pushes and merges remain manual owner actions unless
-separately authorised.
+The owner authorises assistants to edit, verify, stage and commit focused updates
+without requesting approval for each commit. Review explicit file lists and run
+the relevant checks first; keep private drafts, credentials and runtime data out
+of Git. Normal topic-branch pushes are also authorised. PR review and merging
+remain owner actions; this does not authorise force pushes or history rewrites.
 
 Commit coherent, checked updates throughout each stage instead of accumulating a
 whole week's implementation into one commit. Keep a change's meaningful tests and
-required migration/docs together so every approved commit is reviewable.
+required migration/docs together so every commit is reviewable.
 
 ## Branches
 

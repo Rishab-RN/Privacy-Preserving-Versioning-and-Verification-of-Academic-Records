@@ -56,7 +56,9 @@ function fixture(delivered = true) {
     logId,
     treeSize: 1,
     bootstrapSize: 0,
-    entries: [{ ...entry, eventId, delivered, commitment: commitEvent(entry) }],
+    entries: [
+      { ...entry, eventId, sourceKind: 'workflow', delivered, commitment: commitEvent(entry) },
+    ],
     checkpoints: [],
     evidence: [reference],
     coverage: {
@@ -187,6 +189,35 @@ test('partial Mongo delivery before SQL acknowledgement is pending; after acknow
   }
 });
 
+test('credential source events are counted without requiring Mongo grade projections', async () => {
+  const source = fixture();
+  const payload: EventEntry['payload'] = {
+    schemaVersion: 1,
+    eventId: actorId,
+    institutionId: logId,
+    kind: 'credential.issued',
+    credentialId: evidenceId,
+    artifactDigest: 'a'.repeat(64),
+  };
+  const entry: EventEntry = { logId, index: 1, salt: '03'.repeat(32), payload };
+  source.snapshot.entries.push({
+    ...entry,
+    eventId: actorId,
+    sourceKind: 'credential',
+    delivered: false,
+    commitment: commitEvent(entry),
+  });
+  source.snapshot.treeSize++;
+  const result = await auditJournal(source.snapshot, source.db);
+  assert.equal(result.integrity, 'valid');
+  assert.equal(result.projection, 'complete');
+  assert.equal(result.checkedEvents, 2);
+  source.snapshot.entries[1]!.sourceKind = 'workflow';
+  const wrongSource = await auditJournal(source.snapshot, source.db);
+  assert.equal(wrongSource.integrity, 'invalid');
+  assert(wrongSource.issues.some(({ code }) => code === 'EVENT_SOURCE_MISMATCH'));
+});
+
 test('a pending correction permits an authentic older head but never a modified older head', async () => {
   const source = fixture();
   const original = source.snapshot.entries[0]!;
@@ -199,6 +230,7 @@ test('a pending correction permits an authentic older head but never a modified 
   source.snapshot.entries.push({
     ...entry,
     eventId: actorId,
+    sourceKind: 'workflow',
     delivered: false,
     commitment: commitEvent(entry),
   });

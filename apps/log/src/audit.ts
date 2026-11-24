@@ -133,6 +133,21 @@ export async function auditJournal(
     const expectedHeads = new Map<string, Record<string, unknown>>();
     for (const entry of snapshot.entries) {
       report.checkedEvents++;
+      if (entry.sourceKind === 'credential') {
+        if (!['credential.issued', 'credential.revoked'].includes(String(entry.payload.kind))) {
+          fail('EVENT_SOURCE_MISMATCH', { eventId: entry.eventId });
+        }
+        continue;
+      }
+      if (
+        entry.sourceKind !== 'workflow' ||
+        !['request.submitted', 'request.rejected', 'grade.accepted'].includes(
+          String(entry.payload.kind),
+        )
+      ) {
+        fail('EVENT_SOURCE_MISMATCH', { eventId: entry.eventId });
+        continue;
+      }
       const receipt = await find('workflow_events', entry.eventId);
       const expectedReceipt = {
         _id: entry.eventId,

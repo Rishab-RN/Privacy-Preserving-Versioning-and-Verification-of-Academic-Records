@@ -10,7 +10,7 @@ identities, temporal semantics, selected grading assumptions and access limits.
 Implemented behavior is not institutional-policy approval.
 
 The [normalization review](normalization.md) covers the forward BCNF decomposition
-in migrations `0008`/`0009` and the `0010` transparency extension: 24 domain tables, candidate keys, identified
+in migrations `0008`/`0009` and the `0010`/`0011` transparency extensions: 25 domain tables, candidate keys, identified
 functional dependencies, explicit 1NF/2NF/3NF/BCNF results and lossless reconstruction
 through read views. It supersedes the earlier twenty-table physical-exception
 analysis. Migration/upgrade/runtime acceptance and rollout are tracked separately
@@ -22,6 +22,10 @@ private salted commitments and signed checkpoints. The
 [offline verifier](../../packages/verification/README.md) document independent
 proof checking and retained-observation limits. Historical inclusion does not
 establish current credential status.
+
+The [Week 6 credential profile](credential-profile.md) defines the implemented
+flat-claim SD-JWT library, pinned trust, exact consent and holder/Merkle binding.
+Its database persistence, status and single-use challenge gate remain pending.
 
 The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
 approval, the atomic SQL change/audit/outbox boundary and recoverable derived
