@@ -54,7 +54,7 @@ Publication and novelty claims depend on measured evidence.
 
 | Area                       | Direction                                                                                      |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| Frontend                   | React/Vite/Tailwind; live scoped records, evidence and independent review                      |
+| Frontend                   | React, TypeScript, Vite and Tailwind CSS with role-specific dashboards and interactive history |
 | API                        | Node.js/Express/TypeScript; scoped access and registrar approval                               |
 | Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox                                |
 | Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies                               |

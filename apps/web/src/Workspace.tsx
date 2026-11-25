@@ -1,7 +1,10 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import type { StudentSummary, TranscriptResponse, EvidenceReceipt } from '@scholarproof/contracts';
 import type { Api, Page, Session } from './types.js';
-import { Brand, Icon, Badge, Field, Alert, Panel } from './ui.js';
+import { Brand, Icon, Field, Alert, Panel } from './ui.js';
+import { Dashboard, desks } from './pages/Dashboard.js';
+import type { Desk } from './pages/Dashboard.js';
+import { WorkspaceSwitch } from './WorkspaceSwitch.js';
 import { date } from './format.js';
 import { message } from './api.js';
 import { RecordsTable } from './pages/RecordsTable.js';
@@ -32,6 +35,14 @@ export function Workspace({
   const registrar = session.principal.roles.some((r) => r.role === 'registrar'),
     canEvidence = session.principal.roles.some((r) => ['registrar', 'student'].includes(r.role));
   const canReview = session.principal.roles.some((r) => ['registrar', 'auditor'].includes(r.role));
+  const hasStudentRole = session.principal.roles.some(({ role }) => role === 'student');
+  const desk: Desk = registrar
+    ? 'registrar'
+    : canReview
+      ? 'auditor'
+      : hasStudentRole
+        ? 'student'
+        : 'reader';
   const institutions = [
     ...new Set(
       session.principal.roles
@@ -48,9 +59,7 @@ export function Workspace({
     ...(canEvidence ? ['Evidence' as const] : []),
     ...(canReview ? ['Review' as const, 'Provenance' as const] : []),
     ...(registrar ? ['Credential status' as const] : []),
-    ...(session.principal.roles.some((r) => r.role === 'student')
-      ? ['Private proofs' as const]
-      : []),
+    ...(hasStudentRole ? ['Private proofs' as const] : []),
   ];
   const transcriptRequest = useRef(0);
   const [history, setHistory] = useState<TranscriptResponse['records'][number] | null>(null);
@@ -117,24 +126,69 @@ export function Workspace({
     setRecent((ids) => [id, ...ids.filter((i) => i !== id)].slice(0, 20));
     setActiveRequest(id);
   }
+  function navigate(destination: Page) {
+    if (destination !== page && destination === 'Provenance') setGraphTarget(null);
+    setPage(destination);
+  }
+  const screen: Partial<Record<Page, [string, string]>> = {
+    Records: ['Academic records', 'Compare what was recorded with what took effect.'],
+    Evidence: [
+      'Supporting evidence',
+      'Submit and retrieve integrity-checked supporting information.',
+    ],
+    Review: ['Review & decisions', 'Track corrections from proposal to independent decision.'],
+    Provenance: ['Grade provenance', 'Inspect approval relationships and supporting evidence.'],
+    'Private proofs': [
+      'Private eligibility proofs',
+      'Prove a grade threshold while keeping your exact result private.',
+    ],
+    'Credential status': [
+      'Credential status',
+      'Manage institutional proof credential revocations.',
+    ],
+  };
+  const currentScreen = screen[page];
+  const studentContext = (
+    <div className="context-bar">
+      <Field label="Student">
+        <select
+          value={student}
+          disabled={!students.length}
+          onChange={(e) => {
+            if (e.target.value === student) return;
+            transcriptRequest.current++;
+            setStudent(e.target.value);
+            setTranscript(null);
+            setHistory(null);
+          }}
+        >
+          <option value="" disabled>
+            {loading ? 'Loading students…' : 'No students in scope'}
+          </option>
+          {students.map((s) => (
+            <option key={s.studentId} value={s.studentId}>
+              {s.studentCode}
+            </option>
+          ))}
+        </select>
+      </Field>
+    </div>
+  );
   return (
-    <div className="workspace">
+    <div className="workspace" data-desk={desk}>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
       <aside className="sidebar">
         <Brand />
-        <div className="nav-label">WORKSPACE</div>
+        <div className="nav-label">{desks[desk].label}</div>
         <nav aria-label="Main navigation">
           {pages.map((name) => (
             <button
               key={name}
               className={page === name ? 'nav-item active' : 'nav-item'}
               aria-current={page === name ? 'page' : undefined}
-              onClick={() => {
-                if (name !== page && name === 'Provenance') setGraphTarget(null);
-                setPage(name);
-              }}
+              onClick={() => navigate(name)}
             >
               <Icon name={name} />
               {name}
@@ -143,12 +197,9 @@ export function Workspace({
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div className="privacy-seal">
-            <Icon name="lock" />
-            <strong>Access with purpose</strong>
-            <p>Only records within your assigned scope are available.</p>
-          </div>
-          <span className="sidebar-caption">ACADEMIC RECORDS PLATFORM</span>
+          <a className="sidebar-verifier" href="/verify">
+            <Icon name="Private proofs" /> Public proof verifier <Icon name="arrow" />
+          </a>
         </div>
       </aside>
       <div className="workspace-body">
@@ -156,6 +207,7 @@ export function Workspace({
           <div className="breadcrumb">
             Workspace <span>/</span> <strong>{page}</strong>
           </div>
+          <WorkspaceSwitch pages={pages} navigate={navigate} />
           <div className="account">
             <span className="avatar">{session.principal.subject.slice(0, 1).toUpperCase()}</span>
             <div>
@@ -171,147 +223,33 @@ export function Workspace({
           </div>
         </header>
         <main id="main-content" className="content" tabIndex={-1}>
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow dark">YOUR ACADEMIC WORKSPACE</div>
-              <h1>
-                {page === 'Overview'
-                  ? 'Records with a history.'
-                  : page === 'Records'
-                    ? 'Academic records'
-                    : page === 'Private proofs'
-                      ? 'Private eligibility proofs'
-                      : page === 'Evidence'
-                        ? 'Supporting evidence'
-                        : page === 'Credential status'
-                          ? 'Credential status'
-                          : page === 'Provenance'
-                            ? 'Grade provenance'
-                            : 'Review & decisions'}
-              </h1>
-              <p>
-                {page === 'Overview'
-                  ? 'A considered view of the records you’re authorised to access.'
-                  : page === 'Records'
-                    ? 'Explore current results and how they appeared at an earlier point in time.'
-                    : page === 'Private proofs'
-                      ? 'Prove a grade threshold without disclosing your exact result.'
-                      : page === 'Evidence'
-                        ? 'Submit and retrieve integrity-checked supporting information.'
-                        : page === 'Credential status'
-                          ? 'Manage institutional private proof credential revocations.'
-                          : page === 'Provenance'
-                            ? 'Inspect approval relationships and supporting evidence.'
-                            : 'Track a correction from proposal to independent decision.'}
-              </p>
+          {currentScreen && (
+            <div className="page-heading">
+              <div>
+                <p className="workspace-label">{desks[desk].label}</p>
+                <h1>{currentScreen[0]}</h1>
+                <p>{currentScreen[1]}</p>
+              </div>
             </div>
-            <Badge tone="green">
-              <span className="dot" /> Role-scoped access
-            </Badge>
-          </div>
-          <div className="context-bar">
-            <Field label="Student">
-              <select
-                value={student}
-                disabled={!students.length}
-                onChange={(e) => {
-                  if (e.target.value === student) return;
-                  transcriptRequest.current++;
-                  setStudent(e.target.value);
-                  setTranscript(null);
-                  setHistory(null);
-                }}
-              >
-                <option value="" disabled>
-                  {loading ? 'Loading students…' : 'No students in scope'}
-                </option>
-                {students.map((s) => (
-                  <option key={s.studentId} value={s.studentId}>
-                    {s.studentCode}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div className="context-details">
-              <span>SELECTED SUBJECT</span>
-              <code>{student || 'No accessible student'}</code>
-            </div>
-          </div>
+          )}
+          {(page === 'Records' || page === 'Evidence' || page === 'Private proofs') &&
+            studentContext}
           {error && <Alert>{error}</Alert>}
           {page === 'Overview' && (
-            <>
-              <div className="metric-grid">
-                <div className="metric">
-                  <span>RESULTS IN THIS VIEW</span>
-                  <strong>{loading ? '—' : records.length}</strong>
-                  <small>Selected student and query time</small>
-                </div>
-                <div className="metric">
-                  <span>COURSE CREDITS</span>
-                  <strong>
-                    {loading ? '—' : records.reduce((sum, r) => sum + Number(r.credits), 0)}
-                  </strong>
-                  <small>Across visible course results</small>
-                </div>
-                <div className="metric">
-                  <span>VERSIONED RECORDS</span>
-                  <strong>{loading ? '—' : records.filter((r) => r.version_no > 1).length}</strong>
-                  <small>Results with a later recorded version</small>
-                </div>
-              </div>
-              <div className="overview-grid">
-                <Panel
-                  title="Your records, at a glance"
-                  subtitle="A snapshot from the selected transcript query."
-                >
-                  <RecordsTable records={records} loading={loading} />
-                  <button className="panel-link" onClick={() => setPage('Records')}>
-                    Explore all records <Icon name="arrow" />
-                  </button>
-                </Panel>
-                <section className="guide-card">
-                  <span className="eyebrow">A TRACEABLE PROCESS</span>
-                  <h2>
-                    Careful changes.
-                    <br />
-                    Lasting context.
-                  </h2>
-                  <ol>
-                    <li>
-                      <span>1</span>
-                      <div>
-                        <strong>Support a correction</strong>
-                        <p>Attach evidence to the exact record.</p>
-                      </div>
-                    </li>
-                    <li>
-                      <span>2</span>
-                      <div>
-                        <strong>Request a review</strong>
-                        <p>A registrar proposes the next revision.</p>
-                      </div>
-                    </li>
-                    <li>
-                      <span>3</span>
-                      <div>
-                        <strong>Keep decisions independent</strong>
-                        <p>A different registrar approves or rejects.</p>
-                      </div>
-                    </li>
-                  </ol>
-                  <button onClick={() => setPage(canEvidence ? 'Evidence' : 'Review')}>
-                    Open {canEvidence ? 'evidence' : 'review'} <Icon name="arrow" />
-                  </button>
-                </section>
-              </div>
-              <div className="scope-note">
-                <Icon name="lock" />
-                <p>
-                  <strong>History stays available.</strong> A later recorded revision and the grade
-                  effective today can differ. Use the Records time filters to explore both.
-                </p>
-              </div>
-            </>
+            <Dashboard
+              desk={desk}
+              transcript={transcript}
+              loading={loading}
+              directoryCount={students.length || (loading || error ? null : 0)}
+              institutionCount={institutions.length}
+              recent={recent}
+              context={desk === 'student' || desk === 'reader' ? studentContext : null}
+              navigate={navigate}
+              openRequest={(id) => {
+                remember(id);
+                navigate('Review');
+              }}
+            />
           )}
           {page === 'Records' && (
             <>

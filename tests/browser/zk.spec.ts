@@ -58,7 +58,7 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
     );
     expect(invalid.status()).toBe(400);
   }
-  await expect(page.getByRole('heading', { name: 'Records with a history.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your academic record' })).toBeVisible();
   await expect(page.getByRole('table')).toBeVisible();
   await page.getByRole('navigation').getByRole('button', { name: 'Private proofs' }).click();
   const approvedRecord = page.getByLabel('Approved record', { exact: true });
@@ -129,7 +129,12 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   await expect(page.getByRole('alert')).toContainText('invalid');
   const challenge = await page.request.get('/api/v1/zk/challenges/' + firstBundle.challengeId);
   expect(((await challenge.json()) as { used: boolean }).used).toBe(false);
-  await page.getByLabel('Shareable proof JSON', { exact: true }).fill(first);
+  await page.getByLabel('Shareable proof file', { exact: true }).setInputFiles({
+    name: 'shared-proof.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(first),
+  });
+  await expect(page.getByLabel('Shareable proof JSON', { exact: true })).toHaveValue(first);
   const historyInput = page.getByLabel('Signed issuance evidence (optional)', { exact: true });
   const modified = JSON.parse(readFileSync(evidence, 'utf8')) as { inclusionProof: string[] };
   modified.inclusionProof[0] = '0'.repeat(64);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TranscriptResponse } from '@scholarproof/contracts';
-import { Empty, Badge } from '../ui.js';
+import { Empty, Badge, Icon } from '../ui.js';
 import { human, date } from '../format.js';
 export function RecordsTable({
   records,
@@ -54,14 +54,24 @@ export function RecordsTable({
               <th>Outcome</th>
               <th>Version</th>
               {detailed && <th>Recorded at</th>}
-              {onHistory && <th>History</th>}
             </tr>
           </thead>
           <tbody>
             {visible.map((r) => (
               <tr key={r.record_id}>
                 <td>
-                  <strong>{r.course_code}</strong>
+                  {onHistory ? (
+                    <button
+                      type="button"
+                      className="course-history"
+                      aria-label={`View ${r.course_code} history`}
+                      onClick={() => onHistory(r)}
+                    >
+                      {r.course_code} <Icon name="arrow" />
+                    </button>
+                  ) : (
+                    <strong>{r.course_code}</strong>
+                  )}
                   {detailed && <code className="record-id">{r.record_id}</code>}
                 </td>
                 <td>{r.credits}</td>
@@ -82,17 +92,6 @@ export function RecordsTable({
                   <td>
                     {date(r.recorded_at)}
                     <small className="range">Valid interval: {r.valid_during}</small>
-                  </td>
-                )}
-                {onHistory && (
-                  <td>
-                    <button
-                      className="text-button"
-                      aria-label={`View ${r.course_code} history`}
-                      onClick={() => onHistory(r)}
-                    >
-                      View history
-                    </button>
                   </td>
                 )}
               </tr>

@@ -20,12 +20,15 @@ const fixture = JSON.parse(readFileSync(resolve('.runtime/workflow-fixture.json'
   institutionId: string;
 };
 const out = resolve('.runtime/frontend-evidence');
-async function login(page: Page, account: { subject: string; password: string }) {
+async function login(
+  page: Page,
+  account: { subject: string; password: string },
+  heading = 'Registrar desk',
+) {
   await page.getByLabel('Account ID', { exact: true }).fill(account.subject);
   await page.getByLabel('Password', { exact: true }).fill(account.password);
   await page.getByRole('button', { name: 'Sign in to workspace' }).click();
-  await expect(page.getByRole('heading', { name: 'Records with a history.' })).toBeVisible();
-  await expect(page.getByLabel('Student', { exact: true })).toBeEnabled();
+  await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
 }
 test('live student, auditor and independent registrar browser journeys', async ({ page }) => {
   mkdirSync(out, { recursive: true });
@@ -36,22 +39,42 @@ test('live student, auditor and independent registrar browser journeys', async (
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve(out, '01-sign-in.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('button', { name: 'Sign in to workspace' })).toBeInViewport();
+  await page.screenshot({ path: resolve(out, '15-mobile-sign-in.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const example = page.getByRole('group', { name: 'Example stage' });
+  await example.getByRole('button', { name: 'Proof', exact: true }).click();
+  await expect(page.getByText('Private eligibility claim', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Show password', exact: true }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide password', exact: true }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
   await page.getByLabel('Account ID', { exact: true }).fill('demo:student');
   await page.getByLabel('Password', { exact: true }).fill('incorrect-synthetic-password');
   await page.getByRole('button', { name: 'Sign in to workspace' }).click();
   await expect(page.getByRole('alert')).toContainText('UNAUTHORIZED');
 
   const student = accounts.find((a) => a.role === 'student')!;
-  await login(page, student);
+  await login(page, student, 'Your academic record');
   await expect(
     page.getByLabel('Student', { exact: true }).locator('option:not([disabled])'),
   ).toHaveCount(1);
   await expect(
     page.getByRole('navigation').getByRole('button', { name: 'Evidence' }),
   ).toBeVisible();
+  await expect(page.getByRole('table')).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve(out, '02-student-overview.png'), fullPage: true });
-  await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
+  await page.keyboard.press('Control+k');
+  const finder = page.getByRole('dialog', { name: 'Find a page' });
+  const search = finder.getByRole('searchbox', { name: 'Search workspace pages' });
+  await expect(search).toBeFocused();
+  await search.fill('Review');
+  await expect(finder.getByRole('status')).toHaveText('No matching pages.');
+  await search.fill('Records');
+  await search.press('Enter');
+  await expect(finder).toBeHidden();
   await expect(page.getByRole('columnheader', { name: 'Recorded at' })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search course code' }).fill('NO_SUCH_COURSE');
   await expect(page.getByText('No course codes match your search.')).toBeVisible();
@@ -82,12 +105,15 @@ test('live student, auditor and independent registrar browser journeys', async (
   await login(
     page,
     accounts.find((a) => a.role === 'auditor')!,
+    'Audit workspace',
   );
   await expect(page.getByRole('navigation').getByRole('button', { name: 'Evidence' })).toHaveCount(
     0,
   );
+  await page.screenshot({ path: resolve(out, '13-auditor-overview.png'), fullPage: true });
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await login(page, staff[0]!);
+  await page.screenshot({ path: resolve(out, '14-registrar-overview.png'), fullPage: true });
   await page.getByRole('navigation').getByRole('button', { name: 'Evidence' }).click();
   await page.getByLabel('Record ID', { exact: true }).fill(fixture.recordId);
   await page
@@ -177,6 +203,14 @@ test('live student, auditor and independent registrar browser journeys', async (
     await expect(page.getByText('Caught up', { exact: true })).toBeVisible();
     const ancestry = page.getByRole('region', { name: 'Version ancestry' });
     await expect(ancestry.getByText(requestId, { exact: true })).toBeVisible();
+    const relationships = page.getByRole('group', { name: 'Inspect approval relationships' });
+    await relationships.getByRole('button', { name: 'Evidence', exact: true }).click();
+    await expect(page.locator('.approval-detail')).toContainText(`Evidence · v${applied}`);
+    const evidenceReuse = page
+      .getByRole('group', { name: 'Choose a review signal' })
+      .getByRole('button', { name: 'Evidence reuse', exact: true });
+    await evidenceReuse.click();
+    await expect(evidenceReuse).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: resolve(out, '12-neo4j-provenance.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     expect(
@@ -184,8 +218,8 @@ test('live student, auditor and independent registrar browser journeys', async (
     ).toBe(true);
     await page.setViewportSize({ width: 1440, height: 1000 });
   }
-  await page.getByLabel('Student', { exact: true }).selectOption(fixture.studentId);
   await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
+  await page.getByLabel('Student', { exact: true }).selectOption(fixture.studentId);
   await page.getByRole('button', { name: 'Current view', exact: true }).click();
   await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: fixture.recordId })).toContainText(
@@ -206,7 +240,7 @@ test('live student, auditor and independent registrar browser journeys', async (
   await page.getByRole('button', { name: 'Current view', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   await page.unroute('**/api/v1/students/*/transcript*');
-  await login(page, student);
+  await login(page, student, 'Your academic record');
   await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
   const showHistory = page.getByRole('button', { name: 'View DEMO_WORKFLOW history' });
   await showHistory.focus();
@@ -218,7 +252,20 @@ test('live student, auditor and independent registrar browser journeys', async (
     });
   await expect(versionRow(Number(applied))).toContainText('8.00');
   await expect(versionRow(Number(applied) - 1)).toBeVisible();
+  const priorVersion = Number(applied) - 1;
+  const inspect = page
+    .getByRole('group', { name: 'Select recorded version' })
+    .getByRole('button', { name: new RegExp(`^v${priorVersion}\\b`) });
+  await inspect.click();
+  await expect(inspect).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.version-detail')).toContainText(`Version ${priorVersion} ·`);
   await page.screenshot({ path: resolve(out, '11-student-recorded-history.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await showHistory.scrollIntoViewIfNeeded();
+  await expect(showHistory).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   expect(consoleErrors).toEqual([]);

@@ -4,6 +4,7 @@ import type { Api } from '../types.js';
 import { message } from '../api.js';
 import { date, human } from '../format.js';
 import { Alert, Panel } from '../ui.js';
+import { VersionInspector } from './VersionInspector.js';
 
 export function RecordHistory({
   api,
@@ -51,6 +52,7 @@ export function RecordHistory({
         subtitle="Revisions by recording order. Effective dates are shown for each version."
       >
         {error && <Alert>{error}</Alert>}
+        {!!page.length && <VersionInspector revisions={page} />}
         {!!page.length && (
           <div className="table-scroll" role="region" aria-label="Recorded revisions" tabIndex={0}>
             <table>

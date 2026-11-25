@@ -2,6 +2,29 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Brand, Icon, Alert, Field } from '../ui.js';
 import { message } from '../api.js';
+const sampleStages = [
+  {
+    label: 'Record',
+    icon: 'Records',
+    figure: 'v01',
+    title: 'Original result',
+    detail: 'A later revision keeps the original version available.',
+  },
+  {
+    label: 'Revision',
+    icon: 'Review',
+    figure: 'v02',
+    title: 'Approved correction',
+    detail: 'A different registrar reviews the proposed change before it takes effect.',
+  },
+  {
+    label: 'Proof',
+    icon: 'Private proofs',
+    figure: '≥ 8.00',
+    title: 'Private eligibility claim',
+    detail: 'A verifier can check a grade threshold while the exact grade stays private.',
+  },
+] as const;
 export function Login({
   login,
   notice,
@@ -10,7 +33,10 @@ export function Login({
   notice: string;
 }) {
   const [error, setError] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false),
+    [stage, setStage] = useState(0);
+  const example = sampleStages[stage]!;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -29,42 +55,48 @@ export function Login({
       <section className="login-story">
         <Brand />
         <div className="story-copy">
-          <span className="eyebrow">A RECORD YOU CAN TRUST</span>
           <h1>
-            Every revision.
-            <br />A clearer history.
+            Academic records
+            <br />
+            <em>through time.</em>
           </h1>
-          <p>
-            A private workspace for academic records, supporting evidence and carefully reviewed
-            corrections.
-          </p>
-          <div className="story-ledger">
-            <div>
-              <span>01</span>
-              <strong>Preserve the original</strong>
-              <p>Keep earlier academic answers available.</p>
+          <p>See how a correction was approved and share what a verifier needs.</p>
+          <div className="record-atlas" aria-label="Interactive example record trail">
+            <div className="atlas-plot" aria-hidden="true">
+              <div className="atlas-sheet atlas-sheet-back" />
+              <div className="atlas-sheet atlas-sheet-middle" />
+              <div className="atlas-sheet atlas-sheet-front">
+                <Icon name={example.icon} />
+                <span className="atlas-figure">{example.figure}</span>
+                <span className="atlas-lines" />
+              </div>
+              <span className="atlas-axis atlas-axis-top">01</span>
+              <span className="atlas-axis atlas-axis-bottom">03</span>
             </div>
-            <div>
-              <span>02</span>
-              <strong>Review every change</strong>
-              <p>Independent approval before a correction is applied.</p>
-            </div>
-            <div>
-              <span>03</span>
-              <strong>Share with care</strong>
-              <p>Access is scoped to your role and institution.</p>
+            <div className="atlas-metadata">
+              <p className="workspace-label">Example record trail</p>
+              <div className="atlas-stages" role="group" aria-label="Example stage">
+                {sampleStages.map((item, index) => (
+                  <button
+                    type="button"
+                    key={item.label}
+                    aria-pressed={stage === index}
+                    onClick={() => setStage(index)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="atlas-detail" aria-live="polite">
+                <strong>{example.title}</strong>
+                <p>{example.detail}</p>
+              </div>
             </div>
           </div>
         </div>
-        <p className="story-footer">
-          Privacy-Preserving Versioning and Verification of Academic Records
-        </p>
       </section>
       <main className="login-main">
         <div className="login-card">
-          <span className="overline">
-            <Icon name="lock" /> SECURE WORKSPACE
-          </span>
           <h2>Welcome back.</h2>
           <p className="muted">Sign in with your assigned academic account.</p>
           {notice && <Alert>{notice}</Alert>}
@@ -86,7 +118,7 @@ export function Login({
             <Field label="Password">
               <input
                 name="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 maxLength={128}
                 autoComplete="current-password"
@@ -94,6 +126,14 @@ export function Login({
                 disabled={busy}
               />
             </Field>
+            <button
+              type="button"
+              className="password-visibility"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((shown) => !shown)}
+            >
+              {showPassword ? 'Hide password' : 'Show password'}
+            </button>
             <button className="primary full" disabled={busy}>
               {busy ? (
                 'Signing in…'
@@ -105,19 +145,17 @@ export function Login({
             </button>
           </form>
           <p className="login-help">Need access? Contact your institution’s administrator.</p>
-          <p className="login-help">
-            <a href="/verify">Verify a shared zero-knowledge proof ↗</a>
-          </p>
-          <div className="login-assurance">
-            <Icon name="lock" />
-            <span>
-              Your session stays in memory on this device.
-              <br />
-              Refresh or sign out to clear it.
+          <a className="verifier-entry" href="/verify">
+            <span className="action-icon">
+              <Icon name="Private proofs" />
             </span>
-          </div>
+            <span>
+              <strong>Verify a shared proof</strong>
+              <small>Open the public verifier</small>
+            </span>
+            <Icon name="arrow" />
+          </a>
         </div>
-        <p className="login-bottom">ACADEMIC INTEGRITY, WITH PRIVACY BUILT IN.</p>
       </main>
     </div>
   );
