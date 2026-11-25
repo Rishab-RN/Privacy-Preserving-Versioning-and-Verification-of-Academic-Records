@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=../../.env --env-file-if-exists=../../.env.api --env-file-if-exists=../../.env.zk src/server.ts",
-    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.api --env-file-if-exists=../../.env.zk dist/server.js",
+    "dev": "tsx watch --env-file-if-exists=../../.env --env-file-if-exists=../../.env.api --env-file-if-exists=../../.env.zk --env-file-if-exists=../../.env.graph src/server.ts",
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.api --env-file-if-exists=../../.env.zk --env-file-if-exists=../../.env.graph dist/server.js",
     "test": "tsx --test test/*.test.ts",
     "check:services": "tsx --env-file-if-exists=../../.env scripts/check-services.ts",
     "db:migrate": "tsx --env-file-if-exists=../../.env scripts/db/migrate.ts up",
@@ -17,18 +17,19 @@
     "access:setup": "tsx --env-file-if-exists=../../.env scripts/access/setup.ts",
     "access:demo": "tsx --env-file-if-exists=../../.env scripts/access/demo.ts",
     "access:smoke": "tsx scripts/access/smoke.ts",
-    "test:integration": "tsx --env-file-if-exists=../../.env scripts/access/test.ts",
+    "test:integration": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.graph scripts/access/test.ts",
     "workflow:demo": "tsx --env-file-if-exists=../../.env scripts/workflow/demo.ts",
     "workflow:smoke": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.worker scripts/workflow/smoke.ts"
   },
   "dependencies": {
+    "@academic-records/verification": "0.1.0",
+    "@academic-records/zk": "0.1.0",
     "@scholarproof/contracts": "0.1.0",
     "express": "5.3.0",
+    "jose": "6.2.18",
     "mongodb": "7.9.1",
+    "neo4j-driver": "6.3.2",
     "pg": "8.23.1",
-    "zod": "4.6.7",
-    "@academic-records/zk": "0.1.0",
-    "@academic-records/verification": "0.1.0",
-    "jose": "6.2.18"
+    "zod": "4.6.7"
   }
 }

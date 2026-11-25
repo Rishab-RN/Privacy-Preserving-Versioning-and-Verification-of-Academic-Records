@@ -56,6 +56,26 @@ export interface EligibleProofRecord {
   versionNo: number;
   courseCode: string;
 }
+export interface ProvenanceReview {
+  status: 'current' | 'lagging';
+  through: number;
+  committed: number;
+  syncedAt: string | null;
+  from: string;
+  to: string;
+  ancestry: {
+    version: number;
+    requestId: string | null;
+    eventId: string | null;
+    occurredAt: string | null;
+    evidenceId: string | null;
+    proposerId: string | null;
+    approverId: string | null;
+  }[];
+  pairings: { proposerId: string; approverId: string; count: number; requestIds: string[] }[];
+  upward: { courseId: string; count: number; deltaHundredths: number; requestIds: string[] }[];
+  evidenceReuse: { digest: string; count: number; requestIds: string[] }[];
+}
 
 export interface TranscriptResponse {
   studentId: string;
