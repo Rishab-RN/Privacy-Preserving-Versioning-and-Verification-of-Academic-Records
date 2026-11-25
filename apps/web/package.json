@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort"
+  },
   "dependencies": {
     "@scholarproof/contracts": "0.1.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "@academic-records/zk": "0.1.0",
+    "jose": "6.2.18"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.5",

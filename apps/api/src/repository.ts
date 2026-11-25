@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import type { PasswordMaterial } from './security.js';
+import type { RecordHistoryResponse } from '@scholarproof/contracts';
 
 export type Sql = Pick<Pool, 'query'>;
 export interface Principal {
@@ -98,6 +99,48 @@ export class Repository {
     return result.rows
       .filter((row) => row.record_id !== null)
       .map(({ student_id: _student, ...row }) => row);
+  }
+  async students(userId: string) {
+    const result = await this.sql.query<{
+      studentId: string;
+      studentCode: string;
+      institutionId: string;
+    }>(
+      `SELECT s.student_id AS "studentId",s.student_code AS "studentCode",s.institution_id AS "institutionId"
+       FROM academic.student s WHERE ${scope('s', true)} ORDER BY s.student_code,s.student_id LIMIT 501`,
+      [userId],
+    );
+    return result.rows;
+  }
+  async recordHistory(
+    userId: string,
+    recordId: string,
+    before?: number,
+  ): Promise<RecordHistoryResponse | null> {
+    const limit = 20;
+    const result = await this.sql.query<
+      RecordHistoryResponse['revisions'][number] | { version_no: null }
+    >(
+      `SELECT v.version_no,v.grade_points,v.outcome,v.valid_during::text,
+              to_char(v.recorded_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS recorded_at
+       FROM academic.grade_record gr JOIN academic.enrolment e USING(enrolment_id)
+       JOIN academic.student s USING(student_id)
+       LEFT JOIN LATERAL (
+         SELECT version_no,grade_points,outcome,valid_during,recorded_at
+         FROM academic.grade_version
+         WHERE record_id=gr.record_id AND ($3::integer IS NULL OR version_no<$3)
+         ORDER BY version_no DESC LIMIT $4
+       ) v ON true
+       WHERE gr.record_id=$2 AND ${scope('s', true)}
+       ORDER BY v.version_no DESC`,
+      [userId, recordId, before ?? null, limit + 1],
+    );
+    if (!result.rowCount) return null;
+    const revisions = result.rows.filter((row) => row.version_no !== null).slice(0, limit);
+    return {
+      revisions,
+      nextBefore: result.rows.length > limit ? revisions.at(-1)!.version_no : null,
+    };
   }
   async record(userId: string, recordId: string, registrarOnly = false) {
     const result = await this.sql.query<{

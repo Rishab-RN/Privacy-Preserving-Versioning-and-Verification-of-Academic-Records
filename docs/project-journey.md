@@ -429,6 +429,219 @@ the agreement at that time and are superseded for future commits. Normal topic
 pushes retain the owner's earlier authorisation; PR review and merging remain
 owner-controlled.
 
+## 2026-11-25 - Scoped frontend directory
+
+The owner prioritised the working UI before advancing to the next week. Added a
+bounded, authenticated student directory containing only student ID/code and
+institution ID. It rechecks live role/account scope: students see their own linked
+subject, institutional registrars/auditors see scoped subjects, and examiners gain
+no directory visibility. No schema or runtime grants changed. Shared frontend
+session/transcript types preserve existing response shapes.
+
+All 47 isolated integration checks passed, including the new directory scope and
+unauthenticated checks. The 89 tooling/unit checks passed. React browser entry and
+screens are being implemented separately on the same active feature branch; this
+directory update does not claim the UI is complete.
+
+## 2026-11-25 - Working academic records frontend
+
+Completed the current HTTP-backed React/Vite/Tailwind workspace before advancing
+the weekly plan. Separate page modules cover sign-in, a scoped overview/student
+selector, course search, known/effective-time transcript filters, supporting-note
+submission/retrieval, registrar proposals and independent decisions. Delivery
+history remains distinct from academic acceptance. No credential, graph or ML
+success is simulated for an unimplemented endpoint.
+
+Tokens and retry state remain in memory. A 401 or expiry clears the workspace;
+refresh requires sign-in. Role-specific controls supplement server enforcement.
+Exact retries retain the original version/body/key even after a committed response
+is lost. Transcript request generations reject stale responses. Explicit control
+labels/descriptions, a skip link, focus indicators, contained keyboard-scrollable
+tables, reduced motion and a mobile layout are included. Pages/controls are
+separate modules, not a single application component.
+
+The production bundle, formatting, lint, all types and 89 tooling/unit checks
+passed. All 47 isolated integration checks passed for the directory/API update.
+One complete live Playwright scenario passed after the final modular split; it
+covers student/auditor/registrar roles, invalid login, historical empty/search
+states, network recovery, a committed-but-lost proposal response with exact retry,
+blocked self-review, approval cancellation/confirmation by another registrar,
+revised-version rendering, 401 cleanup and refresh/memory semantics. Desktop and
+390-pixel mobile screenshots were rendered and inspected locally. Repeated browser
+runs append synthetic evidence/corrections; they do not reset development history.
+CI now builds the frontend and defines the same browser scenario with Chromium.
+
+Saved a PostgreSQL custom-format backup before deploying the already-tested
+`0011` registry migration locally. All nine existing environment/account/fixture/
+key files checked remained byte-for-byte unchanged. Drained eight synthetic
+projection events in two restricted worker batches, with zero failures. The log
+operator preserved the retained prefix and published size 24 (bootstrap 14).
+Final audit checked 24 events and 12 evidence documents: valid integrity,
+complete projection, no issues. The 102 seed/admin uncovered grade versions and
+currentness limits remain explicit. Backups, captures and local material stay ignored.
+
+The frontend for current HTTP workflows is ready for review. Week 6 still needs
+credential storage/authorisation, holder registration, one-use challenges and
+status/revocation services, followed by their live UI. The owner requires frontend
+work as an acceptance gate before advancing to another week. Published CI must
+pass and the owner must review before merging.
+
+## 2026-11-25 - Mandatory ZK proof and approved-version service
+
+The owner made zero-knowledge proofs a major mandatory capability before Week 7.
+Selected a bounded course-grade threshold: knowledge of the hidden approved grade,
+salt and holder secret opening an issuer-signed commitment, with exact integer
+hundredths and circuit-constrained ranges. This is separate from the stateless
+SD-JWT library and does not claim GPA or anonymous credentials. The core circuit,
+proof library and hash-pinned setup tooling were committed as `407075e`.
+
+Added forward migration `0012`, with six immutable BCNF relations for credential,
+issuance/revocation events, revocation, challenge and one-use acceptance. Approved
+decision references reconstruct dependent record/version/tenant/student context.
+Exact concurrent issuance retains the first artifact; issuance cannot silently
+race a newer approved version. The restricted API has seven explicit RPC grants
+and no raw private-proof table access. Worker/signer startup guards also protect
+the new schema. The separate Ed25519 issuer attests the SQL-derived commitment.
+The holder secret remains client-side and is proved by the circuit.
+
+Acceptance independently verifies the actual proof and issuer binding, then locks
+the record head and rechecks database-clock expiry and live revocation/currentness
+while inserting the unique consumed-challenge fact. Concurrent copies have one
+winner. A signed as-of receipt is returned only after consumption commits. A lost
+success response requires a new challenge rather than replay recovery.
+
+Issuance/revocation append to the existing institutional signed-history sequence
+without rewriting earlier commitments/checkpoints. They do not enter Mongo grade
+delivery; the operator reads minimal public event facts, not private witnesses.
+Online ZK acceptance does not itself validate a published inclusion sidecar.
+SD-JWT service deployment, independent verifier trust distribution and wider proof
+packaging remain distinct integration boundaries.
+
+The real circuit suite passed all five reported checks, including raw invalid
+witnesses rather than only host prechecks. All 55 isolated SQL/Mongo integration
+checks passed, including concurrent issuance/acceptance, both expiry clocks,
+revocation, supersession and source-log compatibility. The 45 SQL regression checks
+passed before development rollout. Quality checks passed 91 tooling/unit checks;
+the production build and both live browser journeys passed. Frontend evidence and
+final rollout/CI observations are recorded in the following delivery entry.
+
+Setup preserves a single-operator development ceremony and distinct issuer keys,
+with source/R1CS/WASM/proving-key/verification-key manifest checks. It is not an
+independently contributed production setup or a security audit. Public identifiers
+remain linkable; repeated consented thresholds can narrow a grade. Host side-channel
+resistance is not claimed. Dependency overrides resolve high/moderate findings;
+15 low advisories remain through unused circomlibjs signing dependencies, as
+documented in the dependency guide. No breaking audit-fix downgrade was applied.
+
+## 2026-11-25 - Connected private-proof browser demo
+
+Added student Private proofs, an unauthenticated `/verify` workspace and an
+institutional registrar Credential status screen. A browser-local worker verifies
+proving-artifact hashes, generates the actual Groth16 proof and terminates. Public
+proof downloads omit the exact grade, salt and secret. Private wallet download and
+restore are explicit; navigation/reload clears in-memory wallet material. The UI
+states the development ceremony, linkable metadata and latest-recorded-version
+semantics. It verifies the signed acceptance receipt's challenge, credential,
+version, threshold and nullifier rather than displaying unbound response fields.
+
+Both production-browser scenarios passed, including malformed holder inputs,
+actual local proving, modified proof rejection without consumption, one acceptance,
+replay failure, registrar UI revocation and rejection of a second unconsumed valid
+proof. Desktop and 390-pixel verifier screenshots were rendered and inspected;
+mobile overflow checks passed. The production build splits the proof tools into
+a lazy page/worker instead of importing Node wallet dependencies into the main UI.
+The [demo guide](development/zero-knowledge-demo.md) gives setup, a short explanation,
+positive/negative cases and safe code/table views.
+
+CI now prepares and verifies a fresh development ceremony, runs actual circuit
+tests and exercises both browser journeys against disposable services. Quality
+checks remain Windows/Linux; integration and browser checks run on Linux. Remote
+CI results will be recorded after publication, rather than inferred from local
+success. Week 7 has not started.
+
+Before applying `0012` locally, saved a custom-format PostgreSQL backup under
+ignored runtime storage. All 12 existing environment/account/fixture/log-key/
+issuer-key files checked after implementation remained byte-for-byte unchanged.
+No history reset or silent key rotation was used. The six new relations bring
+the physical model to 31 domain and two metadata tables.
+
+## 2026-11-25 - ZK rollout and acceptance evidence
+
+The service was committed as `035c4aa`, and its connected UI/demo/CI as `f7c7812`.
+[The published CI run for that implementation](https://github.com/Rishab-RN/Privacy-Preserving-Versioning-and-Verification-of-Academic-Records/actions/runs/45559008606)
+passed Windows/Linux quality builds and the Linux PostgreSQL/Mongo integration,
+fresh native-compiler ceremony, real proof tests and both Chromium journeys.
+This includes independent clean setup, not only reuse of the developer's keys.
+
+Strengthened raw range tests to recompute matching commitments for invalid grades:
+they must fail from the below-threshold/above-maximum constraints, rather than
+only from a mismatched opening. Oversized salts/secrets and a maximum above 9999
+likewise use matching hashes and fail inside the circuit. All five reported real
+proof checks passed. The browser also proves a new issuance gets a fresh credential
+after successful issuance, while lost-response retries retain the pending identity.
+Both final browser scenarios passed. Added typechecking for the real-circuit test
+project; lint, formatting, types and diff checks passed.
+
+Docker Desktop stopped during the final local-service check. Restarted the installed
+Desktop and the existing containers without recreating volumes; migrations
+`0001`-`0012` remained applied. Restarted the API with `.env.zk`; the live API's
+public ZK configuration and web page both returned 200. The twelve preserved
+environment/account/fixture/signing-key files still matched their saved hashes.
+
+Delivered eight pending synthetic projection events across bounded worker batches,
+with zero failures. The separate signer preserved the retained prefix and published
+a final size-40 checkpoint (bootstrap 14). Its audit checked 40 events and 16
+evidence documents: valid integrity, complete projection, zero issues, zero
+unanchored events. The 102 seed/admin uncovered versions remain explicitly outside
+workflow-log coverage; historical anchoring does not establish currentness.
+
+The bounded ZK implementation and connected UI meet this prototype's acceptance
+gate. Week 7 has not started. The single-operator development setup, unaudited
+browser helper, linkable identifiers, independent verifier trust distribution,
+Merkle-sidecar packaging and separate SD-JWT service boundaries remain explicit.
+Neo4j/ML remain mandatory later milestones, not work completed by this slice.
+
+## 2026-11-26 — Week 7 student, registrar and verifier flows
+
+Students and scoped staff can inspect recorded revisions without changing the
+effective-time transcript view. Each page contains up to 20 immutable grade
+versions with recording times and effective intervals. The query uses existing
+PostgreSQL access and tenant boundaries. No schema migration was needed.
+
+The student preview shows the minimum grade, credential and record identifiers,
+version and verification data before consent. The operator can export an
+issuance proof by credential ID. The public verifier checks the issuer signature
+and exact artifact binding, then verifies the signed checkpoint and Merkle path
+using the configured log public key. Signed issuance and live status are displayed
+separately. The live result identifies its check time, and proof-only history
+checks leave the challenge unused. A revoked credential can still have signed
+historical issuance. Independent log publication remains an operator action.
+
+Quality checks and the build passed. The 56 isolated integration checks include
+scope denial, cursor behavior, exact artifact binding, wrong signing key and
+invalid inclusion. Both real browser journeys passed, covering independent grade
+correction, keyboard revision navigation, local proof generation and disclosure,
+altered issuance evidence, service unavailability, online acceptance, replay and
+revocation. The verifier was rendered at desktop and 390-pixel widths.
+
+Week 7 was developed on the active credential branch, which already held the
+unmerged Week 6 portal work. Neo4j provenance is the Week 8 milestone.
+
+## 2026-11-26 — Week 7 proof picker follow-up
+
+Private proofs now lists only the signed-in student's latest independently
+approved passed versions. The list contains course code, record ID and version.
+It avoids presenting seed-only or historical transcript results as eligible.
+The form sends the selected version with the issuance request. If a newer
+approval changes the selection, the UI reloads the list and asks the student
+to choose again. Exact retries keep their original credential.
+
+Migration `0013` adds a restricted read function without adding tables. It was
+applied locally after saving and checking a custom-format PostgreSQL backup.
+The quality gate, 45 SQL checks, 57 integration checks and both browser journeys
+passed. Tests cover an empty list before approval, scope denial, stale-version
+conflicts and the selected version in the browser request.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

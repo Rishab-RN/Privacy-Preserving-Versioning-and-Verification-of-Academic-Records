@@ -4,8 +4,9 @@ The owner requires every physical application relation to reach BCNF, and theref
 1NF, 2NF and 3NF. The forward decomposition in migrations `0008`/`0009` replaces the
 earlier tenant/predecessor/protocol copies with normalized facts and computed read
 views. Historical migrations `0001`-`0007` remain unchanged. The schema contains
-**25 domain tables**, including `academic.student_programme`, the three
-transparency relations added by `0010`, and the unary event registry in `0011`.
+**31 domain tables**, including `academic.student_programme`, the three
+transparency relations added by `0010`, the unary event registry in `0011`, and
+the six private-proof relations in `0012`.
 
 This document reviews the normalized target implemented by those forward
 migrations. Migration, upgrade, integrity and runtime validation are acceptance
@@ -69,15 +70,21 @@ Nullable uniqueness and nonminimal tenant superkeys are qualified below.
 | `transparency.event_position`        | `event_id`; `(institution_id,leaf_index)`; each K -> row                                                   | Yes | Yes | Yes | Yes  |
 | `transparency.checkpoint`            | `(institution_id,tree_size) -> root_hash,issued_at,key_id,signature`                                       | Yes | Yes | Yes | Yes  |
 | `transparency.event_source`          | `event_id` is the sole attribute and key; no nontrivial functional dependency                              | Yes | Yes | Yes | Yes  |
+| `privacy.credential`                 | `credential_id -> request_id,holder,salt,artifact,issued_at`; record/version/tenant are derived            | Yes | Yes | Yes | Yes  |
+| `privacy.issuance_event`             | `event_id`; `credential_id`; each K -> row                                                                 | Yes | Yes | Yes | Yes  |
+| `privacy.revocation`                 | `credential_id -> actor_id,reason,revoked_at`                                                              | Yes | Yes | Yes | Yes  |
+| `privacy.revocation_event`           | `event_id`; `credential_id`; each K -> row                                                                 | Yes | Yes | Yes | Yes  |
+| `privacy.challenge`                  | `challenge_id`; `nonce`; each K -> credential_id,threshold,created_at and remaining identity               | Yes | Yes | Yes | Yes  |
+| `privacy.challenge_use`              | `challenge_id -> verified_at`                                                                              | Yes | Yes | Yes | Yes  |
 
-The repository's infrastructure tables are outside the 25-domain-table count but
+The repository's infrastructure tables are outside the 31-domain-table count but
 are also considered. `scholarproof_meta.schema_migrations` has keys `version` and
 `name`, each determining checksum/time. `scholarproof_meta.seed_runs` has key
 `name`, determining checksum/time. Under these FDs both are BCNF and consequently
 satisfy the preceding normal forms. PostgreSQL system catalogues are engine-owned
 relations, not application tables redesigned by this project.
 
-The current migration target therefore has **27 physical relations** including the two
+The current migration target therefore has **33 physical relations** including the two
 metadata tables. Transparency storage has no copied payload, profile/algorithm
 constant, public key or bootstrap boundary in each checkpoint row. The signed
 artifact reconstructs bootstrap metadata from its keyed parent. A signing key may
@@ -88,8 +95,21 @@ The `0011` registry stores only event identity. Source kind and institutional sc
 are computed through `transparency.event_context`; neither becomes a dependent
 copy in the registry. The source-to-registry foreign key and deferred membership
 trigger enforce participation in both directions. Existing event rows, positions,
-salts and checkpoints remain unchanged. Credential subtypes require their own
-forward migration; this registry alone does not implement credential issuance.
+salts and checkpoints remain unchanged. Migration `0012` adds private-proof issuance
+and revocation subtypes without rewriting the workflow prefix.
+
+The six privacy relations store only their keyed facts. A credential references
+the approved decision; it does not copy that decision's record/version, tenant,
+student, grade or scheme maximum into separate physical columns. Its signed JWS is
+an immutable transport artifact, using the same atomic-artifact convention as
+workflow payloads. A holder can have multiple credentials; holder is not a key.
+Issuance/revocation event IDs and their unique credential references are alternate
+keys. Revocation and use are separate immutable facts rather than mutable status
+copies. Challenge nonce is an alternate key. Fixed audience/profile and the
+120-second expiry are computed; storing both `created_at` and its fixed computed
+expiry would introduce a non-key dependency. No uniqueness of salts or hashes is
+assumed. RPCs enforce ownership, approved version, bounds, live institutional role,
+expiry and currentness; the acceptance insert's key enforces single use.
 
 ## Keys and SQL qualifications
 

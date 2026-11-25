@@ -25,14 +25,15 @@ liveness works but `/api/v1` returns 503 rather than using admin credentials.
 
 ## Endpoints
 
-| Method/path                                  | Input                                                           | Result                                               |
-| -------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
-| POST `/api/v1/auth/login`                    | JSON `{subject,password}`                                       | `{token,tokenType:"Bearer",expiresAt}`               |
-| GET `/api/v1/auth/me`                        | Bearer header                                                   | Current user, roles and own linked student IDs       |
-| POST `/api/v1/auth/logout`                   | Bearer header, JSON `{}`                                        | 204; session revoked                                 |
-| GET `/api/v1/students/:studentId/transcript` | Bearer; optional `knownAt`, `effectiveAt` ISO8601 query strings | Scoped historical/current records                    |
-| POST `/api/v1/records/:recordId/evidence`    | Bearer; UUID `Idempotency-Key`; version 1 JSON form             | 201 after SQL/Mongo confirmation; stable evidence ID |
-| GET `/api/v1/evidence/:evidenceId`           | Bearer                                                          | Authorized, integrity-checked form                   |
+| Method/path                                  | Input                                                           | Result                                                                                         |
+| -------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| POST `/api/v1/auth/login`                    | JSON `{subject,password}`                                       | `{token,tokenType:"Bearer",expiresAt}`                                                         |
+| GET `/api/v1/auth/me`                        | Bearer header                                                   | Current user, roles and own linked student IDs                                                 |
+| POST `/api/v1/auth/logout`                   | Bearer header, JSON `{}`                                        | 204; session revoked                                                                           |
+| GET `/api/v1/students`                       | Bearer header                                                   | `{students:[{studentId,studentCode,institutionId}]}` within current live scope; bounded to 500 |
+| GET `/api/v1/students/:studentId/transcript` | Bearer; optional `knownAt`, `effectiveAt` ISO8601 query strings | Scoped historical/current records                                                              |
+| POST `/api/v1/records/:recordId/evidence`    | Bearer; UUID `Idempotency-Key`; version 1 JSON form             | 201 after SQL/Mongo confirmation; stable evidence ID                                           |
+| GET `/api/v1/evidence/:evidenceId`           | Bearer                                                          | Authorized, integrity-checked form                                                             |
 
 Every POST requires `Content-Type: application/json`; compressed bodies are
 unsupported. Unknown request fields and invalid UUID/timestamp inputs return 400;
@@ -157,3 +158,38 @@ registrar and confirms delivery using the restricted worker. Each run appends on
 synthetic version; it does not reset history. Run it without another worker
 processing this local demo queue. Neither command prints credentials or tokens.
 See the [worker guide](../../apps/worker/README.md) for retry and replay limits.
+
+## Private course-grade proofs
+
+Complete `npm run zk:setup`, migrate through `0013` and restart the API to load
+`.env.zk`. This profile issues an Ed25519-attested grade commitment, not an SD-JWT.
+Exact grades use integer hundredths. The holder secret never belongs in an HTTP
+request. See the [ZK profile](../architecture/zero-knowledge-proofs.md) and
+[browser demo](zero-knowledge-demo.md).
+
+| Method and route under `/api/v1`        | Scope and behavior                                                                                                                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /zk/config`                        | Public development profile, issuer public key, verification key and artifact hashes                                                                                                                      |
+| `GET /zk/artifacts/wasm` or `/zkey`     | Public allowlisted proving artifacts; no arbitrary file paths or private keys                                                                                                                            |
+| `GET /zk/students/:id/eligible-records` | Owning student. Returns only course code, record ID and latest independently approved passed version.                                                                                                    |
+| `POST /zk/records/:id/credentials`      | Owning student. Accepts `{credentialId,holder,expectedVersion?}`. With an expected version, a changed or ineligible result returns 409. Exact retry returns the first committed artifact.                |
+| `GET /zk/credentials/:id`               | Owning student only; private grade/salt/issuer artifact, never a public verifier response                                                                                                                |
+| `POST /zk/credentials/:id/challenges`   | Owning student consents to integer `{threshold}`; current version, fresh nonce, 120-second expiry                                                                                                        |
+| `GET /zk/challenges/:id`                | Public minimal challenge and issuer artifact; no exact grade, salt or secret                                                                                                                             |
+| `POST /zk/verify`                       | Public `{challengeId,proof,publicSignals}`; real proof plus live SQL status and atomic one-use gate                                                                                                      |
+| `POST /zk/verify-history`               | Public `{artifact,history}` from the shareable proof and operator export. Validates exact issuance binding, checkpoint signature and Merkle inclusion. Returns the signed checkpoint time and tree size. |
+| `POST /zk/credentials/:id/revoke`       | Institutional registrar; immutable `{reason}`; exact actor/reason retry is idempotent                                                                                                                    |
+
+The challenge UUID is an unguessable bearer reference to linkable public metadata;
+do not publish it before intentional sharing. Invalid proofs do not consume it.
+Replays, expiry, revocation and supersession fail closed. A receipt is signed only
+after the SQL acceptance insert commits; a lost response requires a fresh proof.
+The public verifier is still a local development service with explicit setup trust.
+
+`GET /api/v1/records/:recordId/history` lists up to 20 revisions newest first
+for the owner or an institutional registrar/auditor. Pass the returned
+`nextBefore` as `?before=<version>` to request older revisions. An accessible
+record with no matching revisions returns an empty list. Inaccessible and
+unknown records both return 404. Each result includes the grade and outcome,
+the recording timestamp and effective range. Actor and evidence data stay
+outside the response.

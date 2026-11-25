@@ -150,11 +150,18 @@ Week 3 adds scoped transcript reads and bounded MongoDB evidence. Run
 restricted credentials from ignored `.env.api`; it never falls back to the
 administrative database identity. Follow the [API walkthrough](api.md).
 
-React, React DOM, Vite and Tailwind are installed and the Vite configuration is
-type checked; there is no runnable UI entry yet. Grade issue/correction APIs,
-approval workflows, frontend flows, background jobs and credential verification
-remain later weekly stages.
+The live React/Vite/Tailwind workspace now connects scoped transcripts, evidence,
+independent registrar decisions and the recoverable Mongo worker. Run
+`npm run dev:api` and `npm run dev:web` in separate terminals, then open
+`http://127.0.0.1:5173/`. Use generated local accounts; credentials remain ignored.
+
+For the mandatory private course-grade proof, apply migrations through `0013`,
+run `npm run zk:setup` and restart the API so it loads `.env.zk`. The student page
+generates real proofs locally; `/verify` checks a shareable proof with a one-use
+SQL status gate. Follow the [ZK demo](zero-knowledge-demo.md) for an eligible
+independently approved fixture, private-wallet handling and setup trust limits.
+Neo4j/ML and the separate SD-JWT service remain later work.
 
 For ownership and dependency boundaries, see
-[Repository layout](repository-layout.md). For branches and manual commits, see
+[Repository layout](repository-layout.md). For branches and commit conventions, see
 [Git workflow](git-workflow.md).

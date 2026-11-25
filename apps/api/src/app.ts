@@ -1,11 +1,13 @@
 import express from 'express';
+import { z } from 'zod';
 import type { ErrorRequestHandler } from 'express';
 import type { ApiErrorResponse, LivenessResponse } from '@scholarproof/contracts';
-import { ApiFailure } from './errors.js';
+import { ApiFailure, notFound } from './errors.js';
 import { evidenceInput, loginInput, parse, transcriptInput, uuid } from './inputs.js';
 import type { Platform } from './platform.js';
 import { WindowLimiter } from './security.js';
 import { installWorkflowRoutes } from './workflow.js';
+import { installPrivacyRoutes } from './privacy.js';
 
 export function createApp(platform?: Platform) {
   const app = express();
@@ -71,6 +73,37 @@ export function createApp(platform?: Platform) {
       await platform!.transcript(principal, id, query.knownAt ?? now, query.effectiveAt ?? now),
     );
   });
+  api.get('/students', async (request, response) => {
+    const { principal } = await platform!.authenticate(request.get('authorization'));
+    const students = await platform!.repository.students(principal.userId);
+    if (students.length > 500)
+      throw new ApiFailure(
+        413,
+        'RESULT_TOO_LARGE',
+        'Student directory exceeds prototype result limit',
+      );
+    response.json({ students });
+  });
+  api.get('/records/:recordId/history', async (request, response) => {
+    const { principal } = await platform!.authenticate(request.get('authorization'));
+    const recordId = parse(uuid, request.params.recordId);
+    const { before } = parse(
+      z
+        .object({
+          before: z
+            .string()
+            .regex(/^[1-9]\d{0,9}$/)
+            .transform(Number)
+            .pipe(z.number().int().max(2147483647))
+            .optional(),
+        })
+        .strict(),
+      request.query,
+    );
+    const history = await platform!.repository.recordHistory(principal.userId, recordId, before);
+    if (!history) throw notFound();
+    response.json(history);
+  });
   api.post('/records/:recordId/evidence', async (request, response) => {
     const { principal } = await platform!.authenticate(request.get('authorization'));
     const id = parse(uuid, request.params.recordId);
@@ -83,7 +116,10 @@ export function createApp(platform?: Platform) {
     const { principal } = await platform!.authenticate(request.get('authorization'));
     response.json(await platform!.evidence(principal, parse(uuid, request.params.evidenceId)));
   });
-  if (platform) installWorkflowRoutes(api, platform);
+  if (platform) {
+    installWorkflowRoutes(api, platform);
+    installPrivacyRoutes(api, platform);
+  }
   app.use('/api/v1', api);
 
   app.use((_request, response) => {

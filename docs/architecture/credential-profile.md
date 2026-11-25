@@ -1,9 +1,12 @@
 # Academic credential disclosure profile v1
 
-This Week 6 slice is a reusable cryptographic library. SQL credential persistence,
-authorized issuance/retrieval, holder-key registration proof, durable consent,
-challenge consumption, revocation and signed status remain pending. Existing SQL
-accepts workflow events only; a credential subtype needs a forward migration.
+This Week 6 slice is a reusable, stateless SD-JWT cryptographic library. A deployed
+SD-JWT issuance/status service and Ed25519 holder-key registration remain pending.
+The separate [ZK course-grade profile](zero-knowledge-proofs.md) now implements its
+own issuer artifact, approved-version SQL issuance/retrieval, holder-secret proof,
+consent/challenge consumption, revocation and signed online acceptance. Migration
+`0012` extends the existing log with that profile's credential events. The two
+profiles are distinct: SD-JWT selective disclosure alone is not a ZK predicate.
 
 ## Wire profile
 

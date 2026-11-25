@@ -2,8 +2,10 @@
 
 Owner decision, 23 November 2026: tamper verification, anomaly detection, Neo4j and
 Python ML are mandatory project deliverables. Earlier descriptions of graph/ML as
-optional extensions are superseded. ZK predicates and vector search are assessed
-separately against concrete use cases. This decision defines required behaviour;
+optional extensions are superseded. On 25 November 2026 the owner also made
+zero-knowledge proofs a major mandatory deliverable, to be completed with its
+connected UI before Week 7. Vector search remains assessed against a concrete
+use case. This decision defines required behaviour;
 it does not claim those modules are already installed or implemented.
 
 ## Responsibility and authority
@@ -34,6 +36,23 @@ Completion requires reproducible positive/negative fixtures, independent proof
 verification and an integrated result that preserves separate integrity, status,
 freshness and unavailable outcomes. The existing Week 3 SQL triggers and Mongo
 digest checks are foundations, not completion of this requirement.
+
+## Mandatory zero-knowledge grade predicates
+
+Prove a consented minimum course grade without revealing the exact grade. The
+proof must open an issuer-signed commitment to an independently approved immutable
+record version; a proof about an arbitrary self-selected number is insufficient.
+Use exact fixed-point grades, fully constrained ranges and distinct commitment,
+holder and challenge domains. Bind the proof to the expected audience, nonce,
+credential and threshold. Verify the issuer signature and current SQL status,
+then consume the challenge atomically; concurrent copies have only one success.
+
+Generate proofs on the holder's device. Do not send its private wallet/secret to
+the verifier. Show genuine success/failure, expired/reused challenge, revoked and
+superseded states. Tests must exercise actual circuit constraints and malformed
+or mismatched proofs. Document setup trust, key provenance, visibility/linkability
+and the distinction between an as-of acceptance and future currentness. This
+capability is separate from SD-JWT selective disclosure and is not optional.
 
 ## Mandatory Neo4j provenance
 

@@ -221,6 +221,37 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
   let evidenceId = '';
 
   await context.test(
+    'student directory returns only own or institution-scoped identifiers',
+    async () => {
+      assert.equal((await request('/students')).status, 401);
+      const self = await request('/students', { token: studentToken });
+      assert.deepEqual(self.body.students, [
+        {
+          studentId: f.id('student'),
+          studentCode: 'SYNTHETIC',
+          institutionId: f.id('institution'),
+        },
+      ]);
+      for (const token of [registrarToken, auditorToken]) {
+        const result = await request('/students', { token });
+        const rows = result.body.students as { studentId: string; institutionId: string }[];
+        assert.equal(result.status, 200);
+        assert.equal(rows.length, 2);
+        assert(rows.every((row) => row.institutionId === f.id('institution')));
+        assert(!rows.some((row) => row.studentId === foreign.id('student')));
+      }
+      assert.deepEqual((await request('/students', { token: examinerToken })).body.students, []);
+      assert.deepEqual((await request('/students', { token: peerToken })).body.students, [
+        {
+          studentId: peerStudentId,
+          studentCode: 'PEER_STUDENT',
+          institutionId: f.id('institution'),
+        },
+      ]);
+    },
+  );
+
+  await context.test(
     'real password login returns an opaque token and generic failures',
     async () => {
       const valid = await request('/auth/login', {
@@ -321,6 +352,43 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
       const empty = await request(transcript(peerStudentId), { token: peerToken });
       assert.equal(empty.status, 200);
       assert.deepEqual(empty.body.records, []);
+    },
+  );
+
+  await context.test(
+    'record history returns only scoped revisions and accepts a strict cursor',
+    async () => {
+      const history = `/records/${f.id('record')}/history`;
+      assert.equal((await request(history)).status, 401);
+      for (const token of [studentToken, registrarToken, auditorToken]) {
+        const response = await request(history, { token });
+        assert.equal(response.status, 200);
+        const revisions = response.body.revisions as { version_no: number; grade_points: string }[];
+        assert.deepEqual(
+          revisions.map((v) => [v.version_no, v.grade_points]),
+          [
+            [2, '8.00'],
+            [1, '6.00'],
+          ],
+        );
+        assert.equal(response.body.nextBefore, null);
+        assert.deepEqual(Object.keys(revisions[0]!).sort(), [
+          'grade_points',
+          'outcome',
+          'recorded_at',
+          'valid_during',
+          'version_no',
+        ]);
+      }
+      for (const token of [peerToken, examinerToken, foreignToken])
+        assert.equal((await request(history, { token })).status, 404);
+      const older = await request(history + '?before=2', { token: studentToken });
+      assert.equal(older.status, 200);
+      assert.deepEqual(
+        (older.body.revisions as { version_no: number }[]).map((v) => v.version_no),
+        [1],
+      );
+      assert.equal((await request(history + '?before=0', { token: studentToken })).status, 400);
     },
   );
 
