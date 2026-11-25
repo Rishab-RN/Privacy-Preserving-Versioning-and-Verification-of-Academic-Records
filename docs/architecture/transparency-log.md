@@ -1,7 +1,7 @@
 # Signed academic event transparency
 
 PostgreSQL remains the authority for grades and approval decisions. The
-transparency log commits to retained workflow events; it does not approve a grade
+transparency log commits to retained workflow and credential events; it does not approve a grade
 or establish that an entered grade is factually correct. Its private SQL journal,
 public commitments, signed checkpoints and independently retained observations
 have different responsibilities.
@@ -9,8 +9,8 @@ have different responsibilities.
 ## Event ordering and the bootstrap boundary
 
 Forward migration `0011_event_sources.sql` introduces a unary event-identity
-registry and the invoker-scoped `event_context` view. The log reader uses this
-shared interface while source facts remain authoritative in workflow storage.
+registry and initially an invoker-scoped `event_context` view. The log reader uses
+this shared interface while source facts remain authoritative in their source storage.
 The event-position foreign key now targets the registry. A deferred foreign key
 and source-membership trigger ensure each registered identity has its workflow
 source; immutable guards prohibit registry reassignment or deletion. The append
@@ -18,10 +18,16 @@ function inserts identity and position in the same transaction.
 
 This upgrade preserves all existing payload bytes, indices, salts, heads,
 bootstrap boundaries and signed checkpoints. No old leaf is re-encoded. The
-reader can distinguish source types without treating future credential events
-as Mongo grade-projection work. Only workflow sources are currently accepted by
-SQL; credential issuance, status and presentation endpoints remain subsequent
-Week 6 work and need a forward subtype/permission migration.
+reader distinguishes source types without treating credential events as Mongo
+grade-projection work. Migration `0012` adds the private-grade profile's issuance
+and revocation sources, with exactly one authoritative subtype per event. Their
+event payloads include the exact signed-artifact digest and immutable version
+identity, without the private grade, salt or holder secret. `event_context` becomes
+an explicitly owner-scoped minimal event interface; a narrow security-definer
+reader reconstructs source facts without granting the log login raw privacy-table
+access. Its owner can read the public event view but not issue/revoke credentials.
+The [ZK service](zero-knowledge-proofs.md) separately enforces current SQL status
+and one-use online acceptance; a log checkpoint alone remains historical evidence.
 
 Migration `0010_transparency_log.sql` adds one log per institution. An `AFTER
 INSERT` trigger on `workflow.domain_event` derives the institution from the frozen
@@ -185,12 +191,12 @@ reported publication. An exact stored checkpoint is reused after a process retry
 
 ## Database privileges
 
-| Identity              | Permitted responsibilities                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `academic_log_owner`  | Nonlogin function owner with the scoped reads and head/position/checkpoint writes needed by controlled functions. No application role inherits it.                                |
-| `academic_log_reader` | Read the private transparency journal and necessary workflow, evidence and academic facts; reconstruct expected events. No access-control schema, credentials or write authority. |
-| `academic_log_signer` | Inherits the reader; additionally calls `record_checkpoint`. No direct insert/update/delete on transparency or academic tables.                                                   |
-| API and Mongo worker  | Keep existing workflow/projection authority. No raw transparency tables, salts, checkpoint writes or signing keys.                                                                |
+| Identity              | Permitted responsibilities                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `academic_log_owner`  | Nonlogin function owner with the scoped reads and head/position/checkpoint writes needed by controlled functions. No application role inherits it.                                   |
+| `academic_log_reader` | Read the private transparency journal and necessary workflow, evidence and academic facts; reconstruct expected events. No access-control schema, credentials or write authority.    |
+| `academic_log_signer` | Inherits the reader; additionally calls `record_checkpoint`. No direct insert/update/delete on transparency or academic tables.                                                      |
+| API and Mongo worker  | Keep existing workflow/projection authority. No raw transparency tables, private log salts, checkpoint writes or log signing keys. The ZK issuer uses a separate key and grade salt. |
 
 New functions use fixed search paths and qualified references. The salt helper
 resolves and calls the actual installed `pgcrypto.gen_random_bytes` function in

@@ -565,6 +565,42 @@ issuer-key files checked after implementation remained byte-for-byte unchanged.
 No history reset or silent key rotation was used. The six new relations bring
 the physical model to 31 domain and two metadata tables.
 
+## 2026-11-25 - ZK rollout and acceptance evidence
+
+The service was committed as `035c4aa`, and its connected UI/demo/CI as `f7c7812`.
+[The published CI run for that implementation](https://github.com/Rishab-RN/Privacy-Preserving-Versioning-and-Verification-of-Academic-Records/actions/runs/45559008606)
+passed Windows/Linux quality builds and the Linux PostgreSQL/Mongo integration,
+fresh native-compiler ceremony, real proof tests and both Chromium journeys.
+This includes independent clean setup, not only reuse of the developer's keys.
+
+Strengthened raw range tests to recompute matching commitments for invalid grades:
+they must fail from the below-threshold/above-maximum constraints, rather than
+only from a mismatched opening. Oversized salts/secrets and a maximum above 9999
+likewise use matching hashes and fail inside the circuit. All five reported real
+proof checks passed. The browser also proves a new issuance gets a fresh credential
+after successful issuance, while lost-response retries retain the pending identity.
+Both final browser scenarios passed. Added typechecking for the real-circuit test
+project; lint, formatting, types and diff checks passed.
+
+Docker Desktop stopped during the final local-service check. Restarted the installed
+Desktop and the existing containers without recreating volumes; migrations
+`0001`-`0012` remained applied. Restarted the API with `.env.zk`; the live API's
+public ZK configuration and web page both returned 200. The twelve preserved
+environment/account/fixture/signing-key files still matched their saved hashes.
+
+Delivered eight pending synthetic projection events across bounded worker batches,
+with zero failures. The separate signer preserved the retained prefix and published
+a final size-40 checkpoint (bootstrap 14). Its audit checked 40 events and 16
+evidence documents: valid integrity, complete projection, zero issues, zero
+unanchored events. The 102 seed/admin uncovered versions remain explicitly outside
+workflow-log coverage; historical anchoring does not establish currentness.
+
+The bounded ZK implementation and connected UI meet this prototype's acceptance
+gate. Week 7 has not started. The single-operator development setup, unaudited
+browser helper, linkable identifiers, independent verifier trust distribution,
+Merkle-sidecar packaging and separate SD-JWT service boundaries remain explicit.
+Neo4j/ML remain mandatory later milestones, not work completed by this slice.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

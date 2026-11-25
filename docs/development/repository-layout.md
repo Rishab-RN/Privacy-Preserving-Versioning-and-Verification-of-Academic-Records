@@ -14,6 +14,7 @@ packages/
   contracts/                Shared request/response types and data contracts
   verification/             Independent commitments, signatures, Merkle proofs and CLI
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
+  zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
   seeds/                    Deterministic synthetic development data
@@ -34,12 +35,20 @@ docs/
 The API startup slice and shared contracts package contain implemented source.
 The web workspace has React/React DOM 19.3.1, Vite 8 and Tailwind CSS 4 dependencies
 installed, a runnable entry point, separate page modules and shared accessible
-controls. It connects existing HTTP workflows and has live browser checks; pending
-credential/graph/ML services have no simulated UI successes. The worker contains the implemented MongoDB projection consumer,
+controls. It connects existing HTTP workflows and real browser-local ZK proving,
+with a public verifier and registrar revocation. Graph/ML services have no simulated
+UI successes. The worker contains the implemented MongoDB projection consumer,
 provisioning and journal replay. The verification package implements canonical
 commitments, signed checkpoints, inclusion/consistency proofs and an offline CLI.
 The log workspace owns database observation, publication, private export and
 actual-source auditing separately from HTTP handlers.
+
+`packages/zk` separates browser-safe helpers from Node issuer commitments; it
+does not connect to SQL. The API owns approved-version issuance and atomic online
+acceptance through migration `0012` RPCs. `scripts/zk` owns explicit development
+ceremony/issuer-key preparation. Generated keys and proving artifacts remain
+ignored under `.runtime`, not bundled into Git. Real circuit tests live in
+`tests/zk`, and browser tests exercise the compiled Web Worker and public verifier.
 
 Repository automation lives in `scripts/` and is exposed through root npm
 commands. `setup` creates missing local configuration without replacing an

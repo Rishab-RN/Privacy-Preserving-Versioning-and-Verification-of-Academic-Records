@@ -1,8 +1,9 @@
 # Signed workflow history operator
 
 This separate operator publishes signed checkpoints, exports private event proofs
-and audits workflow history through restricted SQL/Mongo identities. The API and
-worker never receive signing keys or salts. API `202` still means SQL acceptance,
+and audits workflow/credential history through restricted SQL/Mongo identities.
+The API and worker never receive the log signing key or private log salts. The
+ZK issuer uses a different key and separate grade-commitment salt. API `202` still means SQL acceptance,
 not signed publication or completed MongoDB delivery.
 
 ## Run
@@ -72,8 +73,12 @@ another observation instead of a corruption verdict.
 Coverage reports identify seed/admin grade versions without workflow events.
 Academic catalogue metadata and the SQL temporal cache are outside cryptographic
 coverage. Signatures do not establish factual grade correctness; historical
-validity does not prove currentness. Credential status/freshness/challenge binding
-belong to Week 6.
+validity does not prove currentness. The [ZK service](../../docs/architecture/zero-knowledge-proofs.md)
+separately enforces live status/expiry and one-use challenges. Issuance/revocation
+events extend the log through migration `0012`; they have no Mongo grade delivery.
+The narrow reader exposes artifact digests and event facts, not the holder's grade
+or private proof witness. ZK online acceptance does not itself verify a published
+inclusion sidecar.
 
 The first `bootstrapSize` leaves import existing events by `(occurred_at,event_id)`;
 their original commit order is unknown. Later appends are transactionally ordered
