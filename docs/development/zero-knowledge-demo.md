@@ -47,7 +47,7 @@ existing generated password; this command copies it without printing it:
 
 ## Show the working proof
 
-1. Open **Private proofs**. Choose the `DEMO_WORKFLOW` approved record and select
+1. Open **Private proofs**. Choose the `DEMO_WORKFLOW` approved version and select
    **Issue private proof credential**. Explain that the issuer reads an immutable
    independently approved SQL version, rather than accepting a student-entered grade.
 2. Download the **private wallet** if restoration is needed. Keep it private: it

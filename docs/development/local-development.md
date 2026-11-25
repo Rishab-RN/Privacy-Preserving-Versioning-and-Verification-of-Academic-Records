@@ -155,7 +155,7 @@ independent registrar decisions and the recoverable Mongo worker. Run
 `npm run dev:api` and `npm run dev:web` in separate terminals, then open
 `http://127.0.0.1:5173/`. Use generated local accounts; credentials remain ignored.
 
-For the mandatory private course-grade proof, apply migrations through `0012`,
+For the mandatory private course-grade proof, apply migrations through `0013`,
 run `npm run zk:setup` and restart the API so it loads `.env.zk`. The student page
 generates real proofs locally; `/verify` checks a shareable proof with a one-use
 SQL status gate. Follow the [ZK demo](zero-knowledge-demo.md) for an eligible

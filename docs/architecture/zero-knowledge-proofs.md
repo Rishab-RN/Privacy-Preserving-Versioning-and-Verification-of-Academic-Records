@@ -84,7 +84,11 @@ Migration `0012` adds six immutable physical relations: credential, issuance eve
 revocation, revocation event, challenge and challenge use. Record, tenant, student,
 status, protocol constants and fixed expiry are reconstructed rather than copied
 into dependent columns. See the complete [normal-form matrix](normalization.md).
-API access is limited to seven security-definer RPC signatures; API, worker and
+Migration `0013` adds read-only discovery for the student's own latest
+independently approved passed versions. The picker submits the displayed
+version with its issuance request. The service rejects a changed selection
+and the SQL record lock still guards any concurrent change during issuance.
+API access is limited to eight security-definer RPC signatures. API, worker and
 signer identities cannot read/write private base tables directly. Issuer API
 compromise remains a trust boundary: SQL does not implement JWT/Poseidon verification.
 

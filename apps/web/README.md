@@ -64,7 +64,7 @@ rendering, 401 expiry and memory-only sessions. Screenshots are ignored under
 
 Private proofs now connects approved-version issuance, browser-local Groth16
 proving, a public verifier with one-use online status checking and registrar
-revocation. Complete `npm run zk:setup` and migrate through `0012` before testing
+revocation. Complete `npm run zk:setup` and migrate through `0013` before testing
 these pages; restart the API to load `.env.zk`. The expanded browser suite checks
 real proving, public payloads, tampering/replay/revocation and mobile overflow.
 See the [ZK demo](../../docs/development/zero-knowledge-demo.md).

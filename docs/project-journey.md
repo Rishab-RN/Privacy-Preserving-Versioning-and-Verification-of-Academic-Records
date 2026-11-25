@@ -627,6 +627,21 @@ revocation. The verifier was rendered at desktop and 390-pixel widths.
 Week 7 was developed on the active credential branch, which already held the
 unmerged Week 6 portal work. Neo4j provenance is the Week 8 milestone.
 
+## 2026-11-26 — Week 7 proof picker follow-up
+
+Private proofs now lists only the signed-in student's latest independently
+approved passed versions. The list contains course code, record ID and version.
+It avoids presenting seed-only or historical transcript results as eligible.
+The form sends the selected version with the issuance request. If a newer
+approval changes the selection, the UI reloads the list and asks the student
+to choose again. Exact retries keep their original credential.
+
+Migration `0013` adds a restricted read function without adding tables. It was
+applied locally after saving and checking a custom-format PostgreSQL backup.
+The quality gate, 45 SQL checks, 57 integration checks and both browser journeys
+passed. Tests cover an empty list before approval, scope denial, stale-version
+conflicts and the selected version in the browser request.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
