@@ -70,6 +70,13 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   });
   await page.getByText('Inspect public proof JSON', { exact: true }).click();
   const second = await page.locator('.proof-json').innerText();
+  const currentWallet = page
+    .getByRole('status')
+    .filter({ hasText: 'Proof credential issued' })
+    .locator('code');
+  const previousId = await currentWallet.innerText();
+  await page.getByRole('button', { name: 'Issue private proof credential', exact: true }).click();
+  await expect(currentWallet).not.toHaveText(previousId);
   await page.goto('/verify');
   const wrong = structuredClone(firstBundle);
   wrong.proof.pi_a[0] = '1';

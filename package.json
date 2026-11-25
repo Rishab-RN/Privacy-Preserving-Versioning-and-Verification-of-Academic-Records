@@ -27,7 +27,7 @@
     "build:verification": "tsc --build packages/verification",
     "build:credentials": "tsc --build packages/credentials",
     "build": "tsc --build tsconfig.build.json && npm run build:web",
-    "typecheck": "npm run build:zk && npm run build:contracts && npm run build:credentials && tsc --project packages/verification/tsconfig.check.json && tsc --project packages/credentials/tsconfig.check.json && tsc --project apps/api/tsconfig.check.json && tsc --project apps/worker/tsconfig.check.json && tsc --project apps/log/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json && tsc --project tests/integration/tsconfig.json && tsc --project tests/browser/tsconfig.json && tsc --project packages/zk/tsconfig.check.json",
+    "typecheck": "npm run build:zk && npm run build:contracts && npm run build:credentials && tsc --project packages/verification/tsconfig.check.json && tsc --project packages/credentials/tsconfig.check.json && tsc --project apps/api/tsconfig.check.json && tsc --project apps/worker/tsconfig.check.json && tsc --project apps/log/tsconfig.check.json && tsc --noEmit --project apps/web/tsconfig.json && tsc --project tests/database/tsconfig.json && tsc --project tests/integration/tsconfig.json && tsc --project tests/browser/tsconfig.json && tsc --project packages/zk/tsconfig.check.json && tsc --project tests/zk/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

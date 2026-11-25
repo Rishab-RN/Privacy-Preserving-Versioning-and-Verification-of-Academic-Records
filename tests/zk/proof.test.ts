@@ -95,9 +95,51 @@ test('real Groth16 threshold proof binds hidden grade, holder, context and verif
         { salt: '123' },
         { secret: '123' },
       ]) {
+        const candidate = { ...witness, ...invalid };
+        // Isolate range enforcement: a below/above-bound grade must fail even
+        // when its commitment is recomputed to match that invalid witness.
+        const candidateStatement =
+          'grade' in invalid
+            ? {
+                ...statement,
+                commitment: await gradeCommitment(
+                  candidate.grade,
+                  candidate.salt,
+                  statement.context,
+                  statement.holder,
+                  statement.maximum,
+                ),
+              }
+            : statement;
         await assert.rejects(
           groth16.fullProve(
-            { ...statement, ...witness, ...invalid },
+            { ...candidateStatement, ...candidate },
+            artifacts.wasm,
+            artifacts.zkey,
+            undefined,
+            undefined,
+            { singleThread: true },
+          ),
+        );
+      }
+      for (const invalid of [
+        { salt: (1n << 248n).toString() },
+        { secret: (1n << 248n).toString() },
+        { maximum: '10000' },
+      ]) {
+        const candidate = { ...witness, ...invalid };
+        const maximum = 'maximum' in invalid ? invalid.maximum : statement.maximum;
+        const holder = await holderCommitment(candidate.secret);
+        const commitment = await gradeCommitment(
+          candidate.grade,
+          candidate.salt,
+          statement.context,
+          holder,
+          maximum,
+        );
+        await assert.rejects(
+          groth16.fullProve(
+            { ...statement, ...candidate, maximum, holder, commitment },
             artifacts.wasm,
             artifacts.zkey,
             undefined,
