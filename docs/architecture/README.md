@@ -44,5 +44,6 @@ The owner confirmed [mandatory capabilities](required-capabilities.md) on
 23 November 2026: cryptographic tamper verification, Neo4j provenance and Python
 ML anomaly detection. On 25 November the owner also made ZK mandatory before
 Week 7. Its implemented predicate is the approved course-grade threshold. Vector
-search remains use-case based. Earlier optional graph/ML language is superseded;
-graph/ML implementation remains scheduled later.
+search remains use-case based. The [Week 8 Neo4j projection](provenance.md)
+provides scoped provenance, repeatable queries and recovery. ML implementation
+is scheduled for Week 9.
