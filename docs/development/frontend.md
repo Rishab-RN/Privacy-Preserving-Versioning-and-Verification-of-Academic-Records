@@ -4,15 +4,18 @@ Run the [web application](../../apps/web/README.md) after API setup. This UI use
 live SQL/Mongo-backed endpoints. It has no sample-data fallback when a service or
 permission check fails.
 
-| Screen               | Show in the demo                                                                                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sign-in              | Use the assigned subject/password; show a generic invalid-login response without exposing credentials                                                        |
-| Overview             | Select an accessible student; metrics reflect that student's visible transcript query, with no invented activity/chart data                                  |
-| Records              | Search a course code, inspect recorded versions, apply known/effective time filters, then return to the current view                                         |
-| Evidence             | Submit a supporting note for a record; show its available reference/digest and retrieve the integrity-checked content                                        |
-| Proposal (registrar) | Use that evidence reference, outcome, effective interval and reason; submit for independent review and retain the request ID                                 |
-| Review               | Proposer can inspect but cannot approve their own request; sign in as a second registrar, enter the request ID, inspect facts and confirm approval/rejection |
-| Delivery/history     | Show the immutable decision separately from pending/delivered Mongo projections; refresh status after the worker runs                                        |
+| Screen                        | Show in the demo                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sign-in                       | Use the assigned subject/password; show a generic invalid-login response without exposing credentials                                                        |
+| Overview                      | Select an accessible student; metrics reflect that student's visible transcript query, with no invented activity/chart data                                  |
+| Records                       | Search a course code, inspect recorded versions, apply known/effective time filters, then return to the current view                                         |
+| Evidence                      | Submit a supporting note for a record; show its available reference/digest and retrieve the integrity-checked content                                        |
+| Proposal (registrar)          | Use that evidence reference, outcome, effective interval and reason; submit for independent review and retain the request ID                                 |
+| Review                        | Proposer can inspect but cannot approve their own request; sign in as a second registrar, enter the request ID, inspect facts and confirm approval/rejection |
+| Delivery/history              | Show the immutable decision separately from pending/delivered Mongo projections; refresh status after the worker runs                                        |
+| Private proofs (student)      | Issue against the latest independently approved course result, consent to a threshold and generate a real ZK proof in a browser worker                       |
+| Public verifier               | Upload the shareable proof, check issuer/proof/live SQL status and consume its one-use challenge; inspect the signed acceptance receipt                      |
+| Credential status (registrar) | Revoke an institutional proof credential with an immutable reason; subsequent online acceptance fails                                                        |
 
 Use the workflow fixture's record ID from ignored
 `.runtime/workflow-fixture.json` when demonstrating a registrar correction. Share
@@ -50,8 +53,9 @@ labels/descriptions, error/status messages use live semantics, keyboard focus is
 visible, and a skip link and reduced-motion rules are included. This is not a claim
 of a full accessibility audit or all-browser certification.
 
-Current HTTP-backed frontend work is complete at this acceptance point. The owner
-requires UI work before moving to the next week. Week 6 itself is still incomplete:
-credential persistence, holder registration, nonce consumption and current status
-remain backend work, and their UI must be implemented and tested when connected.
-Graph/ML and their reviewer screens remain mandatory later milestones.
+The owner requires UI work before moving to the next week. The connected ZK flow
+now includes approved-version persistence, local holder secrets, nonce consumption,
+live currentness and registrar revocation, with real browser tests. See the
+[ZK demo](zero-knowledge-demo.md) for exact steps and trust limits. SD-JWT remains
+a separate library; graph/ML and their reviewer screens remain mandatory later
+milestones. Passing the ZK gate does not claim those modules are implemented.

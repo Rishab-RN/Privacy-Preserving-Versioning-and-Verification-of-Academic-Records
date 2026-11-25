@@ -10,7 +10,7 @@ identities, temporal semantics, selected grading assumptions and access limits.
 Implemented behavior is not institutional-policy approval.
 
 The [normalization review](normalization.md) covers the forward BCNF decomposition
-in migrations `0008`/`0009` and the `0010`/`0011` transparency extensions: 25 domain tables, candidate keys, identified
+in migrations `0008`/`0009` and the `0010`-`0012` transparency/private-proof extensions: 31 domain tables, candidate keys, identified
 functional dependencies, explicit 1NF/2NF/3NF/BCNF results and lossless reconstruction
 through read views. It supersedes the earlier twenty-table physical-exception
 analysis. Migration/upgrade/runtime acceptance and rollout are tracked separately
@@ -25,7 +25,11 @@ establish current credential status.
 
 The [Week 6 credential profile](credential-profile.md) defines the implemented
 flat-claim SD-JWT library, pinned trust, exact consent and holder/Merkle binding.
-Its database persistence, status and single-use challenge gate remain pending.
+That SD-JWT library remains stateless. The separate
+[zero-knowledge grade profile](zero-knowledge-proofs.md) now has approved-version
+issuance, private holder witnesses, SQL persistence, revocation/supersession,
+single-use online acceptance and a connected browser prover/verifier. It does not
+silently turn the SD-JWT library into a deployed issuance service.
 
 The [Week 4 record workflow](record-workflow.md) defines distinct-registrar
 approval, the atomic SQL change/audit/outbox boundary and recoverable derived
@@ -38,5 +42,7 @@ academic-policy review and does not introduce grade-write APIs.
 
 The owner confirmed [mandatory capabilities](required-capabilities.md) on
 23 November 2026: cryptographic tamper verification, Neo4j provenance and Python
-ML anomaly detection. ZK/vector decisions remain use-case based. Earlier optional
-graph/ML language is superseded; the capabilities are not yet implemented.
+ML anomaly detection. On 25 November the owner also made ZK mandatory before
+Week 7. Its implemented predicate is the approved course-grade threshold. Vector
+search remains use-case based. Earlier optional graph/ML language is superseded;
+graph/ML implementation remains scheduled later.

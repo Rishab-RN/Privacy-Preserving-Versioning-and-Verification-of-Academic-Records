@@ -68,26 +68,44 @@ See the [operator guide](../../apps/log/README.md) for setup and trust boundarie
 Week 6 adds `packages/credentials` and pins `jose@6.2.18` for JOSE signing and
 verification. Flat RFC 9901 disclosure/consent semantics live in the application
 profile, with a published hash fixture and independent Node Ed25519 JWT fixtures.
-The root build, types and tests include this package. No credential database or
-HTTP service is installed by this library slice; see the
+The root build, types and tests include this package. This SD-JWT library remains
+stateless; see the
 [profile](../architecture/credential-profile.md) for its explicit limits.
 
-| Stage                         | Add when needed                                   | Decision gate                                                                                         |
-| ----------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Schema and API                | Migration/auth/session tooling                    | Reviewed model and authentication design                                                              |
-| Credential issuance           | Maintained SD-JWT implementation                  | Pin exact profile and test interoperability                                                           |
-| Required graph provenance     | Neo4j driver/server                               | Week 8: scoped provenance schema, mandatory Cypher queries, SQL comparison and recoverable projection |
-| Required ML anomaly detection | Python environment, scikit-learn and data tooling | Week 9: reproducible generator, rules/model baselines, graph features and leakage-safe evaluation     |
-| Use-case ZK decision          | Circom/snarkjs and circuit dependencies           | Reviewed bounded statement, manifest completeness and setup assumptions                               |
-| Use-case vector decision      | pgvector or a dedicated engine                    | A defined use case that justifies the extra infrastructure                                            |
+The mandatory ZK slice adds `packages/zk`: pinned `snarkjs@0.7.6`,
+`circomlibjs@0.1.7`, `circomlib@2.0.5`, official hash-pinned native Circom 2.2.3 and
+`poseidon-lite@0.3.0` for the browser's holder commitment. Node uses circomlibjs;
+the browser's small helper matches the real circuit but is unaudited and uses
+non-constant-time BigInt. Browser-local proving runs in a worker with artifact
+hash checks. `npm run zk:setup` generates and preserves ignored development
+ceremony artifacts and a separate issuer key pair; `test:zk` requires that setup.
+SQL migration `0012` and the connected HTTP/UI flow implement the separate ZK
+profile's persistence, status and one-use challenge gate. See the
+[setup/demo guide](zero-knowledge-demo.md) and [trust limits](../architecture/zero-knowledge-proofs.md).
 
-These later tools are not required to run Week 1 and are not yet installed by this
-repository. Neo4j and Python ML are mandatory in their scheduled stages; installation
+Overrides pin `underscore@1.13.8` and `ws@8.21.0` to resolve the affected transitive
+versions. The installation audit at this milestone has no high/moderate advisories;
+15 low advisories remain through circomlibjs's unused ethers/elliptic signing
+dependency chain. The project uses neither those wallet signing helpers nor their
+private-key generation. This is a residual dependency risk, not a zero-vulnerability
+claim; do not apply a breaking `npm audit fix --force` downgrade as a remedy.
+
+| Stage                         | Add when needed                                    | Decision gate                                                                                         |
+| ----------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Schema and API                | Migration/auth/session tooling                     | Reviewed model and authentication design                                                              |
+| Credential issuance           | Maintained SD-JWT implementation                   | Pin exact profile and test interoperability                                                           |
+| Required graph provenance     | Neo4j driver/server                                | Week 8: scoped provenance schema, mandatory Cypher queries, SQL comparison and recoverable projection |
+| Required ML anomaly detection | Python environment, scikit-learn and data tooling  | Week 9: reproducible generator, rules/model baselines, graph features and leakage-safe evaluation     |
+| Mandatory ZK predicate        | Circom/snarkjs and circuit dependencies, installed | Exact approved-grade statement, complete artifact manifest and explicit development setup trust       |
+| Use-case vector decision      | pgvector or a dedicated engine                     | A defined use case that justifies the extra infrastructure                                            |
+
+Neo4j and Python ML are not required to run Week 1 and are not yet installed by this
+repository. They are mandatory in their scheduled stages; installation
 timing does not make them optional. Pin supported versions and verify real
 connectivity/imports when those stages begin. Use an isolated, ignored Python
 environment and a locked requirement set rather than a global ML installation.
-Python 3.12 is available on the current developer machine. ZK/vector dependencies
-remain separate use-case decisions and cannot displace the mandatory components.
+Python 3.12 is available on the current developer machine. ZK is now mandatory;
+vector search remains a separate use-case decision. Neither displaces graph/ML.
 
 The [required capability contract](../architecture/required-capabilities.md)
 defines meaningful Neo4j and ML use cases and the evidence required for completion.

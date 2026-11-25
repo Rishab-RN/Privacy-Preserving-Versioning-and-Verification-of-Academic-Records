@@ -533,6 +533,38 @@ resistance is not claimed. Dependency overrides resolve high/moderate findings;
 15 low advisories remain through unused circomlibjs signing dependencies, as
 documented in the dependency guide. No breaking audit-fix downgrade was applied.
 
+## 2026-11-25 - Connected private-proof browser demo
+
+Added student Private proofs, an unauthenticated `/verify` workspace and an
+institutional registrar Credential status screen. A browser-local worker verifies
+proving-artifact hashes, generates the actual Groth16 proof and terminates. Public
+proof downloads omit the exact grade, salt and secret. Private wallet download and
+restore are explicit; navigation/reload clears in-memory wallet material. The UI
+states the development ceremony, linkable metadata and latest-recorded-version
+semantics. It verifies the signed acceptance receipt's challenge, credential,
+version, threshold and nullifier rather than displaying unbound response fields.
+
+Both production-browser scenarios passed, including malformed holder inputs,
+actual local proving, modified proof rejection without consumption, one acceptance,
+replay failure, registrar UI revocation and rejection of a second unconsumed valid
+proof. Desktop and 390-pixel verifier screenshots were rendered and inspected;
+mobile overflow checks passed. The production build splits the proof tools into
+a lazy page/worker instead of importing Node wallet dependencies into the main UI.
+The [demo guide](development/zero-knowledge-demo.md) gives setup, a short explanation,
+positive/negative cases and safe code/table views.
+
+CI now prepares and verifies a fresh development ceremony, runs actual circuit
+tests and exercises both browser journeys against disposable services. Quality
+checks remain Windows/Linux; integration and browser checks run on Linux. Remote
+CI results will be recorded after publication, rather than inferred from local
+success. Week 7 has not started.
+
+Before applying `0012` locally, saved a custom-format PostgreSQL backup under
+ignored runtime storage. All 12 existing environment/account/fixture/log-key/
+issuer-key files checked after implementation remained byte-for-byte unchanged.
+No history reset or silent key rotation was used. The six new relations bring
+the physical model to 31 domain and two metadata tables.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

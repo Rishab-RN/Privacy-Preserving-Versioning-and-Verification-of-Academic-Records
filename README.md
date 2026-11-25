@@ -3,15 +3,20 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 6 - credential profile implementation in progress.**
+**Current phase: Week 6 - working zero-knowledge grade proofs and connected UI.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
-audits actual workflow facts and evidence. The credential library now supports
-selective disclosure with holder-bound proofs; SQL credential persistence,
-revocation/status and one-use challenges remain pending. The responsive React
-workspace now connects sign-in, scoped transcripts, evidence and registrar reviews
-to the live API. Frontend completion is a gate before the next week.
+audits actual workflow facts and evidence. Students can now prove an approved
+course grade meets a consented threshold without disclosing the exact grade.
+Browser-local Groth16 proving, issuer-bound commitments, SQL persistence,
+revocation/supersession, one-use online acceptance and the public verifier are
+connected. Setup uses a single-operator **local development ceremony**, requiring
+independent review before adversarial deployment. The responsive React workspace
+also connects sign-in, scoped transcripts, evidence and registrar reviews to the
+live API. The separate selective-disclosure library remains stateless; graph/ML
+and wider verifier integration are later work. Frontend completion is a gate
+before the next week.
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -28,6 +33,7 @@ verification request without routinely exposing an entire transcript.
 - Enforce role-scoped access and approval workflows.
 - Detect changes to committed records using hashes, signatures and Merkle proofs.
 - Share selected claims with consent and holder-bound presentations.
+- Prove an approved course-grade threshold without sharing the exact grade.
 - Report authenticity, supersession, revocation and evidence freshness separately.
 - Recover asynchronous document and provenance updates without changing the
   authoritative academic state.
@@ -35,25 +41,26 @@ verification request without routinely exposing an entire transcript.
 - Detect unusual correction behaviour using transparent rules, Python ML and
   graph-derived features, with reviewable risk explanations.
 
-Tamper verification, Neo4j provenance and ML anomaly detection are **mandatory
-project deliverables**. They are scheduled later than the current API foundation;
-they are not optional extensions or completed features. ZK predicates and vector
-search will be assessed separately by use case. Publication and novelty claims
-will depend on measured evidence.
+Tamper verification, zero-knowledge proofs, Neo4j provenance and ML anomaly
+detection are **mandatory project deliverables**. Tamper verification and the
+bounded ZK grade predicate are implemented; graph/ML remain scheduled later and
+are not optional extensions. Vector search is assessed separately by use case.
+Publication and novelty claims depend on measured evidence.
 
 ## Technology and implementation status
 
-| Area                       | Direction                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------- |
-| Frontend                   | React/Vite/Tailwind; live scoped records, evidence and independent review     |
-| API                        | Node.js/Express/TypeScript; scoped access and registrar approval              |
-| Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox               |
-| Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies              |
-| Background delivery        | Restricted Node worker; leased retries and bounded journal replay             |
-| Verification               | Canonical commitments, signed checkpoints, Merkle proofs and offline verifier |
-| Required graph provenance  | Neo4j and Cypher queries; implementation pending                              |
-| Required anomaly detection | Python ML, rules and graph-derived features; implementation pending           |
-| Use-case decisions         | Bounded ZK predicates and vector search assessed separately                   |
+| Area                       | Direction                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| Frontend                   | React/Vite/Tailwind; live scoped records, evidence and independent review                      |
+| API                        | Node.js/Express/TypeScript; scoped access and registrar approval                               |
+| Academic authority         | PostgreSQL 18; immutable revisions, temporal queries and outbox                                |
+| Flexible evidence/packages | MongoDB; validated evidence, immutable receipts and grade copies                               |
+| Background delivery        | Restricted Node worker; leased retries and bounded journal replay                              |
+| Verification               | Canonical commitments, signed checkpoints, Merkle proofs and offline verifier                  |
+| Zero-knowledge predicate   | Circom/Groth16; approved course-grade threshold, local browser proving and live SQL acceptance |
+| Required graph provenance  | Neo4j and Cypher queries; implementation pending                                               |
+| Required anomaly detection | Python ML, rules and graph-derived features; implementation pending                            |
+| Use-case decision          | Vector search; no engine added without a justified workload                                    |
 
 See the [academic model](docs/architecture/academic-model.md) for assumptions and
 limits. Final policy choices will follow owner review. A valid signature
@@ -61,8 +68,8 @@ does not prove that an entered grade is factually correct; historical inclusion 
 does not establish currentness.
 
 The owner's physical BCNF requirement is addressed through forward migrations
-`0008`/`0009`, with normalized transparency relations in `0010`/`0011`.
-The [normalization analysis](docs/architecture/normalization.md) covers 25 domain
+`0008`/`0009`, with normalized transparency/private-proof relations in `0010`-`0012`.
+The [normalization analysis](docs/architecture/normalization.md) covers 31 domain
 tables and two metadata tables. Existing migrations, credential files and academic
 history are preserved; actual validation/rollout evidence is in the journey.
 
@@ -83,6 +90,8 @@ apps/
 packages/
   contracts/                Shared transport types
   verification/             Canonicalization, signatures and Merkle verification
+  credentials/              Stateless selective-disclosure/holder-binding library
+  zk/                       Course-grade predicate, commitments and real proofs
 db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
 scripts/                    Repository maintenance utilities
@@ -118,7 +127,7 @@ npm run dev:api
 
 `GET http://127.0.0.1:4000/health/live` checks API process liveness. It does not
 claim database readiness or a working academic-record workflow. Stop the development
-server with `Ctrl+C`. The web toolchain has no product entry page yet.
+server with `Ctrl+C`. Run `npm run dev:web` separately for the live React workspace.
 
 `npm run setup` creates a Git-ignored `.env` with generated local database passwords
 only when the file is missing. Existing configuration is preserved. Keep its
@@ -218,6 +227,12 @@ For the UI, run `npm run dev:api` and `npm run dev:web` in separate terminals, t
 open `http://127.0.0.1:5173`. Use locally provisioned accounts; no demo passwords are
 embedded in the application. See the [frontend walkthrough](docs/development/frontend.md)
 for screenshots, role-specific steps, browser testing and remaining backend gates.
+
+For zero-knowledge proofs, run `npm run db:migrate` and `npm run zk:setup`, then
+restart the API. The [ZK demo](docs/development/zero-knowledge-demo.md) walks through
+student issuance/local proving, the public `/verify` page, replay and revocation.
+The [proof profile](docs/architecture/zero-knowledge-proofs.md) states the exact
+predicate, public metadata, setup trust and online acceptance boundaries.
 
 Use short-lived `feat/`, `fix/`, `docs/`, `test/` or `chore/` branches and pull
 requests into `main`. Keep commits focused, with short Conventional Commit messages.

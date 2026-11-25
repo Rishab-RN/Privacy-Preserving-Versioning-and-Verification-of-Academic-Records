@@ -105,6 +105,9 @@ export function Login({
             </button>
           </form>
           <p className="login-help">Need access? Contact your institution’s administrator.</p>
+          <p className="login-help">
+            <a href="/verify">Verify a shared zero-knowledge proof ↗</a>
+          </p>
           <div className="login-assurance">
             <Icon name="lock" />
             <span>

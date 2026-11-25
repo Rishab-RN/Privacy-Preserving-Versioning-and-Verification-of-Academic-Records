@@ -85,6 +85,8 @@ jobs:
       - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run test:db
+      - run: npm run zk:setup
+      - run: npm run test:zk
       - run: npm run test:integration
       - run: npm run db:migrate
       - run: npm run db:status

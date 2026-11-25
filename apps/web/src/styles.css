@@ -1334,3 +1334,38 @@ td {
 .inset {
   color: #6d7c63;
 }
+.public-verifier {
+  max-width: 900px;
+  margin: 45px auto;
+  padding: 0 22px;
+}
+.public-verifier > a {
+  display: inline-block;
+  margin-bottom: 35px;
+  color: #476744;
+  font-size: 12px;
+}
+.proof-json {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  max-height: 320px;
+  overflow: auto;
+  background: #f6f8f1;
+  padding: 12px;
+}
+.success details {
+  margin-top: 16px;
+}
+.success a {
+  text-decoration: underline;
+}
+@media (max-width: 760px) {
+  .sidebar nav {
+    flex-wrap: wrap;
+  }
+  .nav-item {
+    flex: 1;
+    min-width: 90px;
+  }
+}

@@ -1,10 +1,28 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import type { SessionResponse, UserPrincipal } from '@scholarproof/contracts';
 import type { Session } from './types.js';
 import { request, RequestFailure } from './api.js';
 import { Workspace } from './Workspace.js';
 import { Login } from './pages/Login.js';
+const ProofVerifier = lazy(() =>
+  import('./pages/Zk.js').then((module) => ({ default: module.ProofVerifier })),
+);
 export function App() {
+  return window.location.pathname === '/verify' ? (
+    <Suspense
+      fallback={
+        <main className="public-verifier" role="status">
+          Loading verifier…
+        </main>
+      }
+    >
+      <ProofVerifier />
+    </Suspense>
+  ) : (
+    <AuthenticatedApp />
+  );
+}
+function AuthenticatedApp() {
   const [session, setSession] = useState<Session | null>(null),
     [notice, setNotice] = useState('');
   useEffect(() => {

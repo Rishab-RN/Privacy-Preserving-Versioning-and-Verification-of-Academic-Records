@@ -62,7 +62,13 @@ approval confirmation/cancellation, distinct-registrar acceptance, revised-versi
 rendering, 401 expiry and memory-only sessions. Screenshots are ignored under
 `.runtime/frontend-evidence`; no screenshots or traces capture entered passwords.
 
-Current credential cryptography remains a library; credential persistence/status
-and challenge services are pending. Those flows, Neo4j and ML do not have live UI
-screens yet. No successful credential, graph or ML result is simulated by these
-pages. See the [frontend walkthrough](../../docs/development/frontend.md).
+Private proofs now connects approved-version issuance, browser-local Groth16
+proving, a public verifier with one-use online status checking and registrar
+revocation. Complete `npm run zk:setup` and migrate through `0012` before testing
+these pages; restart the API to load `.env.zk`. The expanded browser suite checks
+real proving, public payloads, tampering/replay/revocation and mobile overflow.
+See the [ZK demo](../../docs/development/zero-knowledge-demo.md).
+
+The separate SD-JWT cryptographic library is not a deployed service. Neo4j and ML
+screens remain later work; their success is not simulated. See the
+[frontend walkthrough](../../docs/development/frontend.md).

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import type { StudentSummary, TranscriptResponse, EvidenceReceipt } from '@scholarproof/contracts';
 import type { Api, Page, Session } from './types.js';
 import { Brand, Icon, Badge, Field, Alert, Panel } from './ui.js';
@@ -7,6 +7,8 @@ import { message } from './api.js';
 import { RecordsTable } from './pages/RecordsTable.js';
 import { Evidence } from './pages/Evidence.js';
 import { Review } from './pages/Review.js';
+import { CredentialStatus } from './pages/CredentialStatus.js';
+const Zk = lazy(() => import('./pages/Zk.js').then((module) => ({ default: module.Zk })));
 export function Workspace({
   session,
   api,
@@ -33,6 +35,10 @@ export function Workspace({
     'Records',
     ...(canEvidence ? ['Evidence' as const] : []),
     ...(canReview ? ['Review' as const] : []),
+    ...(registrar ? ['Credential status' as const] : []),
+    ...(session.principal.roles.some((r) => r.role === 'student')
+      ? ['Private proofs' as const]
+      : []),
   ];
   const transcriptRequest = useRef(0);
   useEffect(() => {
@@ -116,7 +122,7 @@ export function Workspace({
             >
               <Icon name={name} />
               {name}
-              <span>↗</span>
+              <span aria-hidden="true">↗</span>
             </button>
           ))}
         </nav>
@@ -157,18 +163,26 @@ export function Workspace({
                   ? 'Records with a history.'
                   : page === 'Records'
                     ? 'Academic records'
-                    : page === 'Evidence'
-                      ? 'Supporting evidence'
-                      : 'Review & decisions'}
+                    : page === 'Private proofs'
+                      ? 'Private eligibility proofs'
+                      : page === 'Evidence'
+                        ? 'Supporting evidence'
+                        : page === 'Credential status'
+                          ? 'Credential status'
+                          : 'Review & decisions'}
               </h1>
               <p>
                 {page === 'Overview'
                   ? 'A considered view of the records you’re authorised to access.'
                   : page === 'Records'
                     ? 'Explore current results and how they appeared at an earlier point in time.'
-                    : page === 'Evidence'
-                      ? 'Submit and retrieve integrity-checked supporting information.'
-                      : 'Track a correction from proposal to independent decision.'}
+                    : page === 'Private proofs'
+                      ? 'Prove a grade threshold without disclosing your exact result.'
+                      : page === 'Evidence'
+                        ? 'Submit and retrieve integrity-checked supporting information.'
+                        : page === 'Credential status'
+                          ? 'Manage institutional private proof credential revocations.'
+                          : 'Track a correction from proposal to independent decision.'}
               </p>
             </div>
             <Badge tone="green">
@@ -349,6 +363,12 @@ export function Workspace({
               remember={remember}
             />
           )}
+          {page === 'Private proofs' && (
+            <Suspense fallback={<p role="status">Loading private proof tools…</p>}>
+              <Zk api={api} records={records} />
+            </Suspense>
+          )}
+          {page === 'Credential status' && <CredentialStatus api={api} />}
           <footer className="workspace-footer">
             <span>Academic Records</span>
             <span>Privacy-Preserving Versioning and Verification of Academic Records</span>
