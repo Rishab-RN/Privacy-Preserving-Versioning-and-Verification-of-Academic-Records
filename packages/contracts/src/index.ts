@@ -51,6 +51,11 @@ export interface RecordHistoryResponse {
   >[];
   nextBefore: number | null;
 }
+export interface EligibleProofRecord {
+  recordId: string;
+  versionNo: number;
+  courseCode: string;
+}
 
 export interface TranscriptResponse {
   studentId: string;

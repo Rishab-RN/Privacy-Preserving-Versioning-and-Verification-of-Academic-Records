@@ -61,8 +61,18 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   await expect(page.getByRole('heading', { name: 'Records with a history.' })).toBeVisible();
   await expect(page.getByRole('table')).toBeVisible();
   await page.getByRole('navigation').getByRole('button', { name: 'Private proofs' }).click();
-  await page.getByLabel('Approved record', { exact: true }).selectOption(fixture.recordId);
+  const approvedRecord = page.getByLabel('Approved record', { exact: true });
+  await approvedRecord.selectOption(fixture.recordId);
+  await expect(approvedRecord.getByRole('option', { name: /DEMO_C1/ })).toHaveCount(0);
+  const selection = await approvedRecord
+    .getByRole('option', { name: /DEMO_WORKFLOW · version/ })
+    .innerText();
+  const requestedVersion = Number(selection.match(/version (\d+)$/)?.[1]);
+  const issueRequest = page.waitForRequest(
+    (request) => request.method() === 'POST' && request.url().endsWith('/credentials'),
+  );
   await page.getByRole('button', { name: 'Issue private proof credential', exact: true }).click();
+  expect((await issueRequest).postDataJSON()).toMatchObject({ expectedVersion: requestedVersion });
   await expect(page.getByText('Proof credential issued', { exact: true })).toBeVisible({
     timeout: 15000,
   });

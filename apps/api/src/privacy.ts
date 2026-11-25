@@ -45,16 +45,50 @@ export function installPrivacyRoutes(router: Router, platform: Platform) {
     res.setHeader('Content-Type', 'application/octet-stream');
     res.sendFile(file, { root: service.directory });
   });
+  router.get('/zk/students/:id/eligible-records', async (req, res) => {
+    const { digest } = await platform.authenticate(req.get('authorization'));
+    try {
+      res.json({ records: await get().eligibleRecords(digest, parse(uuid, req.params.id)) });
+    } catch (e) {
+      workflowFailure(e);
+    }
+  });
   router.post('/zk/records/:id/credentials', async (req, res) => {
     const { digest } = await platform.authenticate(req.get('authorization'));
-    const input = parse(z.object({ credentialId: uuid, holder: holderScalar }).strict(), req.body);
+    const input = parse(
+      z
+        .object({
+          credentialId: uuid,
+          holder: holderScalar,
+          expectedVersion: z.number().int().min(1).max(2147483647).optional(),
+        })
+        .strict(),
+      req.body,
+    );
     try {
       res
         .status(201)
         .json(
-          await get().issue(digest, parse(uuid, req.params.id), input.credentialId, input.holder),
+          await get().issue(
+            digest,
+            parse(uuid, req.params.id),
+            input.credentialId,
+            input.holder,
+            input.expectedVersion,
+          ),
         );
     } catch (e) {
+      if (
+        input.expectedVersion !== undefined &&
+        e &&
+        typeof e === 'object' &&
+        (e as { code?: unknown }).code === '23514'
+      )
+        throw new ApiFailure(
+          409,
+          'VERSION_CONFLICT',
+          'The selected record is no longer eligible. Refresh the record list.',
+        );
       workflowFailure(e);
     }
   });

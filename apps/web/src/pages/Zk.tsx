@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { TranscriptResponse } from '@scholarproof/contracts';
+import type { EligibleProofRecord } from '@scholarproof/contracts';
 import type { EligibilityProof, PublicStatement } from '@academic-records/zk/browser';
 import {
   field,
@@ -74,7 +74,7 @@ function download(name: string, value: unknown) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function Zk({ api, records }: { api: Api; records: TranscriptResponse['records'] }) {
+export function Zk({ api, studentId }: { api: Api; studentId: string }) {
   const [record, setRecord] = useState(''),
     [threshold, setThreshold] = useState('8.00'),
     [wallet, setWallet] = useState<Wallet | null>(null),
@@ -82,21 +82,56 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
     [expiresAt, setExpiresAt] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
-  const pending = useRef<{ record: string; id: string; secret: string; holder: string } | null>(
-      null,
-    ),
+  const [eligible, setEligible] = useState<EligibleProofRecord[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(Boolean(studentId));
+  const [listError, setListError] = useState('');
+  const [listRequest, refreshList] = useState(0);
+  const pending = useRef<{
+      record: string;
+      versionNo: number;
+      id: string;
+      secret: string;
+      holder: string;
+    } | null>(null),
     worker = useRef<Worker | null>(null);
   useEffect(() => () => worker.current?.terminate(), []);
+  useEffect(() => {
+    if (!studentId) return;
+    let active = true;
+    void api<{ records: EligibleProofRecord[] }>(`/zk/students/${studentId}/eligible-records`)
+      .then(({ records }) => {
+        if (active) setEligible(records);
+      })
+      .catch((failure: unknown) => {
+        if (active) setListError(message(failure));
+      })
+      .finally(() => {
+        if (active) setLoadingRecords(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [studentId, listRequest]);
+  function reloadRecords() {
+    setRecord('');
+    setEligible([]);
+    setListError('');
+    setLoadingRecords(true);
+    refreshList((previous) => previous + 1);
+  }
   async function issue(event: FormEvent) {
     event.preventDefault();
+    const selected = eligible.find((entry) => entry.recordId === record);
+    if (!selected) return;
     setError('');
     setBusy(true);
     setBundle(null);
     try {
-      if (pending.current?.record !== record) {
+      if (pending.current?.record !== record || pending.current.versionNo !== selected.versionNo) {
         const secret = privateScalar();
         pending.current = {
           record,
+          versionNo: selected.versionNo,
           id: crypto.randomUUID(),
           secret,
           holder: await holderCommitment(secret),
@@ -106,11 +141,16 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
       const issued = await api<Omit<Wallet, 'secret'>>(`/zk/records/${record}/credentials`, {
         credentialId: input.id,
         holder: input.holder,
+        expectedVersion: input.versionNo,
       });
       setWallet({ ...issued, secret: input.secret });
       pending.current = null;
     } catch (e) {
       setError(message(e));
+      if (e instanceof RequestFailure && e.code === 'VERSION_CONFLICT') {
+        pending.current = null;
+        reloadRecords();
+      }
     } finally {
       setBusy(false);
     }
@@ -212,30 +252,42 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
           title="1 · Create a proof credential"
           subtitle="Choose a current, independently approved passed course result."
         >
+          {listError && <Alert>{listError}</Alert>}
+          {!loadingRecords && !listError && !eligible.length && (
+            <p>No independently approved passed results are available for proof issuance.</p>
+          )}
           <form onSubmit={(e) => void issue(e)}>
             <Field label="Approved record">
               <select
                 required
                 value={record}
                 onChange={(e) => setRecord(e.target.value)}
-                disabled={busy}
+                disabled={busy || loadingRecords || !eligible.length}
               >
                 <option value="" disabled>
-                  Choose an approved record
+                  {loadingRecords ? 'Loading eligible records…' : 'Choose an approved record'}
                 </option>
-                {records
-                  .filter((r) => r.grade_points !== null && r.outcome === 'passed')
-                  .map((r) => (
-                    <option key={r.record_id} value={r.record_id}>
-                      {r.course_code}
-                    </option>
-                  ))}
+                {eligible.map((r) => (
+                  <option key={r.recordId} value={r.recordId}>
+                    {r.courseCode} · version {r.versionNo}
+                  </option>
+                ))}
               </select>
             </Field>
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || loadingRecords || !record}>
               {busy ? 'Working…' : 'Issue private proof credential'}
             </button>
           </form>
+          {studentId && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={reloadRecords}
+              disabled={busy || loadingRecords}
+            >
+              Refresh eligible records
+            </button>
+          )}
           <Field label="Restore private wallet">
             <input
               type="file"
@@ -286,7 +338,10 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
                 step="0.01"
                 required
                 value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
+                onChange={(e) => {
+                  setThreshold(e.target.value);
+                  setBundle(null);
+                }}
                 disabled={busy}
               />
             </Field>

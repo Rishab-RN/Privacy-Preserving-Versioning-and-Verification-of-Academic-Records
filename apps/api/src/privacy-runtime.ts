@@ -13,12 +13,14 @@ import {
 } from '@academic-records/zk';
 import type { EligibilityProof } from '@academic-records/zk';
 import type { Sql } from './repository.js';
+import type { EligibleProofRecord } from '@scholarproof/contracts';
 import { ApiFailure } from './errors.js';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 export const ZK_AUDIENCE = 'academic-records-eligibility-verifier-v1';
 const issuer = 'urn:academic-records:local-issuer:zk-v1';
 export const privacyFunctions = [
+  'privacy.eligible_records(text,uuid)',
   'privacy.material(text,uuid)',
   'privacy.issue(text,uuid,uuid,numeric,numeric,text)',
   'privacy.read_owned(text,uuid)',
@@ -134,11 +136,30 @@ export class PrivacyService {
       throw new ApiFailure(400, 'INVALID_ISSUER_ARTIFACT', 'Credential artifact is not trusted');
     return result.payload as unknown as Attestation;
   }
-  async issue(token: string, recordId: string, credentialId: string, holder: string) {
+  async eligibleRecords(token: string, studentId: string) {
+    const { rows } = await this.sql.query<EligibleProofRecord>(
+      'SELECT * FROM privacy.eligible_records($1,$2)',
+      [token, studentId],
+    );
+    if (rows.length > 500)
+      throw new ApiFailure(413, 'RESULT_TOO_LARGE', 'Too many eligible records for this workspace');
+    return rows;
+  }
+  async issue(
+    token: string,
+    recordId: string,
+    credentialId: string,
+    holder: string,
+    expectedVersion?: number,
+  ) {
     field(holder);
     const previous = await this.call<PrivateCredential | null>('read_owned', [token, credentialId]);
     if (previous) {
-      if (previous.recordId !== recordId || previous.holder !== holder)
+      if (
+        previous.recordId !== recordId ||
+        previous.holder !== holder ||
+        (expectedVersion !== undefined && previous.versionNo !== expectedVersion)
+      )
         throw new ApiFailure(
           409,
           'IDEMPOTENCY_CONFLICT',
@@ -154,6 +175,12 @@ export class PrivacyService {
       grade: number;
       maximum: number;
     }>('material', [token, recordId]);
+    if (expectedVersion !== undefined && material.versionNo !== expectedVersion)
+      throw new ApiFailure(
+        409,
+        'VERSION_CONFLICT',
+        'The approved version changed. Review the eligible records and select again.',
+      );
     const context = await contextField(
       'academic-grade-context-v1',
       JSON.stringify({
@@ -191,7 +218,12 @@ export class PrivacyService {
           token,
           credentialId,
         ]);
-        if (concurrent?.recordId === recordId && concurrent.holder === holder) return concurrent;
+        if (
+          concurrent?.recordId === recordId &&
+          concurrent.holder === holder &&
+          (expectedVersion === undefined || concurrent.versionNo === expectedVersion)
+        )
+          return concurrent;
       }
       throw error;
     }

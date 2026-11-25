@@ -61,7 +61,6 @@ test('issuer-bound private grade proof uses approved facts, atomic one-use statu
       request,
     ]);
   }
-  await approve(0);
   const restricted = new Pool({
     host: '127.0.0.1',
     port: Number(process.env.POSTGRES_PORT ?? 55432),
@@ -74,10 +73,30 @@ test('issuer-bound private grade proof uses approved facts, atomic one-use statu
   const service = new PrivacyService(restricted),
     secret = '1928374198237419283741928374',
     holder = await holderCommitment(secret);
+  await context.test(
+    'issuance discovery is owner-scoped and requires the selected approved version',
+    async () => {
+      const studentId = f.id('student');
+      assert.deepEqual(await service.eligibleRecords(student, studentId), []);
+      await assert.rejects(service.eligibleRecords(proposer, studentId), { code: 'P0002' });
+      await assert.rejects(service.eligibleRecords(student, randomUUID()), { code: 'P0002' });
+      await approve(0);
+      const records = await service.eligibleRecords(student, studentId);
+      assert.equal(records.length, 1);
+      assert.equal(records[0]?.recordId, f.id('record'));
+      assert.equal(records[0]?.versionNo, 1);
+      assert.deepEqual(Object.keys(records[0]!).sort(), ['courseCode', 'recordId', 'versionNo']);
+      const staleId = randomUUID();
+      await assert.rejects(service.issue(student, f.id('record'), staleId, holder, 2), {
+        code: 'VERSION_CONFLICT',
+      });
+      assert.equal(await service.call('read_owned', [student, staleId]), null);
+    },
+  );
   const id = randomUUID();
   const [credential, duplicate] = await Promise.all([
-    service.issue(student, f.id('record'), id, holder),
-    service.issue(student, f.id('record'), id, holder),
+    service.issue(student, f.id('record'), id, holder, 1),
+    service.issue(student, f.id('record'), id, holder, 1),
   ]);
   assert.deepEqual(credential, duplicate);
   const artifacts = {
@@ -245,6 +264,10 @@ test('issuer-bound private grade proof uses approved facts, atomic one-use statu
         artifacts,
       );
       await approve(1);
+      assert.equal((await service.eligibleRecords(student, f.id('student')))[0]?.versionNo, 2);
+      await assert.rejects(service.issue(student, f.id('record'), randomUUID(), holder, 1), {
+        code: 'VERSION_CONFLICT',
+      });
       await assert.rejects(service.verify(next.challengeId, proof), {
         code: 'CREDENTIAL_SUPERSEDED',
       });

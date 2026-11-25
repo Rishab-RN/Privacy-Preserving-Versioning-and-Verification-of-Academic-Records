@@ -376,7 +376,7 @@ export function Workspace({
           )}
           {page === 'Private proofs' && (
             <Suspense fallback={<p role="status">Loading private proof tools…</p>}>
-              <Zk api={api} records={records} />
+              <Zk key={student} api={api} studentId={student} />
             </Suspense>
           )}
           {page === 'Credential status' && <CredentialStatus api={api} />}
