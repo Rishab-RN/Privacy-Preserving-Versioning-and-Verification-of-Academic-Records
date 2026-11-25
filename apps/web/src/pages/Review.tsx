@@ -11,6 +11,7 @@ export function Review({
   recent,
   activeRequest,
   remember,
+  openProvenance,
 }: {
   api: Api;
   registrar: boolean;
@@ -18,6 +19,7 @@ export function Review({
   recent: string[];
   activeRequest: string;
   remember: (id: string) => void;
+  openProvenance: (recordId: string, version: number) => void;
 }) {
   const [id, setId] = useState(activeRequest),
     [result, setResult] = useState<ChangeRequestStatus | null>(null),
@@ -235,6 +237,14 @@ export function Review({
             title="Delivery & history"
             subtitle="Academic acceptance and document delivery are separate stages."
           >
+            {result.decision?.versionNo && (
+              <button
+                className="secondary"
+                onClick={() => openProvenance(result.recordId, result.decision!.versionNo!)}
+              >
+                View version provenance
+              </button>
+            )}
             <ol className="delivery-list">
               {result.deliveries.map((d) => (
                 <li key={d.eventId}>

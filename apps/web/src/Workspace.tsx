@@ -8,6 +8,7 @@ import { RecordsTable } from './pages/RecordsTable.js';
 import { RecordHistory } from './pages/RecordHistory.js';
 import { Evidence } from './pages/Evidence.js';
 import { Review } from './pages/Review.js';
+import { Provenance } from './pages/Provenance.js';
 import { CredentialStatus } from './pages/CredentialStatus.js';
 const Zk = lazy(() => import('./pages/Zk.js').then((module) => ({ default: module.Zk })));
 export function Workspace({
@@ -31,11 +32,21 @@ export function Workspace({
   const registrar = session.principal.roles.some((r) => r.role === 'registrar'),
     canEvidence = session.principal.roles.some((r) => ['registrar', 'student'].includes(r.role));
   const canReview = session.principal.roles.some((r) => ['registrar', 'auditor'].includes(r.role));
+  const institutions = [
+    ...new Set(
+      session.principal.roles
+        .filter(({ role }) => role === 'registrar' || role === 'auditor')
+        .map(({ institutionId }) => institutionId),
+    ),
+  ];
+  const [graphTarget, setGraphTarget] = useState<{ recordId: string; version: number } | null>(
+    null,
+  );
   const pages: Page[] = [
     'Overview',
     'Records',
     ...(canEvidence ? ['Evidence' as const] : []),
-    ...(canReview ? ['Review' as const] : []),
+    ...(canReview ? ['Review' as const, 'Provenance' as const] : []),
     ...(registrar ? ['Credential status' as const] : []),
     ...(session.principal.roles.some((r) => r.role === 'student')
       ? ['Private proofs' as const]
@@ -120,7 +131,10 @@ export function Workspace({
               key={name}
               className={page === name ? 'nav-item active' : 'nav-item'}
               aria-current={page === name ? 'page' : undefined}
-              onClick={() => setPage(name)}
+              onClick={() => {
+                if (name !== page && name === 'Provenance') setGraphTarget(null);
+                setPage(name);
+              }}
             >
               <Icon name={name} />
               {name}
@@ -171,7 +185,9 @@ export function Workspace({
                         ? 'Supporting evidence'
                         : page === 'Credential status'
                           ? 'Credential status'
-                          : 'Review & decisions'}
+                          : page === 'Provenance'
+                            ? 'Grade provenance'
+                            : 'Review & decisions'}
               </h1>
               <p>
                 {page === 'Overview'
@@ -184,7 +200,9 @@ export function Workspace({
                         ? 'Submit and retrieve integrity-checked supporting information.'
                         : page === 'Credential status'
                           ? 'Manage institutional private proof credential revocations.'
-                          : 'Track a correction from proposal to independent decision.'}
+                          : page === 'Provenance'
+                            ? 'Inspect approval relationships and supporting evidence.'
+                            : 'Track a correction from proposal to independent decision.'}
               </p>
             </div>
             <Badge tone="green">
@@ -364,6 +382,9 @@ export function Workspace({
               remember={remember}
             />
           )}
+          {page === 'Provenance' && (
+            <Provenance api={api} institutions={institutions} initial={graphTarget} />
+          )}
           {page === 'Review' && (
             <Review
               api={api}
@@ -372,6 +393,10 @@ export function Workspace({
               recent={recent}
               activeRequest={activeRequest}
               remember={remember}
+              openProvenance={(recordId, version) => {
+                setGraphTarget({ recordId, version });
+                setPage('Provenance');
+              }}
             />
           )}
           {page === 'Private proofs' && (

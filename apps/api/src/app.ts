@@ -8,8 +8,10 @@ import type { Platform } from './platform.js';
 import { WindowLimiter } from './security.js';
 import { installWorkflowRoutes } from './workflow.js';
 import { installPrivacyRoutes } from './privacy.js';
+import type { Driver } from 'neo4j-driver';
+import { installProvenanceRoutes } from './provenance/routes.js';
 
-export function createApp(platform?: Platform) {
+export function createApp(platform?: Platform, graph?: Driver) {
   const app = express();
   app.disable('x-powered-by');
   app.use((_request, response, next) => {
@@ -119,6 +121,7 @@ export function createApp(platform?: Platform) {
   if (platform) {
     installWorkflowRoutes(api, platform);
     installPrivacyRoutes(api, platform);
+    installProvenanceRoutes(api, platform, graph);
   }
   app.use('/api/v1', api);
 

@@ -37,7 +37,7 @@ jobs:
       - run: npm run build
 
   database:
-    name: PostgreSQL 18 / MongoDB 8 integration
+    name: PostgreSQL / MongoDB / Neo4j integration
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -66,6 +66,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+      neo4j:
+        image: neo4j:5.26.33
+        env:
+          NEO4J_AUTH: neo4j/ci-neo4j-synthetic-only
+          NEO4J_server_memory_heap_max__size: 512m
+          NEO4J_server_memory_pagecache_size: 128m
+        ports:
+          - 57687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p ci-neo4j-synthetic-only 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 8s
+          --health-retries 20
     env:
       POSTGRES_DB: scholarproof_ci
       POSTGRES_USER: scholarproof_ci
@@ -74,6 +87,8 @@ jobs:
       MONGO_ROOT_USER: scholarproof_ci
       MONGO_ROOT_PASSWORD: ci-synthetic-only
       MONGO_PORT: '57017'
+      GRAPH_NEO4J_PASSWORD: ci-neo4j-synthetic-only
+      GRAPH_NEO4J_PORT: '57687'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -96,6 +111,7 @@ jobs:
       - run: npm run access:setup
       - run: npm run access:demo
       - run: npm run worker:setup
+      - run: npm run graph -- setup
       - run: npm run workflow:demo
       - run: npm run build
       - run: npm run access:smoke

@@ -642,6 +642,44 @@ The quality gate, 45 SQL checks, 57 integration checks and both browser journeys
 passed. Tests cover an empty list before approval, scope denial, stale-version
 conflicts and the selected version in the browser request.
 
+## 2026-11-26 — Week 8 Neo4j provenance
+
+The merged Week 7 revision was the base for `feat/provenance-graph`. Migration
+`0014` adds restricted outbox and review functions with no new SQL tables. It was
+applied locally after validating a PostgreSQL custom-format backup. Neo4j 5.26.33
+and the 6.3.2 JavaScript driver were pinned. The local service uses loopback Bolt
+and generated ignored credentials.
+
+The projection reads committed positions and writes each batch with its Neo4j
+cursor in one transaction. The portal traces revisions to their approval actors
+and evidence, groups repeated pairs and upward corrections, shows evidence reuse,
+and labels lag against the SQL high-water mark. Time-bounded prior pairing and
+evidence counts use both timestamp and committed order for the Week 9 feature
+inputs. Rebuild and the worker's retry path preserve authoritative SQL grades.
+
+The synthetic measurement used 21 approvals at 65 committed positions and
+matched every SQL and Cypher result. The 15-run median and p95 are in milliseconds.
+
+| Workload                     | PostgreSQL median / p95 | Neo4j median / p95 | Matching rows |
+| ---------------------------- | ----------------------: | -----------------: | ------------: |
+| Version ancestry             |           10.73 / 14.74 |      13.87 / 18.06 |            21 |
+| Repeated approval pairings   |           36.75 / 60.04 |      11.90 / 13.93 |             1 |
+| Upward corrections by course |           26.46 / 35.66 |      11.66 / 13.42 |             1 |
+| Evidence digest reuse        |           35.35 / 53.46 |      11.80 / 16.89 |             4 |
+
+The graph held 74 scoped nodes and 151 relationships. The local Neo4j store used
+1,276 KiB and its preallocated transaction directory used 263,172 KiB. The seven
+selected PostgreSQL tables, including indexes, used 540,672 bytes across all
+local scopes. These are different storage boundaries. EXPLAIN and PROFILE output
+is retained locally with the measurement. The small synthetic workload does not
+predict comparative performance at campus scale.
+
+All 45 SQL checks and 61 integration checks passed, including SQL parity, scoped
+access, concurrent workers, duplicate delivery, reversed rebuild input, lag and
+recovery after an unreachable graph. Both browser journeys passed, including
+the registrar's approval-to-provenance path, keyboard use and 390-pixel overflow
+checks. See the [provenance demo](development/provenance-demo.md).
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

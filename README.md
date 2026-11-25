@@ -3,7 +3,7 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase — Week 7 student, registrar and verifier workflows.**
+**Current phase — Week 8 Neo4j provenance.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
@@ -17,7 +17,9 @@ also connects sign-in, scoped transcripts, evidence and registrar reviews to the
 live API. Record timelines show recorded and effective dates for each revision.
 Students preview the fields in their grade proof. Verifiers can check a signed
 issuance proof and see that result alongside the live status and check time.
-Neo4j provenance and ML anomaly detection remain later milestones.
+Neo4j traces accepted revisions to approval actors and evidence and reports how
+far the graph has caught up. ML anomaly detection is scheduled for Week 9.
+See the [provenance demo](docs/development/provenance-demo.md).
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -44,7 +46,7 @@ verification request without routinely exposing an entire transcript.
 
 Tamper verification, zero-knowledge proofs, Neo4j provenance and ML anomaly
 detection are **mandatory project deliverables**. Tamper verification and the
-bounded ZK grade predicate are implemented; graph/ML remain scheduled later and
+bounded ZK grade predicate and graph provenance are implemented. ML is scheduled later and
 are not optional extensions. Vector search is assessed separately by use case.
 Publication and novelty claims depend on measured evidence.
 
@@ -59,7 +61,7 @@ Publication and novelty claims depend on measured evidence.
 | Background delivery        | Restricted Node worker; leased retries and bounded journal replay                              |
 | Verification               | Canonical commitments, signed checkpoints, Merkle proofs and offline verifier                  |
 | Zero-knowledge predicate   | Circom/Groth16; approved course-grade threshold, local browser proving and live SQL acceptance |
-| Required graph provenance  | Neo4j and Cypher queries; implementation pending                                               |
+| Required graph provenance  | Neo4j, committed SQL outbox replay, scoped Cypher review and review feature inputs             |
 | Required anomaly detection | Python ML, rules and graph-derived features; implementation pending                            |
 | Use-case decision          | Vector search; no engine added without a justified workload                                    |
 

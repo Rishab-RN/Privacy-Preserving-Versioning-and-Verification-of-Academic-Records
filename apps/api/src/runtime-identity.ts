@@ -40,13 +40,13 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
       )
       AND NOT EXISTS (
         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN identities i
-        WHERE n.nspname IN ('workflow','transparency','credential','privacy') AND c.relkind IN ('r','p','v','m','f')
+        WHERE n.nspname IN ('workflow','transparency','credential','privacy','provenance') AND c.relkind IN ('r','p','v','m','f')
           AND (has_table_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
             OR has_any_column_privilege(i.oid,c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
       )
       AND NOT EXISTS (
         SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN identities i
-        WHERE n.nspname IN ('transparency','credential','privacy') AND has_function_privilege(i.oid,p.oid,'EXECUTE')
+        WHERE n.nspname IN ('transparency','credential','privacy','provenance') AND has_function_privilege(i.oid,p.oid,'EXECUTE')
           AND p.oid NOT IN(SELECT to_regprocedure(name)::oid FROM unnest($1::text[]) name WHERE to_regprocedure(name) IS NOT NULL)
       )
       AND NOT EXISTS (
@@ -112,7 +112,7 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
         FROM identities i WHERE i.is_login
       ) AS safe FROM identities
     `,
-      [privacyFunctions],
+      [[...privacyFunctions, 'provenance.review_head(text,uuid)']],
     );
     if (result.rows[0]?.safe !== true) throw new Error();
   } catch {

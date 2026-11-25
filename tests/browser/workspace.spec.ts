@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const accounts = JSON.parse(readFileSync(resolve('.runtime/demo-accounts.json'), 'utf8')) as {
   subject: string;
@@ -15,6 +17,7 @@ const staff = JSON.parse(readFileSync(resolve('.runtime/workflow-accounts.json')
 const fixture = JSON.parse(readFileSync(resolve('.runtime/workflow-fixture.json'), 'utf8')) as {
   recordId: string;
   studentId: string;
+  institutionId: string;
 };
 const out = resolve('.runtime/frontend-evidence');
 async function login(page: Page, account: { subject: string; password: string }) {
@@ -149,6 +152,38 @@ test('live student, auditor and independent registrar browser journeys', async (
   ).match(/Applied version (\d+)/)![1]!;
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve(out, '05-independent-approval.png'), fullPage: true });
+  if (process.env.GRAPH_NEO4J_PASSWORD) {
+    await page.getByRole('button', { name: 'View version provenance' }).click();
+    await expect(page.getByLabel('Grade record ID', { exact: true })).toHaveValue(fixture.recordId);
+    await expect(page.getByLabel('Grade version', { exact: true })).toHaveValue(applied);
+    await page.getByRole('button', { name: 'Load provenance' }).click();
+    await expect(page.getByText('Graph catching up', { exact: true })).toBeVisible();
+    await promisify(execFile)(
+      process.execPath,
+      [
+        '--env-file-if-exists=.env',
+        '--env-file-if-exists=.env.worker',
+        '--env-file-if-exists=.env.graph',
+        '--import',
+        'tsx',
+        'apps/api/scripts/graph/run.ts',
+        'sync',
+        fixture.institutionId,
+      ],
+      { timeout: 25000 },
+    );
+    await page.getByRole('button', { name: 'Load provenance' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Caught up', { exact: true })).toBeVisible();
+    const ancestry = page.getByRole('region', { name: 'Version ancestry' });
+    await expect(ancestry.getByText(requestId, { exact: true })).toBeVisible();
+    await page.screenshot({ path: resolve(out, '12-neo4j-provenance.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+  }
   await page.getByLabel('Student', { exact: true }).selectOption(fixture.studentId);
   await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
   await page.getByRole('button', { name: 'Current view', exact: true }).click();
