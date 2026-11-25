@@ -281,6 +281,7 @@ export interface PrivateCredential {
 }
 interface Attestation {
   credentialId: string;
+  institutionId: string;
   recordId: string;
   versionNo: number;
   commitment: string;

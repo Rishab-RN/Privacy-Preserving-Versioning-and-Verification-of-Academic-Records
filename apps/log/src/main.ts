@@ -41,7 +41,7 @@ function options(args: string[]) {
       value = args[i + 1];
     if (
       !key ||
-      !['--log-id', '--event-id', '--out', '--previous'].includes(key) ||
+      !['--log-id', '--event-id', '--credential-id', '--out', '--previous'].includes(key) ||
       !value ||
       value.startsWith('--') ||
       Object.hasOwn(values, key)
@@ -119,11 +119,31 @@ async function run() {
       return;
     }
     if (command === 'export') {
-      if (!input['--event-id']) throw new Error('Provide --event-id');
+      const credentialId = input['--credential-id'];
+      if (
+        Boolean(input['--event-id']) === Boolean(credentialId) ||
+        (credentialId && input['--previous'])
+      )
+        throw new Error(
+          'Choose --event-id or --credential-id. --previous applies to --event-id exports.',
+        );
       const snapshot = await readJournal(runtime.sql, logId),
         checkpoint = requiredCheckpoint(path);
       assertRetainedPrefix(snapshot, checkpoint, trusted);
-      const bundle = exportEventProof(snapshot, checkpoint, input['--event-id']);
+      const eventId =
+        input['--event-id'] ??
+        snapshot.entries.find(
+          (entry) =>
+            entry.sourceKind === 'credential' &&
+            entry.payload.kind === 'credential.issued' &&
+            entry.payload.credentialId === credentialId,
+        )?.eventId;
+      if (!eventId)
+        throw new JournalError(
+          'EVENT_NOT_COMMITTED',
+          'Credential issuance was not found in this log',
+        );
+      const bundle = exportEventProof(snapshot, checkpoint, eventId);
       if (input['--previous']) {
         const previous = parseCanonical(
           readFileSync(outputPath(input['--previous'])),
@@ -140,13 +160,11 @@ async function run() {
           );
         bundle.consistencyProof = proof;
       }
-      const target = outputPath(
-        input['--out'] ?? `.runtime/log-demo/${logId}-${input['--event-id']}.json`,
-      );
+      const target = outputPath(input['--out'] ?? `.runtime/log-demo/${logId}-${eventId}.json`);
       save(target, bundle);
       emit({
         privateProof: target,
-        expectedEventId: input['--event-id'],
+        expectedEventId: eventId,
         logId,
         treeSize: checkpoint.body.treeSize,
       });

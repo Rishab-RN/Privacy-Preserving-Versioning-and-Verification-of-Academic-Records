@@ -15,6 +15,9 @@
     },
     {
       "path": "../../packages/zk"
+    },
+    {
+      "path": "../../packages/verification"
     }
   ]
 }

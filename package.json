@@ -17,7 +17,7 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "dev:api": "npm run build:zk && npm run build:contracts && npm run dev --workspace @scholarproof/api",
+    "dev:api": "npm run build:zk && npm run build:contracts && npm run build:verification && npm run dev --workspace @scholarproof/api",
     "start:api": "npm run start --workspace @scholarproof/api",
     "dev:web": "npm run dev --workspace @scholarproof/web",
     "build:web": "npm run build --workspace @scholarproof/web",

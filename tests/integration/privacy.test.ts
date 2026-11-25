@@ -7,7 +7,8 @@ import { Pool } from 'pg';
 import { fixture, connectTestClient } from '../database/helpers.js';
 import { PrivacyService } from '../../apps/api/src/privacy-runtime.js';
 import { holderCommitment, proveEligibility } from '../../packages/zk/src/index.js';
-import { readJournal, publishCheckpoint } from '../../apps/log/src/journal.js';
+import { readJournal, publishCheckpoint, exportEventProof } from '../../apps/log/src/journal.js';
+import { verifyCredentialHistory } from '../../apps/api/src/privacy-history.js';
 import { generateKeyPairSync } from 'node:crypto';
 
 after(async () => {
@@ -168,6 +169,39 @@ test('issuer-bound private grade proof uses approved facts, atomic one-use statu
       );
       const signed = await publishCheckpoint(admin, logId, keys.privateKey, keys.publicKey);
       assert.equal(signed.body.treeSize, 3);
+      const sidecar = exportEventProof(snapshot, signed, event);
+      const history = await verifyCredentialHistory(
+        service,
+        credential.artifact,
+        sidecar,
+        keys.publicKey,
+      );
+      assert.equal(history.status, 'anchored');
+      assert.equal(history.versionNo, credential.versionNo);
+      assert.equal(history.checkpointAt, signed.body.issuedAt);
+      const wrongKey = generateKeyPairSync('ed25519').publicKey;
+      await assert.rejects(
+        verifyCredentialHistory(service, credential.artifact, sidecar, wrongKey),
+        {
+          code: 'INVALID_HISTORY_PROOF',
+        },
+      );
+      const tampered = structuredClone(sidecar);
+      tampered.inclusionProof[0] = '0'.repeat(64);
+      await assert.rejects(
+        verifyCredentialHistory(service, credential.artifact, tampered, keys.publicKey),
+        {
+          code: 'INVALID_HISTORY_PROOF',
+        },
+      );
+      const changedBinding = structuredClone(sidecar);
+      changedBinding.entry.payload.artifactDigest = '0'.repeat(64);
+      await assert.rejects(
+        verifyCredentialHistory(service, credential.artifact, changedBinding, keys.publicKey),
+        {
+          code: 'HISTORY_BINDING_MISMATCH',
+        },
+      );
     },
   );
   await context.test('expired consent is rejected by both application and SQL clocks', async () => {

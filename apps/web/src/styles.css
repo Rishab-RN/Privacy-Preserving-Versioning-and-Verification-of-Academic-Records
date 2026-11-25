@@ -1360,6 +1360,27 @@ td {
 .success a {
   text-decoration: underline;
 }
+.disclosure-preview {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid #d9e0d5;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.disclosure-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.disclosure-preview dt {
+  margin-top: 8px;
+  font-weight: 600;
+}
+.disclosure-preview dd {
+  margin: 0;
+}
+.public-verifier > section + section {
+  margin-top: 16px;
+}
 @media (max-width: 760px) {
   .sidebar nav {
     flex-wrap: wrap;

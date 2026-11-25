@@ -1,6 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
+
+const exec = promisify(execFile);
+async function runLog(command: string, args: string[]) {
+  await exec(
+    process.execPath,
+    [
+      '--env-file-if-exists=.env',
+      '--env-file-if-exists=.env.log',
+      '--import',
+      'tsx',
+      'apps/log/src/main.ts',
+      command,
+      ...args,
+    ],
+    { timeout: 20_000 },
+  );
+}
 
 test('student proves locally, verifier rejects tampering/replay and current-status revocation', async ({
   page,
@@ -15,6 +35,7 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
     registrar = accounts.find((a) => a.role === 'registrar')!;
   const fixture = JSON.parse(readFileSync(resolve('.runtime/workflow-fixture.json'), 'utf8')) as {
     recordId: string;
+    institutionId: string;
   };
   const out = resolve('.runtime/frontend-evidence');
   mkdirSync(out, { recursive: true });
@@ -45,6 +66,24 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   await expect(page.getByText('Proof credential issued', { exact: true })).toBeVisible({
     timeout: 15000,
   });
+  const currentWallet = page
+    .getByRole('status')
+    .filter({ hasText: 'Proof credential issued' })
+    .locator('code');
+  const previousId = await currentWallet.innerText();
+  const preview = page.locator('.disclosure-preview');
+  await expect(preview).toContainText(previousId);
+  await expect(preview).toContainText(fixture.recordId);
+  const evidence = `.runtime/log-demo/browser-${randomUUID()}.json`;
+  await runLog('publish', ['--log-id', fixture.institutionId]);
+  await runLog('export', [
+    '--log-id',
+    fixture.institutionId,
+    '--credential-id',
+    previousId,
+    '--out',
+    evidence,
+  ]);
   await page.getByRole('button', { name: 'Consent & generate ZK proof', exact: true }).click();
   await expect(page.getByText('Zero-knowledge proof generated', { exact: true })).toBeVisible({
     timeout: 60000,
@@ -70,11 +109,6 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   });
   await page.getByText('Inspect public proof JSON', { exact: true }).click();
   const second = await page.locator('.proof-json').innerText();
-  const currentWallet = page
-    .getByRole('status')
-    .filter({ hasText: 'Proof credential issued' })
-    .locator('code');
-  const previousId = await currentWallet.innerText();
   await page.getByRole('button', { name: 'Issue private proof credential', exact: true }).click();
   await expect(currentWallet).not.toHaveText(previousId);
   await page.goto('/verify');
@@ -86,10 +120,32 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   const challenge = await page.request.get('/api/v1/zk/challenges/' + firstBundle.challengeId);
   expect(((await challenge.json()) as { used: boolean }).used).toBe(false);
   await page.getByLabel('Shareable proof JSON', { exact: true }).fill(first);
+  const historyInput = page.getByLabel('Signed issuance evidence (optional)', { exact: true });
+  const modified = JSON.parse(readFileSync(evidence, 'utf8')) as { inclusionProof: string[] };
+  modified.inclusionProof[0] = '0'.repeat(64);
+  await historyInput.setInputFiles({
+    name: 'altered.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(modified)),
+  });
+  await page.getByRole('button', { name: 'Verify proof', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('inclusion proof is invalid');
+  await historyInput.setInputFiles(evidence);
+  await page.getByRole('button', { name: 'Check signed history only', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(/Included in signed history/)).toBeVisible();
+  const afterHistory = await page.request.get('/api/v1/zk/challenges/' + firstBundle.challengeId);
+  expect(((await afterHistory.json()) as { used: boolean }).used).toBe(false);
+  await page.route('**/api/v1/zk/verify', (route) => route.abort('failed'));
+  await page.getByRole('button', { name: 'Verify proof', exact: true }).click();
+  await expect(page.getByText('Current status unavailable', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Included in signed history/)).toBeVisible();
+  await page.unroute('**/api/v1/zk/verify');
   await page.getByRole('button', { name: 'Verify proof', exact: true }).click();
   await expect(page.getByText('Verified · threshold met', { exact: true })).toBeVisible({
     timeout: 15000,
   });
+  await expect(page.getByText(/Current status checked at/)).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve(out, '08-private-proof-accepted.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -121,6 +177,8 @@ test('student proves locally, verifier rejects tampering/replay and current-stat
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.goto('/verify');
   await page.getByLabel('Shareable proof JSON', { exact: true }).fill(second);
+  await historyInput.setInputFiles(evidence);
   await page.getByRole('button', { name: 'Verify proof', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('revoked');
+  await expect(page.getByText(/Included in signed history/)).toBeVisible();
 });

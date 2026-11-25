@@ -12,13 +12,15 @@ import {
 import { importJWK, jwtVerify } from 'jose';
 import type { JWK } from 'jose';
 import type { Api } from '../types.js';
-import { request, message } from '../api.js';
+import { request, message, RequestFailure } from '../api.js';
 import { Panel, Field, Alert, Badge } from '../ui.js';
 import { idPattern } from '../format.js';
 interface ZkConfig {
   profile: string;
   setup: string;
   issuer: string;
+  audience: string;
+  verificationKeyHash: string;
   publicKey: JWK;
   verificationKey: unknown;
   wasmHash: string;
@@ -47,6 +49,21 @@ interface PublicProof extends EligibilityProof {
   artifact: string;
   statement: PublicStatement;
 }
+interface Acceptance {
+  status: string;
+  threshold: string;
+  credentialId: string;
+  receipt: string;
+  versionNo: number;
+  verifiedAt: string;
+}
+interface IssuanceHistory {
+  status: 'anchored';
+  treeSize: number;
+  checkpointAt: string;
+  eventId: string;
+  versionNo: number;
+}
 function download(name: string, value: unknown) {
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }),
@@ -62,6 +79,7 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
     [threshold, setThreshold] = useState('8.00'),
     [wallet, setWallet] = useState<Wallet | null>(null),
     [bundle, setBundle] = useState<PublicProof | null>(null),
+    [expiresAt, setExpiresAt] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const pending = useRef<{ record: string; id: string; secret: string; holder: string } | null>(
@@ -151,6 +169,7 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
         statement: challenge.statement,
         ...result,
       });
+      setExpiresAt(challenge.expiresAt);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Proof generation failed');
     } finally {
@@ -182,9 +201,8 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
         subtitle="Prove that an approved course grade meets a minimum, without sharing the exact grade."
       >
         <p className="muted">
-          The holder secret and proof generation stay in this browser. Only the proof and public
-          threshold are shared. This uses the latest recorded approved version, which may differ
-          from today's effective result.
+          The holder secret and proof generation stay in this browser. This uses the latest recorded
+          approved version, which may differ from today's effective result.
         </p>
         <Badge tone="amber">Local development ceremony</Badge>
       </Panel>
@@ -209,7 +227,7 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
                   .filter((r) => r.grade_points !== null && r.outcome === 'passed')
                   .map((r) => (
                     <option key={r.record_id} value={r.record_id}>
-                      {r.course_code} · version {r.version_no}
+                      {r.course_code}
                     </option>
                   ))}
               </select>
@@ -272,10 +290,30 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
                 disabled={busy}
               />
             </Field>
-            <p className="muted">
-              Generating this proof consents to sharing the selected threshold and linkable
-              credential/record identifiers. It does not send the exact grade or wallet secret.
-            </p>
+            {wallet && (
+              <details open className="disclosure-preview">
+                <summary>What the proof file shares</summary>
+                <dl>
+                  <dt>Minimum grade points</dt>
+                  <dd>{threshold || 'Enter a threshold'}</dd>
+                  <dt>Credential and record IDs</dt>
+                  <dd>
+                    <code>{wallet.credentialId}</code>
+                    <br />
+                    <code>{wallet.recordId}</code>
+                  </dd>
+                  <dt>Record version</dt>
+                  <dd>{wallet.versionNo}</dd>
+                  <dt>Verification data</dt>
+                  <dd>
+                    Issuer and institution identifiers, signed commitment and holder commitment,
+                    grading maximum, one-use challenge, Groth16 proof and public signals.
+                  </dd>
+                  <dt>Private wallet</dt>
+                  <dd>Exact grade, blinding salt and holder secret stay private.</dd>
+                </dl>
+              </details>
+            )}
             <button className="primary" disabled={busy || !wallet}>
               {busy ? 'Generating proof locally…' : 'Consent & generate ZK proof'}
             </button>
@@ -293,7 +331,10 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
               >
                 Download shareable proof
               </button>
-              <p>Share this proof promptly: its online challenge expires after two minutes.</p>
+              <p>
+                Online challenge expires at{' '}
+                <time dateTime={expiresAt}>{new Date(expiresAt).toLocaleTimeString()}</time>.
+              </p>
               <a href="/verify" target="_blank" rel="noreferrer">
                 Open verifier workspace ↗
               </a>
@@ -310,29 +351,62 @@ export function Zk({ api, records }: { api: Api; records: TranscriptResponse['re
 }
 export function ProofVerifier() {
   const [source, setSource] = useState(''),
+    [historySource, setHistorySource] = useState(''),
+    [history, setHistory] = useState<IssuanceHistory | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [result, setResult] = useState<{
-      status: string;
-      threshold: string;
-      credentialId: string;
-      receipt: string;
-      versionNo: number;
-    } | null>(null);
-  async function verify(event: FormEvent) {
-    event.preventDefault();
+    [result, setResult] = useState<Acceptance | null>(null),
+    [onlineState, setOnlineState] = useState('');
+  function resetResults() {
     setError('');
+    setHistory(null);
     setResult(null);
+    setOnlineState('');
+  }
+  async function loadFile(file: File, setValue: (value: string) => void) {
+    resetResults();
+    setValue('');
+    if (file.size > 20000) {
+      setError('Choose a JSON file smaller than 20 KB.');
+      return;
+    }
     setBusy(true);
     try {
+      setValue(await file.text());
+    } catch {
+      setError('The file could not be read.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function verify(event: FormEvent) {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const historyOnly = submitter?.getAttribute('value') === 'history';
+    resetResults();
+    setBusy(true);
+    let checkingOnline = false;
+    try {
       const bundle = JSON.parse(source) as PublicProof;
+      if (typeof bundle?.artifact !== 'string' || !bundle.statement || !bundle.proof)
+        throw new Error('Choose the shareable proof file from the student workspace.');
+      if (historySource.trim()) {
+        const checked = await request<IssuanceHistory>('/zk/verify-history', undefined, {
+          artifact: bundle.artifact,
+          history: JSON.parse(historySource) as unknown,
+        });
+        setHistory(checked);
+      }
+      if (historyOnly) return;
+      checkingOnline = true;
       const config = await request<ZkConfig>('/zk/config');
       if (
         bundle.profile !== config.profile ||
         !(await verifyEligibility(bundle, bundle.statement, config.verificationKey))
       )
         throw new Error('The zero-knowledge proof is invalid.');
-      const issued = await jwtVerify(bundle.artifact, await importJWK(config.publicKey, 'EdDSA'), {
+      const issuerKey = await importJWK(config.publicKey, 'EdDSA');
+      const issued = await jwtVerify(bundle.artifact, issuerKey, {
         issuer: config.issuer,
         algorithms: ['EdDSA'],
         typ: 'academic-eligibility+jwt',
@@ -341,19 +415,27 @@ export function ProofVerifier() {
         issued.payload.commitment !== bundle.statement.commitment ||
         issued.payload.holder !== bundle.statement.holder ||
         issued.payload.context !== bundle.statement.context ||
-        issued.payload.maximum !== bundle.statement.maximum
+        issued.payload.maximum !== bundle.statement.maximum ||
+        issued.payload.profile !== config.profile ||
+        issued.payload.vkHash !== config.verificationKeyHash
       )
         throw new Error('Proof does not match the issued credential.');
-      const value = await request<NonNullable<typeof result>>('/zk/verify', undefined, {
+      const value = await request<Acceptance>('/zk/verify', undefined, {
         challengeId: bundle.challengeId,
         proof: bundle.proof,
         publicSignals: bundle.publicSignals,
       });
-      const receipt = await jwtVerify(value.receipt, await importJWK(config.publicKey, 'EdDSA'), {
+      const receipt = await jwtVerify(value.receipt, issuerKey, {
         issuer: config.issuer,
         algorithms: ['EdDSA'],
         typ: 'academic-eligibility-result+jwt',
       });
+      const artifactBytes = new Uint8Array(
+        await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bundle.artifact)),
+      );
+      const artifactHash = Array.from(artifactBytes, (byte) =>
+        byte.toString(16).padStart(2, '0'),
+      ).join('');
       if (
         receipt.payload.challengeId !== bundle.challengeId ||
         receipt.payload.status !== 'current' ||
@@ -364,14 +446,29 @@ export function ProofVerifier() {
         receipt.payload.versionNo !== issued.payload.versionNo ||
         receipt.payload.threshold !== value.threshold ||
         receipt.payload.threshold !== bundle.statement.threshold ||
-        receipt.payload.nullifier !== bundle.publicSignals[0]
+        receipt.payload.nullifier !== bundle.publicSignals[0] ||
+        receipt.payload.profile !== config.profile ||
+        receipt.payload.audience !== config.audience ||
+        receipt.payload.recordId !== issued.payload.recordId ||
+        receipt.payload.artifactDigest !== artifactHash ||
+        receipt.payload.verifiedAt !== value.verifiedAt ||
+        !Number.isFinite(Date.parse(value.verifiedAt))
       )
         throw new Error('Acceptance receipt does not match this challenge.');
       setResult(value);
     } catch (e) {
+      if (checkingOnline) {
+        if (e instanceof RequestFailure && (e.status === 0 || e.status >= 500))
+          setOnlineState('Current status unavailable');
+        else if (e instanceof RequestFailure && e.code === 'CREDENTIAL_REVOKED')
+          setOnlineState('Credential revoked');
+        else if (e instanceof RequestFailure && e.code === 'CREDENTIAL_SUPERSEDED')
+          setOnlineState('Credential superseded by a newer version');
+        else setOnlineState('Online verification rejected');
+      }
       setError(
         e instanceof SyntaxError
-          ? 'Paste a valid shareable proof JSON file.'
+          ? 'The proof or issuance evidence is not valid JSON.'
           : e instanceof Error
             ? e.message
             : 'Verification failed.',
@@ -403,26 +500,72 @@ export function ProofVerifier() {
               disabled={busy}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) void file.text().then(setSource);
+                if (file) void loadFile(file, setSource);
               }}
             />
           </Field>
           <Field label="Shareable proof JSON">
             <textarea
               required
-              rows={10}
+              rows={5}
               maxLength={20000}
               value={source}
-              onChange={(e) => setSource(e.target.value)}
+              onChange={(e) => {
+                setSource(e.target.value);
+                resetResults();
+              }}
               disabled={busy}
+            />
+          </Field>
+          <Field
+            label="Signed issuance evidence (optional)"
+            hint="Use the issuance JSON from the log operator to check the credential's signed history."
+          >
+            <input
+              type="file"
+              accept="application/json,.json"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void loadFile(file, setHistorySource);
+                else {
+                  setHistorySource('');
+                  resetResults();
+                }
+              }}
             />
           </Field>
           <button className="primary" disabled={busy}>
             {busy ? 'Checking proof & current status…' : 'Verify proof'}
+          </button>{' '}
+          <button
+            className="secondary"
+            type="submit"
+            value="history"
+            disabled={busy || !historySource}
+          >
+            Check signed history only
           </button>
         </form>
       </Panel>
       {error && <Alert>{error}</Alert>}
+      {(history || result || onlineState) && (
+        <Panel title="Historical issuance">
+          {history ? (
+            <p role="status">
+              Included in signed history · version {history.versionNo} · checkpoint size{' '}
+              {history.treeSize} at{' '}
+              <time dateTime={history.checkpointAt}>
+                {new Date(history.checkpointAt).toLocaleString()}
+              </time>
+              .
+            </p>
+          ) : (
+            <p>Signed issuance evidence was not supplied.</p>
+          )}
+        </Panel>
+      )}
+      {onlineState && <p role="status">{onlineState}</p>}
       {result && (
         <div className="success" role="status">
           <strong>Verified · threshold met</strong>
@@ -433,6 +576,11 @@ export function ProofVerifier() {
           <p>
             Record version {result.versionNo} · credential {result.status} at acceptance · challenge
             consumed.
+          </p>
+          <p>
+            Current status checked at{' '}
+            <time dateTime={result.verifiedAt}>{new Date(result.verifiedAt).toLocaleString()}</time>
+            .
           </p>
           <p>
             Credential: <code>{result.credentialId}</code>

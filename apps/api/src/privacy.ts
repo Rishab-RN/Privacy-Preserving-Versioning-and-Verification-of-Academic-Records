@@ -6,6 +6,7 @@ import { ApiFailure } from './errors.js';
 import { PrivacyService } from './privacy-runtime.js';
 import { workflowFailure } from './workflow.js';
 import { SCALAR_FIELD } from '@academic-records/zk';
+import { loadHistoryKey, verifyCredentialHistory } from './privacy-history.js';
 const scalar = z.string().regex(/^(0|[1-9][0-9]{0,76})$/);
 const holderScalar = scalar.refine(
   (value) => /^(0|[1-9][0-9]{0,76})$/.test(value) && BigInt(value) < SCALAR_FIELD,
@@ -90,6 +91,13 @@ export function installPrivacyRoutes(router: Router, platform: Platform) {
     } catch (e) {
       workflowFailure(e);
     }
+  });
+  router.post('/zk/verify-history', async (req, res) => {
+    const { artifact, history } = parse(
+      z.object({ artifact: z.string().min(100).max(12000), history: z.unknown() }).strict(),
+      req.body,
+    );
+    res.json(await verifyCredentialHistory(get(), artifact, history, loadHistoryKey()));
   });
   router.post('/zk/verify', async (req, res) => {
     const input = parse(
