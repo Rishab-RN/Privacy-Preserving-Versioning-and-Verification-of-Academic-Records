@@ -32,7 +32,9 @@ length checks help entry but do not replace those server rules.
 After acceptance, return to Records and choose **Current view** to observe the new
 recorded version. Earlier known-at queries remain available. A future-effective
 correction can be the latest recorded revision while today's effective answer
-still differs. Pending document delivery does not make a committed grade vanish.
+still differs. **View history** opens the course's recorded revisions, with
+effective intervals and a button for older pages. This view uses the same
+student and institution scope as the transcript.
 
 Run `npm run worker:once` from a separate terminal to deliver queued Mongo
 projections; the UI cannot run privileged administrative commands. It can refresh
@@ -55,7 +57,9 @@ of a full accessibility audit or all-browser certification.
 
 The owner requires UI work before moving to the next week. The connected ZK flow
 now includes approved-version persistence, local holder secrets, nonce consumption,
-live currentness and registrar revocation, with real browser tests. See the
+live currentness and registrar revocation, with real browser tests. The sharing
+preview describes the outgoing proof before consent. The verifier shows the
+issuance checkpoint and the live acceptance timestamp separately. See the
 [ZK demo](zero-knowledge-demo.md) for exact steps and trust limits. SD-JWT remains
 a separate library; graph/ML and their reviewer screens remain mandatory later
 milestones. Passing the ZK gate does not claim those modules are implemented.

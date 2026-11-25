@@ -601,6 +601,32 @@ browser helper, linkable identifiers, independent verifier trust distribution,
 Merkle-sidecar packaging and separate SD-JWT service boundaries remain explicit.
 Neo4j/ML remain mandatory later milestones, not work completed by this slice.
 
+## 2026-11-26 — Week 7 student, registrar and verifier flows
+
+Students and scoped staff can inspect recorded revisions without changing the
+effective-time transcript view. Each page contains up to 20 immutable grade
+versions with recording times and effective intervals. The query uses existing
+PostgreSQL access and tenant boundaries. No schema migration was needed.
+
+The student preview shows the minimum grade, credential and record identifiers,
+version and verification data before consent. The operator can export an
+issuance proof by credential ID. The public verifier checks the issuer signature
+and exact artifact binding, then verifies the signed checkpoint and Merkle path
+using the configured log public key. Signed issuance and live status are displayed
+separately. The live result identifies its check time, and proof-only history
+checks leave the challenge unused. A revoked credential can still have signed
+historical issuance. Independent log publication remains an operator action.
+
+Quality checks and the build passed. The 56 isolated integration checks include
+scope denial, cursor behavior, exact artifact binding, wrong signing key and
+invalid inclusion. Both real browser journeys passed, covering independent grade
+correction, keyboard revision navigation, local proof generation and disclosure,
+altered issuance evidence, service unavailability, online acceptance, replay and
+revocation. The verifier was rendered at desktop and 390-pixel widths.
+
+Week 7 was developed on the active credential branch, which already held the
+unmerged Week 6 portal work. Neo4j provenance is the Week 8 milestone.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

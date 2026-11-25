@@ -52,19 +52,41 @@ existing generated password; this command copies it without printing it:
    independently approved SQL version, rather than accepting a student-entered grade.
 2. Download the **private wallet** if restoration is needed. Keep it private: it
    contains the exact grade, salt and secret. Navigation/reload clears memory.
-3. Enter `8.00` and select **Consent & generate ZK proof**. The browser worker
-   generates an actual proof. The private witness does not go to the verifier.
+3. Enter `8.00` and review **What the proof file shares**. For the signed-history
+   demonstration, copy the credential ID and export its issuance evidence below.
+   Select **Consent & generate ZK proof** to start the browser worker and the
+   two-minute verification window.
 4. Download the **shareable proof** and immediately open
    [the verifier](http://127.0.0.1:5173/verify) in another tab. Upload only the
-   shareable JSON. The challenge lasts two minutes, including generation time.
-5. Select **Verify proof**. Show **Verified · threshold met**, exact grade hidden,
-   record version and current-at-acceptance status. Download the signed receipt.
+   shareable proof and, if prepared, the signed issuance evidence.
+5. Select **Verify proof**. Show **Verified · threshold met**, the version and
+   the live check time. **Historical issuance** shows the checkpoint time and
+   tree size. Download the signed acceptance receipt.
 6. Select **Verify proof** again. Show that replay fails because SQL consumed the
    challenge once. Generate a fresh proof for another acceptance.
 
 Say: “I can prove this approved course grade is at least 8 without sending its
 exact value. The verifier checks the mathematical proof and issuer signature;
 the server then checks current SQL status and consumes this one-time challenge.”
+
+## Prepare signed issuance evidence
+
+Set up the log operator with `npm run log:setup` once. After issuing the credential
+in the student workspace, run these commands in an operator terminal.
+
+```powershell
+$logId = (Get-Content .runtime/workflow-fixture.json -Raw | ConvertFrom-Json).institutionId
+$credentialId = Read-Host 'Credential ID shown by the student workspace'
+npm run log:publish -- --log-id $logId
+npm run log:export -- --log-id $logId --credential-id $credentialId --out ".runtime/log-demo/issuance-$credentialId.json"
+```
+
+Upload that JSON in **Signed issuance evidence (optional)**. The file contains
+linkable issuance metadata and the opening of that single log entry. **Check
+signed history only** verifies inclusion without consuming the challenge and
+works after expiry or revocation. The portal defaults to the local operator's
+public key. A separately provisioned PEM can be configured with
+`ZK_LOG_PUBLIC_KEY_FILE` in `.env.zk`.
 
 ## Show failures and revocation
 
@@ -106,8 +128,8 @@ and remaining trust boundaries.
 For the separate signed-log demo, deliver any normal workflow queue with
 `npm run worker:once`, then use the operator's `log:publish` and `log:audit` commands
 with the workflow fixture's institution as `--log-id` (see the operator guide).
-Credential events do not belong to the Mongo grade queue. Online ZK acceptance
-does not itself validate a published inclusion sidecar.
+The signer publishes credential events directly from the SQL log. The Mongo
+queue continues to handle academic workflow events.
 
 ## Checks and honest project explanation
 

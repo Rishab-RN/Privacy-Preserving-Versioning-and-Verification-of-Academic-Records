@@ -3,7 +3,7 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase: Week 6 - working zero-knowledge grade proofs and connected UI.**
+**Current phase — Week 7 student, registrar and verifier workflows.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
@@ -14,9 +14,10 @@ revocation/supersession, one-use online acceptance and the public verifier are
 connected. Setup uses a single-operator **local development ceremony**, requiring
 independent review before adversarial deployment. The responsive React workspace
 also connects sign-in, scoped transcripts, evidence and registrar reviews to the
-live API. The separate selective-disclosure library remains stateless; graph/ML
-and wider verifier integration are later work. Frontend completion is a gate
-before the next week.
+live API. Record timelines show recorded and effective dates for each revision.
+Students preview the fields in their grade proof. Verifiers can check a signed
+issuance proof and see that result alongside the live status and check time.
+Neo4j provenance and ML anomaly detection remain later milestones.
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 

@@ -96,12 +96,18 @@ audits these actual SQL facts through a narrow reader. Credential events do not
 enter the Mongo grade-projection queue. Publishing a checkpoint remains an explicit
 separate operator action.
 
-The current ZK HTTP acceptance checks the signed issuer artifact and live SQL
-state. It does **not** require or validate a published Merkle-inclusion sidecar.
-Signed-log export/audit supplies separate historical evidence; end-to-end
-third-party proof packaging/federated trust remains an integration boundary.
-This distinction prevents online proof success from being presented as an
-independent audit of the issuer or a witnessed public checkpoint.
+The verifier can check an issuance evidence file through
+`POST /api/v1/zk/verify-history`. The API verifies the issuer artifact and binds
+its exact SHA-256 digest, credential, record, version and institution to the
+issuance event. It verifies the event path and checkpoint signature using the
+locally provisioned log public key.
+
+The issuance check establishes inclusion under the presented checkpoint and
+reports its time and tree size. Currentness comes from the SQL acceptance
+transaction. A successful history check can coexist with a revoked or superseded
+credential, and works after the challenge expires. The operator compares the
+prefix against a retained checkpoint before exporting. The offline CLI can
+verify consistency with a verifier's own retained checkpoint.
 
 ## Setup and privacy limits
 

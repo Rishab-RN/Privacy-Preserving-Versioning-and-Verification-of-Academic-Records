@@ -167,19 +167,28 @@ Exact grades use integer hundredths. The holder secret never belongs in an HTTP
 request. See the [ZK profile](../architecture/zero-knowledge-proofs.md) and
 [browser demo](zero-knowledge-demo.md).
 
-| Method and route under `/api/v1`      | Scope and behavior                                                                                  |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `GET /zk/config`                      | Public development profile, issuer public key, verification key and artifact hashes                 |
-| `GET /zk/artifacts/wasm` or `/zkey`   | Public allowlisted proving artifacts; no arbitrary file paths or private keys                       |
-| `POST /zk/records/:id/credentials`    | Owning student; `{credentialId,holder}`; exact retry returns the first committed artifact           |
-| `GET /zk/credentials/:id`             | Owning student only; private grade/salt/issuer artifact, never a public verifier response           |
-| `POST /zk/credentials/:id/challenges` | Owning student consents to integer `{threshold}`; current version, fresh nonce, 120-second expiry   |
-| `GET /zk/challenges/:id`              | Public minimal challenge and issuer artifact; no exact grade, salt or secret                        |
-| `POST /zk/verify`                     | Public `{challengeId,proof,publicSignals}`; real proof plus live SQL status and atomic one-use gate |
-| `POST /zk/credentials/:id/revoke`     | Institutional registrar; immutable `{reason}`; exact actor/reason retry is idempotent               |
+| Method and route under `/api/v1`      | Scope and behavior                                                                                                                                                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /zk/config`                      | Public development profile, issuer public key, verification key and artifact hashes                                                                                                                      |
+| `GET /zk/artifacts/wasm` or `/zkey`   | Public allowlisted proving artifacts; no arbitrary file paths or private keys                                                                                                                            |
+| `POST /zk/records/:id/credentials`    | Owning student; `{credentialId,holder}`; exact retry returns the first committed artifact                                                                                                                |
+| `GET /zk/credentials/:id`             | Owning student only; private grade/salt/issuer artifact, never a public verifier response                                                                                                                |
+| `POST /zk/credentials/:id/challenges` | Owning student consents to integer `{threshold}`; current version, fresh nonce, 120-second expiry                                                                                                        |
+| `GET /zk/challenges/:id`              | Public minimal challenge and issuer artifact; no exact grade, salt or secret                                                                                                                             |
+| `POST /zk/verify`                     | Public `{challengeId,proof,publicSignals}`; real proof plus live SQL status and atomic one-use gate                                                                                                      |
+| `POST /zk/verify-history`             | Public `{artifact,history}` from the shareable proof and operator export. Validates exact issuance binding, checkpoint signature and Merkle inclusion. Returns the signed checkpoint time and tree size. |
+| `POST /zk/credentials/:id/revoke`     | Institutional registrar; immutable `{reason}`; exact actor/reason retry is idempotent                                                                                                                    |
 
 The challenge UUID is an unguessable bearer reference to linkable public metadata;
 do not publish it before intentional sharing. Invalid proofs do not consume it.
 Replays, expiry, revocation and supersession fail closed. A receipt is signed only
 after the SQL acceptance insert commits; a lost response requires a fresh proof.
 The public verifier is still a local development service with explicit setup trust.
+
+`GET /api/v1/records/:recordId/history` lists up to 20 revisions newest first
+for the owner or an institutional registrar/auditor. Pass the returned
+`nextBefore` as `?before=<version>` to request older revisions. An accessible
+record with no matching revisions returns an empty list. Inaccessible and
+unknown records both return 404. Each result includes the grade and outcome,
+the recording timestamp and effective range. Actor and evidence data stay
+outside the response.
