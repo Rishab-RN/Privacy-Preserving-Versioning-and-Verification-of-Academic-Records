@@ -6,6 +6,7 @@ import { evidenceInput, loginInput, parse, transcriptInput, uuid } from './input
 import type { Platform } from './platform.js';
 import { WindowLimiter } from './security.js';
 import { installWorkflowRoutes } from './workflow.js';
+import { installPrivacyRoutes } from './privacy.js';
 
 export function createApp(platform?: Platform) {
   const app = express();
@@ -94,7 +95,10 @@ export function createApp(platform?: Platform) {
     const { principal } = await platform!.authenticate(request.get('authorization'));
     response.json(await platform!.evidence(principal, parse(uuid, request.params.evidenceId)));
   });
-  if (platform) installWorkflowRoutes(api, platform);
+  if (platform) {
+    installWorkflowRoutes(api, platform);
+    installPrivacyRoutes(api, platform);
+  }
   app.use('/api/v1', api);
 
   app.use((_request, response) => {

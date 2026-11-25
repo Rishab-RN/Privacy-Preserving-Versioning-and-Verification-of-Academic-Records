@@ -158,3 +158,28 @@ registrar and confirms delivery using the restricted worker. Each run appends on
 synthetic version; it does not reset history. Run it without another worker
 processing this local demo queue. Neither command prints credentials or tokens.
 See the [worker guide](../../apps/worker/README.md) for retry and replay limits.
+
+## Private course-grade proofs
+
+Complete `npm run zk:setup`, migrate through `0012` and restart the API to load
+`.env.zk`. This profile issues an Ed25519-attested grade commitment, not an SD-JWT.
+Exact grades use integer hundredths. The holder secret never belongs in an HTTP
+request. See the [ZK profile](../architecture/zero-knowledge-proofs.md) and
+[browser demo](zero-knowledge-demo.md).
+
+| Method and route under `/api/v1`      | Scope and behavior                                                                                  |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `GET /zk/config`                      | Public development profile, issuer public key, verification key and artifact hashes                 |
+| `GET /zk/artifacts/wasm` or `/zkey`   | Public allowlisted proving artifacts; no arbitrary file paths or private keys                       |
+| `POST /zk/records/:id/credentials`    | Owning student; `{credentialId,holder}`; exact retry returns the first committed artifact           |
+| `GET /zk/credentials/:id`             | Owning student only; private grade/salt/issuer artifact, never a public verifier response           |
+| `POST /zk/credentials/:id/challenges` | Owning student consents to integer `{threshold}`; current version, fresh nonce, 120-second expiry   |
+| `GET /zk/challenges/:id`              | Public minimal challenge and issuer artifact; no exact grade, salt or secret                        |
+| `POST /zk/verify`                     | Public `{challengeId,proof,publicSignals}`; real proof plus live SQL status and atomic one-use gate |
+| `POST /zk/credentials/:id/revoke`     | Institutional registrar; immutable `{reason}`; exact actor/reason retry is idempotent               |
+
+The challenge UUID is an unguessable bearer reference to linkable public metadata;
+do not publish it before intentional sharing. Invalid proofs do not consume it.
+Replays, expiry, revocation and supersession fail closed. A receipt is signed only
+after the SQL acceptance insert commits; a lost response requires a fresh proof.
+The public verifier is still a local development service with explicit setup trust.

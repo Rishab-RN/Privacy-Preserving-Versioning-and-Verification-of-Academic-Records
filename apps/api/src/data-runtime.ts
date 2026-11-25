@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { MongoClient } from 'mongodb';
+import { closeProofRuntime } from '@academic-records/zk';
 import { MongoEvidenceStore, verifyEvidenceCollection } from './evidence-store.js';
 import { Repository } from './repository.js';
 import { Platform } from './platform.js';
@@ -76,7 +77,7 @@ export async function openDataRuntime(config: DataConfig) {
     socketTimeoutMS: 5000,
   });
   const close = async () => {
-    await Promise.allSettled([sql.end(), mongo.close()]);
+    await Promise.allSettled([sql.end(), mongo.close(), closeProofRuntime()]);
   };
   try {
     await assertSafeSqlIdentity(sql);

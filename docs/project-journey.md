@@ -486,6 +486,53 @@ status/revocation services, followed by their live UI. The owner requires fronte
 work as an acceptance gate before advancing to another week. Published CI must
 pass and the owner must review before merging.
 
+## 2026-11-25 - Mandatory ZK proof and approved-version service
+
+The owner made zero-knowledge proofs a major mandatory capability before Week 7.
+Selected a bounded course-grade threshold: knowledge of the hidden approved grade,
+salt and holder secret opening an issuer-signed commitment, with exact integer
+hundredths and circuit-constrained ranges. This is separate from the stateless
+SD-JWT library and does not claim GPA or anonymous credentials. The core circuit,
+proof library and hash-pinned setup tooling were committed as `407075e`.
+
+Added forward migration `0012`, with six immutable BCNF relations for credential,
+issuance/revocation events, revocation, challenge and one-use acceptance. Approved
+decision references reconstruct dependent record/version/tenant/student context.
+Exact concurrent issuance retains the first artifact; issuance cannot silently
+race a newer approved version. The restricted API has seven explicit RPC grants
+and no raw private-proof table access. Worker/signer startup guards also protect
+the new schema. The separate Ed25519 issuer attests the SQL-derived commitment.
+The holder secret remains client-side and is proved by the circuit.
+
+Acceptance independently verifies the actual proof and issuer binding, then locks
+the record head and rechecks database-clock expiry and live revocation/currentness
+while inserting the unique consumed-challenge fact. Concurrent copies have one
+winner. A signed as-of receipt is returned only after consumption commits. A lost
+success response requires a new challenge rather than replay recovery.
+
+Issuance/revocation append to the existing institutional signed-history sequence
+without rewriting earlier commitments/checkpoints. They do not enter Mongo grade
+delivery; the operator reads minimal public event facts, not private witnesses.
+Online ZK acceptance does not itself validate a published inclusion sidecar.
+SD-JWT service deployment, independent verifier trust distribution and wider proof
+packaging remain distinct integration boundaries.
+
+The real circuit suite passed all five reported checks, including raw invalid
+witnesses rather than only host prechecks. All 55 isolated SQL/Mongo integration
+checks passed, including concurrent issuance/acceptance, both expiry clocks,
+revocation, supersession and source-log compatibility. The 45 SQL regression checks
+passed before development rollout. Quality checks passed 91 tooling/unit checks;
+the production build and both live browser journeys passed. Frontend evidence and
+final rollout/CI observations are recorded in the following delivery entry.
+
+Setup preserves a single-operator development ceremony and distinct issuer keys,
+with source/R1CS/WASM/proving-key/verification-key manifest checks. It is not an
+independently contributed production setup or a security audit. Public identifiers
+remain linkable; repeated consented thresholds can narrow a grade. Host side-channel
+resistance is not claimed. Dependency overrides resolve high/moderate findings;
+15 low advisories remain through unused circomlibjs signing dependencies, as
+documented in the dependency guide. No breaking audit-fix downgrade was applied.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

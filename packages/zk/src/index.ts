@@ -3,6 +3,14 @@ import { field } from './fields.js';
 export * from './fields.js';
 export * from './proof.js';
 let poseidon: ReturnType<typeof buildPoseidon> | undefined;
+/** Call only after the process has stopped accepting proof/hash work. */
+export async function closeProofRuntime(): Promise<void> {
+  if (poseidon) await poseidon;
+  poseidon = undefined;
+  await (
+    globalThis as { curve_bn128?: { terminate: () => Promise<void> } }
+  ).curve_bn128?.terminate();
+}
 export async function hashFields(values: readonly string[]): Promise<string> {
   poseidon ??= buildPoseidon();
   const hash = await poseidon;

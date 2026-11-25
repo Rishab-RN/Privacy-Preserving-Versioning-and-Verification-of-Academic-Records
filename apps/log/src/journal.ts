@@ -144,7 +144,7 @@ export async function readJournal(client: JournalSql, logId: string): Promise<Jo
       FROM transparency.event_position p
       LEFT JOIN transparency.event_context e USING(event_id)
       LEFT JOIN workflow.outbox_delivery d USING(event_id)
-      LEFT JOIN workflow.change_request q ON q.request_id=e.request_id
+      LEFT JOIN workflow.change_request q ON q.request_id=e.request_id AND e.source_kind='workflow'
       LEFT JOIN evidence.reference er ON er.evidence_id=q.evidence_id
       WHERE p.institution_id=$1 ORDER BY p.leaf_index LIMIT 100001`,
       [logId],

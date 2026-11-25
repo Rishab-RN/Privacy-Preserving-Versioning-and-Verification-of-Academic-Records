@@ -15,6 +15,17 @@ const manifestPath = join(dir, 'manifest.json');
 if (existsSync(manifestPath)) {
   const m = JSON.parse(readFileSync(manifestPath, 'utf8'));
   if (
+    m.profile !== 'academic-grade-threshold-v1' ||
+    m.setup !== 'local-development-only' ||
+    Object.keys(m.files).sort().join(',') !==
+      [
+        'grade_threshold.r1cs',
+        'grade_threshold_js/grade_threshold.wasm',
+        'grade_final.zkey',
+        'verification_key.json',
+      ]
+        .sort()
+        .join(',') ||
     m.sourceHash !== sha(source) ||
     Object.entries(m.files).some(([name, hash]) => sha(join(dir, name)) !== hash)
   )
