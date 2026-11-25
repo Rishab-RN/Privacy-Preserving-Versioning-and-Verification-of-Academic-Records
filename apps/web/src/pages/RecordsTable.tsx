@@ -6,10 +6,12 @@ export function RecordsTable({
   records,
   loading,
   detailed = false,
+  onHistory,
 }: {
   records: TranscriptResponse['records'];
   loading: boolean;
   detailed?: boolean;
+  onHistory?: (record: TranscriptResponse['records'][number]) => void;
 }) {
   const [search, setSearch] = useState('');
   const visible = records.filter((r) => r.course_code.toLowerCase().includes(search.toLowerCase()));
@@ -52,6 +54,7 @@ export function RecordsTable({
               <th>Outcome</th>
               <th>Version</th>
               {detailed && <th>Recorded at</th>}
+              {onHistory && <th>History</th>}
             </tr>
           </thead>
           <tbody>
@@ -79,6 +82,17 @@ export function RecordsTable({
                   <td>
                     {date(r.recorded_at)}
                     <small className="range">Valid interval: {r.valid_during}</small>
+                  </td>
+                )}
+                {onHistory && (
+                  <td>
+                    <button
+                      className="text-button"
+                      aria-label={`View ${r.course_code} history`}
+                      onClick={() => onHistory(r)}
+                    >
+                      View history
+                    </button>
                   </td>
                 )}
               </tr>

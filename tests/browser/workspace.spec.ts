@@ -172,6 +172,18 @@ test('live student, auditor and independent registrar browser journeys', async (
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   await page.unroute('**/api/v1/students/*/transcript*');
   await login(page, student);
+  await page.getByRole('navigation').getByRole('button', { name: 'Records' }).click();
+  const showHistory = page.getByRole('button', { name: 'View DEMO_WORKFLOW history' });
+  await showHistory.focus();
+  await page.keyboard.press('Enter');
+  const revisions = page.getByRole('region', { name: 'Recorded revisions' });
+  const versionRow = (version: number) =>
+    revisions.getByRole('row').filter({
+      has: page.getByRole('cell', { name: `v${version}`, exact: true }),
+    });
+  await expect(versionRow(Number(applied))).toContainText('8.00');
+  await expect(versionRow(Number(applied) - 1)).toBeVisible();
+  await page.screenshot({ path: resolve(out, '11-student-recorded-history.png'), fullPage: true });
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   expect(consoleErrors).toEqual([]);

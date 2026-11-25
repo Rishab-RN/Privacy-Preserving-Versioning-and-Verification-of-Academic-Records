@@ -44,6 +44,14 @@ export interface TranscriptRecord {
   recorded_at: string;
   valid_during: string;
 }
+export interface RecordHistoryResponse {
+  revisions: Pick<
+    TranscriptRecord,
+    'version_no' | 'grade_points' | 'outcome' | 'valid_during' | 'recorded_at'
+  >[];
+  nextBefore: number | null;
+}
+
 export interface TranscriptResponse {
   studentId: string;
   knownAt: string;

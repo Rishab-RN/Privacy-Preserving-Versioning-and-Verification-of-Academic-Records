@@ -356,6 +356,43 @@ test('authenticated HTTP and evidence workflows use isolated restricted database
   );
 
   await context.test(
+    'record history returns only scoped revisions and accepts a strict cursor',
+    async () => {
+      const history = `/records/${f.id('record')}/history`;
+      assert.equal((await request(history)).status, 401);
+      for (const token of [studentToken, registrarToken, auditorToken]) {
+        const response = await request(history, { token });
+        assert.equal(response.status, 200);
+        const revisions = response.body.revisions as { version_no: number; grade_points: string }[];
+        assert.deepEqual(
+          revisions.map((v) => [v.version_no, v.grade_points]),
+          [
+            [2, '8.00'],
+            [1, '6.00'],
+          ],
+        );
+        assert.equal(response.body.nextBefore, null);
+        assert.deepEqual(Object.keys(revisions[0]!).sort(), [
+          'grade_points',
+          'outcome',
+          'recorded_at',
+          'valid_during',
+          'version_no',
+        ]);
+      }
+      for (const token of [peerToken, examinerToken, foreignToken])
+        assert.equal((await request(history, { token })).status, 404);
+      const older = await request(history + '?before=2', { token: studentToken });
+      assert.equal(older.status, 200);
+      assert.deepEqual(
+        (older.body.revisions as { version_no: number }[]).map((v) => v.version_no),
+        [1],
+      );
+      assert.equal((await request(history + '?before=0', { token: studentToken })).status, 400);
+    },
+  );
+
+  await context.test(
     'a removed institutional role affects the next authenticated request',
     async () => {
       await admin.query('DELETE FROM academic.role_assignment WHERE user_id=$1', [auditor.userId]);

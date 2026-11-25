@@ -5,6 +5,7 @@ import { Brand, Icon, Badge, Field, Alert, Panel } from './ui.js';
 import { date } from './format.js';
 import { message } from './api.js';
 import { RecordsTable } from './pages/RecordsTable.js';
+import { RecordHistory } from './pages/RecordHistory.js';
 import { Evidence } from './pages/Evidence.js';
 import { Review } from './pages/Review.js';
 import { CredentialStatus } from './pages/CredentialStatus.js';
@@ -41,6 +42,7 @@ export function Workspace({
       : []),
   ];
   const transcriptRequest = useRef(0);
+  const [history, setHistory] = useState<TranscriptResponse['records'][number] | null>(null);
   useEffect(() => {
     let active = true;
     void api<{ students: StudentSummary[] }>('/students')
@@ -199,6 +201,7 @@ export function Workspace({
                   transcriptRequest.current++;
                   setStudent(e.target.value);
                   setTranscript(null);
+                  setHistory(null);
                 }}
               >
                 <option value="" disabled>
@@ -339,8 +342,16 @@ export function Workspace({
                     : 'Select an accessible student.'
                 }
               >
-                <RecordsTable records={records} loading={loading} detailed />
+                <RecordsTable records={records} loading={loading} detailed onHistory={setHistory} />
               </Panel>
+              {history && (
+                <RecordHistory
+                  key={history.record_id}
+                  api={api}
+                  recordId={history.record_id}
+                  course={history.course_code}
+                />
+              )}
             </>
           )}
           {page === 'Evidence' && (

@@ -1,7 +1,8 @@
 import express from 'express';
+import { z } from 'zod';
 import type { ErrorRequestHandler } from 'express';
 import type { ApiErrorResponse, LivenessResponse } from '@scholarproof/contracts';
-import { ApiFailure } from './errors.js';
+import { ApiFailure, notFound } from './errors.js';
 import { evidenceInput, loginInput, parse, transcriptInput, uuid } from './inputs.js';
 import type { Platform } from './platform.js';
 import { WindowLimiter } from './security.js';
@@ -82,6 +83,26 @@ export function createApp(platform?: Platform) {
         'Student directory exceeds prototype result limit',
       );
     response.json({ students });
+  });
+  api.get('/records/:recordId/history', async (request, response) => {
+    const { principal } = await platform!.authenticate(request.get('authorization'));
+    const recordId = parse(uuid, request.params.recordId);
+    const { before } = parse(
+      z
+        .object({
+          before: z
+            .string()
+            .regex(/^[1-9]\d{0,9}$/)
+            .transform(Number)
+            .pipe(z.number().int().max(2147483647))
+            .optional(),
+        })
+        .strict(),
+      request.query,
+    );
+    const history = await platform!.repository.recordHistory(principal.userId, recordId, before);
+    if (!history) throw notFound();
+    response.json(history);
   });
   api.post('/records/:recordId/evidence', async (request, response) => {
     const { principal } = await platform!.authenticate(request.get('authorization'));
