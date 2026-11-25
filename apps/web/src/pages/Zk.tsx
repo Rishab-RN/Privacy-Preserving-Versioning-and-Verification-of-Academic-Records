@@ -13,7 +13,7 @@ import { importJWK, jwtVerify } from 'jose';
 import type { JWK } from 'jose';
 import type { Api } from '../types.js';
 import { request, message, RequestFailure } from '../api.js';
-import { Panel, Field, Alert, Badge } from '../ui.js';
+import { Panel, Field, Alert, Badge, Icon } from '../ui.js';
 import { idPattern } from '../format.js';
 interface ZkConfig {
   profile: string;
@@ -249,7 +249,7 @@ export function Zk({ api, studentId }: { api: Api; studentId: string }) {
       {error && <Alert>{error}</Alert>}
       <div className="two-col">
         <Panel
-          title="1 · Create a proof credential"
+          title="Create a proof credential"
           subtitle="Choose a current, independently approved passed course result."
         >
           {listError && <Alert>{listError}</Alert>}
@@ -326,7 +326,7 @@ export function Zk({ api, studentId }: { api: Api; studentId: string }) {
           )}
         </Panel>
         <Panel
-          title="2 · Consent and generate proof"
+          title="Preview and generate proof"
           subtitle="Each proof is bound to a fresh, single-use verifier challenge."
         >
           <form onSubmit={(e) => void prove(e)}>
@@ -411,7 +411,8 @@ export function ProofVerifier() {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [result, setResult] = useState<Acceptance | null>(null),
-    [onlineState, setOnlineState] = useState('');
+    [onlineState, setOnlineState] = useState(''),
+    [dragging, setDragging] = useState(false);
   function resetResults() {
     setError('');
     setHistory(null);
@@ -537,9 +538,9 @@ export function ProofVerifier() {
       <a href="/">← Sign-in workspace</a>
       <div className="page-heading">
         <div>
-          <span className="eyebrow dark">PRIVATE ELIGIBILITY VERIFICATION</span>
-          <h1>Proof, without the grade.</h1>
-          <p>Verify a shared grade-threshold proof and its current academic status.</p>
+          <p className="workspace-label">Public verifier</p>
+          <h1>Verify a private grade proof</h1>
+          <p>Check a grade threshold, issuance history and current academic status.</p>
         </div>
       </div>
       <Panel
@@ -548,17 +549,33 @@ export function ProofVerifier() {
       >
         <Badge tone="amber">Local development ceremony</Badge>
         <form onSubmit={(e) => void verify(e)}>
-          <Field label="Shareable proof file">
-            <input
-              type="file"
-              accept="application/json,.json"
-              disabled={busy}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void loadFile(file, setSource);
-              }}
-            />
-          </Field>
+          <div
+            className={`proof-drop${dragging ? ' is-dragging' : ''}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              const file = event.dataTransfer.files[0];
+              if (file && !busy) void loadFile(file, setSource);
+            }}
+          >
+            <Icon name="Evidence" />
+            <Field label="Shareable proof file" hint="Choose or drop the JSON proof file here.">
+              <input
+                type="file"
+                accept="application/json,.json"
+                disabled={busy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void loadFile(file, setSource);
+                }}
+              />
+            </Field>
+          </div>
           <Field label="Shareable proof JSON">
             <textarea
               required

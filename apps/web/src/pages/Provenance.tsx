@@ -4,7 +4,61 @@ import type { ProvenanceReview } from '@scholarproof/contracts';
 import type { Api } from '../types.js';
 import { message } from '../api.js';
 import { date, idPattern } from '../format.js';
-import { Alert, Badge, Field, Panel } from '../ui.js';
+import { Alert, Badge, Field, Panel, Icon } from '../ui.js';
+
+const signalViews = ['Approval pairs', 'Upward corrections', 'Evidence reuse'] as const;
+
+function ApprovalPath({ ancestry }: { ancestry: ProvenanceReview['ancestry'] }) {
+  const [version, setVersion] = useState(ancestry[0]!.version);
+  const [part, setPart] = useState('Request');
+  const row = ancestry.find((item) => item.version === version) ?? ancestry[0]!;
+  const steps = [
+    { label: 'Request', icon: 'Records', value: row.requestId },
+    { label: 'Proposer', icon: 'Evidence', value: row.proposerId },
+    { label: 'Approver', icon: 'Review', value: row.approverId },
+    { label: 'Evidence', icon: 'Private proofs', value: row.evidenceId },
+  ];
+  const active = steps.find((step) => step.label === part)!;
+  return (
+    <div className="approval-explorer">
+      <div className="version-rail" role="group" aria-label="Select an ancestry version">
+        {ancestry.map((item) => (
+          <button
+            type="button"
+            key={item.version}
+            aria-pressed={item.version === row.version}
+            onClick={() => setVersion(item.version)}
+          >
+            v{item.version}
+          </button>
+        ))}
+      </div>
+      <div className="approval-map" role="group" aria-label="Inspect approval relationships">
+        {steps.map((step) => (
+          <button
+            type="button"
+            key={step.label}
+            aria-pressed={part === step.label}
+            onClick={() => setPart(step.label)}
+          >
+            <Icon name={step.icon} />
+            <strong>{step.label}</strong>
+          </button>
+        ))}
+      </div>
+      <div className="approval-detail" aria-live="polite">
+        <strong>
+          {active.label} · v{row.version}
+        </strong>
+        {active.value ? (
+          <code>{active.value}</code>
+        ) : (
+          <span>No workflow evidence for this version.</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ResultsTable({
   label,
@@ -73,6 +127,7 @@ export function Provenance({
   const [result, setResult] = useState<ProvenanceReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [signal, setSignal] = useState<(typeof signalViews)[number]>('Approval pairs');
 
   async function load(event: FormEvent) {
     event.preventDefault();
@@ -167,6 +222,7 @@ export function Provenance({
               title="Version ancestry"
               subtitle="Up to 21 versions, starting with the version requested."
             >
+              {!!result.ancestry.length && <ApprovalPath ancestry={result.ancestry} />}
               <ResultsTable
                 label="Version ancestry"
                 columns={['Version', 'Request and date', 'Proposer', 'Approver', 'Evidence']}
@@ -192,41 +248,56 @@ export function Provenance({
             title="Review signals"
             subtitle={`${date(result.from)} to ${date(result.to)}. Review patterns alongside the supporting requests.`}
           >
-            <h3>Repeated proposer and approver pairs</h3>
-            <ResultsTable
-              label="Repeated proposer and approver pairs"
-              columns={['Proposer', 'Approver', 'Approvals', 'Supporting requests']}
-              rows={result.pairings.map((row) => [
-                row.proposerId + row.approverId,
-                identifier(row.proposerId),
-                identifier(row.approverId),
-                row.count,
-                requests(row.requestIds),
-              ])}
-            />
-            <h3>Upward corrections by course</h3>
-            <ResultsTable
-              label="Upward corrections by course"
-              columns={['Course', 'Upward corrections', 'Total increase', 'Supporting requests']}
-              rows={result.upward.map((row) => [
-                row.courseId,
-                identifier(row.courseId),
-                row.count,
-                (row.deltaHundredths / 100).toFixed(2),
-                requests(row.requestIds),
-              ])}
-            />
-            <h3>Evidence reuse</h3>
-            <ResultsTable
-              label="Evidence reuse"
-              columns={['Evidence digest', 'Approvals', 'Supporting requests']}
-              rows={result.evidenceReuse.map((row) => [
-                row.digest,
-                identifier(row.digest),
-                row.count,
-                requests(row.requestIds),
-              ])}
-            />
+            <div className="signal-switch" role="group" aria-label="Choose a review signal">
+              {signalViews.map((view) => (
+                <button
+                  type="button"
+                  key={view}
+                  aria-pressed={signal === view}
+                  onClick={() => setSignal(view)}
+                >
+                  {view}
+                </button>
+              ))}
+            </div>
+            {signal === 'Approval pairs' && (
+              <ResultsTable
+                label="Repeated proposer and approver pairs"
+                columns={['Proposer', 'Approver', 'Approvals', 'Supporting requests']}
+                rows={result.pairings.map((row) => [
+                  row.proposerId + row.approverId,
+                  identifier(row.proposerId),
+                  identifier(row.approverId),
+                  row.count,
+                  requests(row.requestIds),
+                ])}
+              />
+            )}
+            {signal === 'Upward corrections' && (
+              <ResultsTable
+                label="Upward corrections by course"
+                columns={['Course', 'Upward corrections', 'Total increase', 'Supporting requests']}
+                rows={result.upward.map((row) => [
+                  row.courseId,
+                  identifier(row.courseId),
+                  row.count,
+                  (row.deltaHundredths / 100).toFixed(2),
+                  requests(row.requestIds),
+                ])}
+              />
+            )}
+            {signal === 'Evidence reuse' && (
+              <ResultsTable
+                label="Evidence reuse"
+                columns={['Evidence digest', 'Approvals', 'Supporting requests']}
+                rows={result.evidenceReuse.map((row) => [
+                  row.digest,
+                  identifier(row.digest),
+                  row.count,
+                  requests(row.requestIds),
+                ])}
+              />
+            )}
           </Panel>
         </>
       )}

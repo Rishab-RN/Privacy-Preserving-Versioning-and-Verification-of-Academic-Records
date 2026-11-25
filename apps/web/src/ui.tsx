@@ -6,6 +6,12 @@ export function Icon({ name }: { name: string }) {
     Records: 'M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h7',
     Evidence: 'M12 3v12 M8 7l4-4 4 4 M5 13v7h14v-7',
     Review: 'M9 4h11v17H4V4h2 M9 2h6v4H9z M8 13l3 3 5-6',
+    Provenance:
+      'M5 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M19 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M12 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M7 6h10 M6 8l5 8 M18 8l-5 8',
+    'Private proofs': 'M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10z M9 12l2 2 4-5',
+    'Credential status': 'M4 5h16v13H4z M8 9h8 M8 12h5 M15 17l2 2 4-5',
+    search: 'M13 13l6 6 M15 10a5 5 0 1 1-10 0 5 5 0 0 1 10 0z',
+    close: 'M6 6l12 12 M18 6L6 18',
     arrow: 'M5 12h14 M13 6l6 6-6 6',
     lock: 'M7 10V7a5 5 0 0 1 10 0v3 M5 10h14v11H5z M12 14v3',
     check: 'M5 12l4 4L19 6',
@@ -33,7 +39,7 @@ export function Brand() {
         <Icon name="Records" />
       </span>
       <span>
-        Academic Records<small>VERSIONED. VERIFIED. PRIVATE.</small>
+        Academic Records<small>VERSION & VERIFICATION</small>
       </span>
     </div>
   );
