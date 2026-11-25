@@ -680,6 +680,23 @@ recovery after an unreachable graph. Both browser journeys passed, including
 the registrar's approval-to-provenance path, keyboard use and 390-pixel overflow
 checks. See the [provenance demo](development/provenance-demo.md).
 
+## 2026-11-26 — Academic records interface
+
+The web app uses an archival theme with bundled typefaces and an interactive
+sign-in example. Students open transcripts and private proofs from their
+overview. Registrars open correction and credential workflows, and auditors
+open read-only provenance and decisions. The keyboard page finder lists pages
+available to the signed-in role.
+
+Course history opens directly from the course code and lets users select a
+version. Provenance joins an interactive relationship view to the existing
+ancestry table. The public verifier accepts an uploaded or dropped proof file.
+These controls use the existing API scopes and verification protocols.
+
+The quality gate and production build passed. Both live Chromium journeys passed,
+including independent approval, Neo4j navigation, local proving and proof upload.
+Layout checks and screenshots include desktop and 390-pixel phone widths.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

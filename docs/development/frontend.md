@@ -7,12 +7,13 @@ permission check fails.
 | Screen                        | Show in the demo                                                                                                                                             |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Sign-in                       | Use the assigned subject/password; show a generic invalid-login response without exposing credentials                                                        |
-| Overview                      | Select an accessible student; metrics reflect that student's visible transcript query, with no invented activity/chart data                                  |
+| Overview                      | Open the role's primary workflow, with the selected transcript count for students and scoped directory or institution counts for staff                       |
 | Records                       | Search a course code, inspect recorded versions, apply known/effective time filters, then return to the current view                                         |
 | Evidence                      | Submit a supporting note for a record; show its available reference/digest and retrieve the integrity-checked content                                        |
 | Proposal (registrar)          | Use that evidence reference, outcome, effective interval and reason; submit for independent review and retain the request ID                                 |
 | Review                        | Proposer can inspect but cannot approve their own request; sign in as a second registrar, enter the request ID, inspect facts and confirm approval/rejection |
 | Delivery/history              | Show the immutable decision separately from pending/delivered Mongo projections; refresh status after the worker runs                                        |
+| Provenance                    | Select a version, inspect its request, proposer, approver or evidence, then switch between approval pairings, upward corrections and evidence reuse          |
 | Private proofs (student)      | Issue against the latest independently approved course result, consent to a threshold and generate a real ZK proof in a browser worker                       |
 | Public verifier               | Upload the shareable proof, check issuer/proof/live SQL status and consume its one-use challenge; inspect the signed acceptance receipt                      |
 | Credential status (registrar) | Revoke an institutional proof credential with an immutable reason; subsequent online acceptance fails                                                        |
@@ -32,9 +33,10 @@ length checks help entry but do not replace those server rules.
 After acceptance, return to Records and choose **Current view** to observe the new
 recorded version. Earlier known-at queries remain available. A future-effective
 correction can be the latest recorded revision while today's effective answer
-still differs. **View history** opens the course's recorded revisions, with
-effective intervals and a button for older pages. This view uses the same
-student and institution scope as the transcript.
+still differs. Select the course code to open its recorded revisions. Select a
+revision to see its recording time, effective interval and change from the preceding
+grade when both values are loaded. Use **Load older revisions** to explore earlier
+pages. This view uses the same student and institution scope as the transcript.
 
 Run `npm run worker:once` from a separate terminal to deliver queued Mongo
 projections; the UI cannot run privileged administrative commands. It can refresh
@@ -60,6 +62,7 @@ now includes approved-version persistence, local holder secrets, nonce consumpti
 live currentness and registrar revocation, with real browser tests. The sharing
 preview describes the outgoing proof before consent. The verifier shows the
 issuance checkpoint and the live acceptance timestamp separately. See the
-[ZK demo](zero-knowledge-demo.md) for exact steps and trust limits. SD-JWT remains
-a separate library; graph/ML and their reviewer screens remain mandatory later
-milestones. Passing the ZK gate does not claim those modules are implemented.
+[ZK demo](zero-knowledge-demo.md) for exact steps and trust limits. The provenance
+view displays Neo4j data with its projection status and SQL high-water mark.
+See the [provenance demo](provenance-demo.md). ML anomaly detection remains a
+mandatory later milestone.

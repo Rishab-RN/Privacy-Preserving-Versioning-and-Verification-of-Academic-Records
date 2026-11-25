@@ -5,6 +5,14 @@ API. It includes sign-in, role-scoped overview, student selection, course search
 historical transcript filters, supporting evidence, registrar proposals and
 independent approval/rejection with delivery status. Pages and shared controls are
 separate modules under `src/`; transport types come from `packages/contracts`.
+The archival theme uses custom CSS, Tailwind layout utilities, and bundled Manrope
+and Space Grotesk fonts.
+
+The student overview opens the transcript and private proof tools. Registrars get
+links for corrections, review, provenance and credential status. Auditors get
+read-only decision and provenance tools. Press `Ctrl+K` or `Cmd+K` to find a page
+available to the current role. In Records, select a course code to inspect its
+recorded revisions.
 
 From the repository root, keep the API running in one terminal and the frontend
 in another:
@@ -69,6 +77,6 @@ these pages; restart the API to load `.env.zk`. The expanded browser suite check
 real proving, public payloads, tampering/replay/revocation and mobile overflow.
 See the [ZK demo](../../docs/development/zero-knowledge-demo.md).
 
-The separate SD-JWT cryptographic library is not a deployed service. Neo4j and ML
-screens remain later work; their success is not simulated. See the
+Neo4j provenance is available in the registrar and auditor workspaces. ML
+anomaly detection remains a later milestone. See the
 [frontend walkthrough](../../docs/development/frontend.md).
