@@ -1,8 +1,16 @@
 import neo4j from 'neo4j-driver';
 import type { Driver, ManagedTransaction } from 'neo4j-driver';
 import type { Sql } from '../repository.js';
-import { ancestry, evidenceReuse, features, pairings, upward, upsertFacts } from './queries.js';
-import { graphId, readSource, timestamp } from './source.js';
+import {
+  ancestry,
+  evidenceReuse,
+  featureBatch,
+  features,
+  pairings,
+  upward,
+  upsertFacts,
+} from './queries.js';
+import { graphId, readSource, timestamp, windowStart } from './source.js';
 import type { ApprovedFact } from './source.js';
 import type { ProvenanceReview } from '@scholarproof/contracts';
 
@@ -212,6 +220,64 @@ export async function priorFeatures(driver: Driver, scope: string, requestId: st
         )
       )[0] ?? null
     );
+  } finally {
+    await session.close();
+  }
+}
+
+export async function extractGraphFeatures(
+  driver: Driver,
+  scope: string,
+  size: number,
+  facts: ApprovedFact[],
+) {
+  const start = await cursorFor(driver, scope);
+  if (start.cursor !== size) throw new Error('Neo4j cursor must match the SQL snapshot');
+  const session = driver.session({ database: 'neo4j' });
+  const counts = new Map<string, { pair30d: number; evidence30d: number }>();
+  try {
+    for (let index = 0; index < facts.length; index += 100) {
+      const batch = facts.slice(index, index + 100);
+      const expected = new Map(batch.map((fact) => [fact.request_id, fact]));
+      const targets = batch.map((fact) => ({
+        requestId: fact.request_id,
+        // Keep the exact microsecond boundary used by the SQL chronology.
+        from: windowStart(fact.occurred_at),
+      }));
+      const result = await session.executeRead(
+        (tx) =>
+          rows<{
+            requestId: string;
+            eventTime: string;
+            position: number;
+            priorPairCount: number;
+            priorEvidenceCount: number;
+          }>(tx, featureBatch, { scope, targets }),
+        queryLimit,
+      );
+      for (const row of result) {
+        const fact = expected.get(row.requestId);
+        if (
+          !fact ||
+          counts.has(row.requestId) ||
+          row.position !== fact.position ||
+          row.eventTime !== fact.occurred_at ||
+          [row.priorPairCount, row.priorEvidenceCount].some(
+            (value) => !Number.isSafeInteger(value) || value < 0 || value > row.position,
+          )
+        )
+          throw new Error('Neo4j returned inconsistent feature history');
+        counts.set(row.requestId, {
+          pair30d: row.priorPairCount,
+          evidence30d: row.priorEvidenceCount,
+        });
+      }
+      if (result.length !== batch.length) throw new Error('Neo4j feature history is incomplete');
+    }
+    const end = await cursorFor(driver, scope);
+    if (end.cursor !== start.cursor || end.syncedAt !== start.syncedAt)
+      throw new Error('Neo4j projection changed during feature extraction');
+    return { counts, syncedAt: end.syncedAt };
   } finally {
     await session.close();
   }

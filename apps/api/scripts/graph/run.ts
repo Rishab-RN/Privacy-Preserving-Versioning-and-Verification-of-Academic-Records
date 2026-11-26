@@ -1,4 +1,4 @@
-import { Client } from 'pg';
+import type { Client } from 'pg';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
   openGraph,
@@ -7,8 +7,8 @@ import {
   setupSchema,
   syncOnce,
 } from '../../src/provenance/graph.js';
-import { graphId, readSource } from '../../src/provenance/source.js';
-import type { ApprovedFact } from '../../src/provenance/source.js';
+import { graphId, readSnapshot } from '../../src/provenance/source.js';
+import { openWorkerSql } from './worker-sql.js';
 
 const [command, scopeArg, ...extra] = process.argv.slice(2);
 if (
@@ -30,47 +30,10 @@ try {
   } else {
     const scope = graphId.parse(scopeArg);
     await requireGraphSchema(graph);
-    const {
-      WORKER_POSTGRES_USER: user,
-      WORKER_POSTGRES_PASSWORD: password,
-      POSTGRES_DB: database,
-    } = process.env;
-    if (
-      !user ||
-      !password ||
-      !database ||
-      user === process.env.POSTGRES_USER ||
-      !/^[a-z][a-z0-9_]{0,62}$/.test(database) ||
-      ['postgres', 'template0', 'template1'].includes(database)
-    )
-      throw new Error('Configure the restricted SQL worker first');
-    sql = new Client({
-      host: '127.0.0.1',
-      port: Number(process.env.POSTGRES_PORT ?? 55432),
-      database,
-      user,
-      password,
-      connectionTimeoutMillis: 3000,
-      statement_timeout: 5000,
-    });
-    await sql.connect();
-    const grants = await sql.query<{
-      safe: boolean;
-    }>(`SELECT pg_has_role(current_user,'scholarproof_worker_access','USAGE')
-      AND NOT has_table_privilege(current_user,'provenance.approved_fact','SELECT') AS safe`);
-    if (!grants.rows[0]?.safe) throw new Error('Unexpected SQL worker privileges');
+    sql = await openWorkerSql();
     if (command === 'rebuild') {
-      const facts: ApprovedFact[] = [];
       await sql.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      let cursor = 0,
-        size: number;
-      do {
-        const page = await readSource(sql, scope, cursor);
-        size = page.size;
-        if (size > 10000) throw new Error('Rebuild exceeds the 10,000-slot prototype limit');
-        facts.push(...page.facts);
-        cursor = page.next;
-      } while (cursor < size);
+      const { facts, size } = await readSnapshot(sql, scope);
       await sql.query('COMMIT');
       console.info(await rebuild(graph, scope, size, facts));
     } else {

@@ -3,7 +3,7 @@ import type { Sql } from '../repository.js';
 
 export const graphId = z.string().regex(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/);
 const count = z.number().int().nonnegative().safe();
-const fact = z
+export const approvalFact = z
   .object({
     event_id: graphId,
     occurred_at: z.string().regex(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/),
@@ -20,12 +20,16 @@ const fact = z
     delta_hundredths: z.number().int().min(-1000).max(1000).nullable(),
   })
   .strict();
-export type ApprovedFact = z.infer<typeof fact> & { position: number };
+export type ApprovedFact = z.infer<typeof approvalFact> & { position: number };
 const batch = z
   .object({
     size: count,
     slots: z
-      .array(z.object({ position: count, accepted: z.boolean(), fact: fact.nullable() }).strict())
+      .array(
+        z
+          .object({ position: count, accepted: z.boolean(), fact: approvalFact.nullable() })
+          .strict(),
+      )
       .max(100),
   })
   .strict();
@@ -58,4 +62,25 @@ export async function readSource(sql: Sql, scope: string, cursor: number, limit 
 
 export function timestamp(date: Date) {
   return date.toISOString().replace(/(\.\d{3})Z$/, (_match, fraction: string) => fraction + '000Z');
+}
+
+export function windowStart(occurredAt: string) {
+  return new Date(Date.parse(occurredAt) - 30 * 86400000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, occurredAt.slice(19));
+}
+
+/** Caller must hold a repeatable-read transaction for the complete bounded snapshot. */
+export async function readSnapshot(sql: Sql, scope: string) {
+  const facts: ApprovedFact[] = [];
+  let cursor = 0;
+  let size: number;
+  do {
+    const page = await readSource(sql, scope, cursor);
+    size = page.size;
+    if (size > 10000) throw new Error('Snapshot exceeds the 10,000-slot prototype limit');
+    facts.push(...page.facts);
+    cursor = page.next;
+  } while (cursor < size);
+  return { size, facts };
 }

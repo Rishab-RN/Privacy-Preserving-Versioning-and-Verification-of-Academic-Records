@@ -12,6 +12,7 @@ temp/
 .runtime/
 backups/
 node_modules/
+.venv/
 **/dist/
 **/build/
 **/coverage/
