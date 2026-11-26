@@ -3,7 +3,7 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase — Week 8 Neo4j provenance.**
+**Current phase — Week 9 anomaly review.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
@@ -18,8 +18,9 @@ live API. Record timelines show recorded and effective dates for each revision.
 Students preview the fields in their grade proof. Verifiers can check a signed
 issuance proof and see that result alongside the live status and check time.
 Neo4j traces accepted revisions to approval actors and evidence and reports how
-far the graph has caught up. ML anomaly detection is scheduled for Week 9.
-See the [provenance demo](docs/development/provenance-demo.md).
+far the graph has caught up. The anomaly review ranks approved corrections using
+Python Isolation Forest and Neo4j relationship counts. It shows the model version,
+freshness and feature explanations. See the [anomaly demo](docs/development/anomaly-demo.md).
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 
@@ -45,9 +46,9 @@ verification request without routinely exposing an entire transcript.
   graph-derived features, with reviewable risk explanations.
 
 Tamper verification, zero-knowledge proofs, Neo4j provenance and ML anomaly
-detection are **mandatory project deliverables**. Tamper verification and the
-bounded ZK grade predicate and graph provenance are implemented. ML is scheduled later and
-are not optional extensions. Vector search is assessed separately by use case.
+detection are **mandatory project deliverables**. The implementation includes
+tamper checks, a bounded ZK grade predicate, graph provenance and synthetic-trained
+anomaly ranking. Vector search is assessed separately by use case.
 Publication and novelty claims depend on measured evidence.
 
 ## Technology and implementation status
@@ -62,7 +63,7 @@ Publication and novelty claims depend on measured evidence.
 | Verification               | Canonical commitments, signed checkpoints, Merkle proofs and offline verifier                  |
 | Zero-knowledge predicate   | Circom/Groth16; approved course-grade threshold, local browser proving and live SQL acceptance |
 | Required graph provenance  | Neo4j, committed SQL outbox replay, scoped Cypher review and review feature inputs             |
-| Required anomaly detection | Python ML, rules and graph-derived features; implementation pending                            |
+| Required anomaly detection | Python, Isolation Forest, rules baseline, decision-time graph features and reviewer scores     |
 | Use-case decision          | Vector search; no engine added without a justified workload                                    |
 
 See the [academic model](docs/architecture/academic-model.md) for assumptions and
@@ -90,6 +91,7 @@ apps/
   web/                      Live React workspace for scoped records and review
   worker/                   Restricted outbox consumer and Mongo projections
   log/                      Separate signer, private proof export and source audit
+  anomaly/                  Python simulation, evaluation and scoring publication
 packages/
   contracts/                Shared transport types
   verification/             Canonicalization, signatures and Merkle verification

@@ -77,6 +77,6 @@ these pages; restart the API to load `.env.zk`. The expanded browser suite check
 real proving, public payloads, tampering/replay/revocation and mobile overflow.
 See the [ZK demo](../../docs/development/zero-knowledge-demo.md).
 
-Neo4j provenance is available in the registrar and auditor workspaces. ML
-anomaly detection remains a later milestone. See the
-[frontend walkthrough](../../docs/development/frontend.md).
+Neo4j provenance and the advisory anomaly review are available in the registrar
+and auditor workspaces. See the [anomaly demo](../../docs/development/anomaly-demo.md)
+to generate a scoring snapshot for the synthetic institution.

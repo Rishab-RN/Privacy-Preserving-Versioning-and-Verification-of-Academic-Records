@@ -64,5 +64,5 @@ preview describes the outgoing proof before consent. The verifier shows the
 issuance checkpoint and the live acceptance timestamp separately. See the
 [ZK demo](zero-knowledge-demo.md) for exact steps and trust limits. The provenance
 view displays Neo4j data with its projection status and SQL high-water mark.
-See the [provenance demo](provenance-demo.md). ML anomaly detection remains a
-mandatory later milestone.
+The anomaly panel includes a ranked list and feature explanations from a
+synthetic-trained model. See the [anomaly demo](anomaly-demo.md).

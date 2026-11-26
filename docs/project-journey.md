@@ -697,6 +697,29 @@ The quality gate and production build passed. Both live Chromium journeys passed
 including independent approval, Neo4j navigation, local proving and proof upload.
 Layout checks and screenshots include desktop and 390-pixel phone widths.
 
+## 2026-11-26 — Week 9 correction anomaly review
+
+The pinned Python pipeline evaluates rules and two Isolation Forest variants
+against identical chronological cohorts. It reconciles Neo4j relationship
+counts with an independent replay and uses only earlier event times and
+committed positions. Evidence reuse as an injected pattern is held out for
+testing. The graph model achieved 0.139 mean average precision across three
+seeds, compared with 0.105 for tabular ML and 0.135 for rules. Its precision
+at a 10% review budget was 0.195. Most flagged cases at that budget were
+benign, and record bursts had low recall across all baselines.
+
+The registrar and auditor provenance workspace lists ranked approved
+corrections, model and snapshot freshness, and sensitivity explanations. A
+scoped API hides scores when the SQL head or graph snapshot changes. The
+separate scoring command publishes atomic, ignored local artifacts using
+the existing restricted worker read path. No new database tables were needed.
+
+The build, three Python checks, both live Chromium journeys and 63 isolated
+integration checks passed. The integration tests cover scope denial, incomplete
+projection and exact time/commit-order boundaries. Chromium exercises the
+stale-to-current publication flow and preserves the independent approval and
+private proof journeys. See the [experiment and demo](development/anomaly-demo.md).
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
