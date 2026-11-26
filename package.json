@@ -63,6 +63,8 @@
     "log:publish": "npm run run --workspace @academic-records/log -- publish",
     "log:audit": "npm run run --workspace @academic-records/log -- audit",
     "log:export": "npm run run --workspace @academic-records/log -- export",
+    "log:link": "npm run run --workspace @academic-records/log -- link",
+    "log:witness": "node --import tsx apps/log/src/witness.ts",
     "log:demo": "npm run run --workspace @academic-records/log -- demo",
     "verify:event": "npm run verify --workspace @academic-records/verification --",
     "zk:setup": "node scripts/zk/setup.mjs && node scripts/zk/issuer.mjs",
