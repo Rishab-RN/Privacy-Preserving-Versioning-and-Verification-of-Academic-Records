@@ -6,6 +6,7 @@ import { message } from '../api.js';
 import { date, idPattern } from '../format.js';
 import { Alert, Badge, Field, Panel, Icon } from '../ui.js';
 import { AnomalyReview } from './AnomalyReview.js';
+import { CorrectionIntegrity } from './CorrectionIntegrity.js';
 
 const signalViews = ['Approval pairs', 'Upward corrections', 'Evidence reuse'] as const;
 
@@ -121,7 +122,7 @@ export function Provenance({
 }: {
   api: Api;
   institutions: string[];
-  initial: { recordId: string; version: number } | null;
+  initial: { recordId: string; version: number; requestId: string; eventId: string | null } | null;
   openRequest: (requestId: string) => void;
 }) {
   const [institution, setInstitution] = useState(institutions[0] ?? '');
@@ -133,6 +134,13 @@ export function Provenance({
   const [anomaly, setAnomaly] = useState<ReviewData | null>(null);
   const [anomalyError, setAnomalyError] = useState('');
   const [signal, setSignal] = useState<(typeof signalViews)[number]>('Approval pairs');
+  const target =
+    result?.ancestry.find((row) => row.version === Number(version)) ??
+    (initial?.recordId === recordId &&
+    initial.version === Number(version) &&
+    institution === institutions[0]
+      ? initial
+      : null);
 
   async function load(event: FormEvent) {
     event.preventDefault();
@@ -220,6 +228,14 @@ export function Provenance({
       </Panel>
       {error && <Alert>{error}</Alert>}
       {anomalyError && <Alert>Anomaly review unavailable. {anomalyError}</Alert>}
+      {target?.requestId && (
+        <CorrectionIntegrity
+          key={target.requestId}
+          api={api}
+          requestId={target.requestId}
+          eventId={target.eventId}
+        />
+      )}
       {result && (
         <>
           <Panel title="Projection freshness">

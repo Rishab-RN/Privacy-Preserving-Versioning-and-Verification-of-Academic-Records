@@ -1,26 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
-
-const exec = promisify(execFile);
-async function runLog(command: string, args: string[]) {
-  await exec(
-    process.execPath,
-    [
-      '--env-file-if-exists=.env',
-      '--env-file-if-exists=.env.log',
-      '--import',
-      'tsx',
-      'apps/log/src/main.ts',
-      command,
-      ...args,
-    ],
-    { timeout: 20_000 },
-  );
-}
+import { runLog } from './log.js';
 
 test('student proves locally, verifier rejects tampering/replay and current-status revocation', async ({
   page,
