@@ -112,7 +112,13 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
         FROM identities i WHERE i.is_login
       ) AS safe FROM identities
     `,
-      [[...privacyFunctions, 'provenance.review_head(text,uuid)']],
+      [
+        [
+          ...privacyFunctions,
+          'provenance.review_head(text,uuid)',
+          'transparency.review_event(text,uuid,jsonb)',
+        ],
+      ],
     );
     if (result.rows[0]?.safe !== true) throw new Error();
   } catch {

@@ -121,6 +121,22 @@ export interface ChangeRequestStatus extends ChangeProposalInput {
 export type AnomalyFeature =
   'delta' | 'missingDelta' | 'record30d' | 'course30d' | 'proposer30d' | 'pair30d' | 'evidence30d';
 
+export interface CorrectionIntegrity {
+  event: 'verified' | 'invalid-proof' | 'journal-mismatch' | 'not-approved' | 'key-unavailable';
+  witness:
+    | 'unchecked'
+    | 'unavailable'
+    | 'matched'
+    | 'extended'
+    | 'older-export'
+    | 'split-view'
+    | 'invalid-consistency'
+    | 'journal-behind-witness';
+  committed: number;
+  checkpointSize: number | null;
+  retainedSize: number | null;
+}
+
 export interface AnomalyRank {
   requestId: string;
   recordId: string;

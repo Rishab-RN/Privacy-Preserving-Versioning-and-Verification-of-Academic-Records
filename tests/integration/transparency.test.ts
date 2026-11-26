@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { test } from 'node:test';
+import { once } from 'node:events';
 import { MongoClient } from 'mongodb';
 import {
   canonicalBytes,
+  commitEvent,
   compareCheckpoints,
   consistencyProof,
+  inclusionProof,
+  merkleRoot,
+  signCheckpoint,
   verifyEventProof,
 } from '@academic-records/verification';
 import { connectTestClient, fixture } from '../database/helpers.js';
@@ -24,6 +29,10 @@ import {
 import { openWorkerRuntime, workerConfig } from '../../apps/worker/src/runtime.js';
 import { runBatch } from '../../apps/worker/src/runner.js';
 import { assertLogSqlIdentity } from '../../apps/log/src/identity.js';
+import { createApp } from '../../apps/api/src/app.js';
+import { openDataRuntime, readDataConfig } from '../../apps/api/src/data-runtime.js';
+import { digestToken, newToken } from '../../apps/api/src/security.js';
+import type { CorrectionIntegrity } from '@scholarproof/contracts';
 
 test('signed workflow history is independently verified against retained observations and actual SQL/Mongo data', async (context) => {
   const admin = await connectTestClient();
@@ -44,8 +53,9 @@ test('signed workflow history is independently verified against retained observa
   context.after(() => worker.close());
   const f = await fixture(admin),
     logId = f.id('institution');
+  const reviewerToken = newToken();
   const proposer = randomBytes(32).toString('hex'),
-    approver = randomBytes(32).toString('hex'),
+    approver = digestToken(reviewerToken),
     approverId = randomUUID();
   await admin.query(
     'INSERT INTO academic.app_user(user_id,auth_subject) VALUES($1,$1::uuid::text)',
@@ -160,6 +170,149 @@ test('signed workflow history is independently verified against retained observa
             /^verify-test-[a-f0-9-]+$/.test(directory.slice(base.length)),
         );
         rmSync(directory, { recursive: true, force: true });
+      }
+    },
+  );
+  await context.test(
+    'scoped integrity checks distinguish bad proofs, retained conflicts, SQL rollback and missing trust',
+    async () => {
+      const directory = resolve(projectRoot, '.runtime', 'witness-api-' + randomUUID());
+      mkdirSync(directory);
+      const retained = join(directory, logId + '.json');
+      const publicPath = join(directory, 'test-public.pem');
+      const savedKey = process.env.ZK_LOG_PUBLIC_KEY_FILE;
+      const savedWitness = process.env.LOG_WITNESS_DIRECTORY;
+      writeFileSync(publicPath, keys.publicKey.export({ format: 'pem', type: 'spki' }));
+      writeFileSync(retained, canonicalBytes(first));
+      process.env.ZK_LOG_PUBLIC_KEY_FILE = publicPath;
+      process.env.LOG_WITNESS_DIRECTORY = directory;
+      const runtime = await openDataRuntime(readDataConfig()!);
+      const server = createApp(runtime.platform).listen(0, '127.0.0.1');
+      try {
+        await once(server, 'listening');
+        const address = server.address();
+        assert.ok(address && typeof address !== 'string');
+        const url = `http://127.0.0.1:${address.port}/api/v1/change-requests/`;
+        const submit = (bundle: unknown, id = request, token = reviewerToken) =>
+          fetch(url + id + '/integrity', {
+            method: 'POST',
+            headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+            body: JSON.stringify({ bundle: canonicalBytes(bundle).toString('utf8') }),
+          });
+        const proof = exportEventProof(snapshot, accepted, event.eventId);
+        const commitments = journalCommitments(snapshot);
+        const path = consistencyProof(commitments, first.body.treeSize);
+        assert.equal((await submit(proof, request, newToken())).status, 401);
+        assert.equal((await submit(proof, randomUUID())).status, 404);
+        await assert.rejects(
+          runtime.platform.repository.sql.query('SELECT transparency.read_expected_event($1)', [
+            event.eventId,
+          ]),
+          { code: '42501' },
+        );
+        await assert.rejects(
+          runtime.platform.repository.sql.query('SELECT salt FROM transparency.event_position'),
+          { code: '42501' },
+        );
+
+        const check = async (bundle: unknown) => {
+          const response = await submit(bundle);
+          assert.equal(response.status, 200);
+          return (await response.json()) as CorrectionIntegrity;
+        };
+        assert.deepEqual(await check({ ...proof, consistencyProof: path }), {
+          event: 'verified',
+          witness: 'extended',
+          committed: 2,
+          checkpointSize: 2,
+          retainedSize: 1,
+        });
+        assert.equal((await check(proof)).witness, 'invalid-consistency');
+        assert.equal(
+          (await check({ ...proof, checkpoint: { ...accepted, signature: 'A'.repeat(86) } })).event,
+          'invalid-proof',
+        );
+        assert.equal(
+          (await check({ ...proof, inclusionProof: ['0'.repeat(64)] })).event,
+          'invalid-proof',
+        );
+        assert.equal(
+          (await check(exportEventProof(snapshot, accepted, snapshot.entries[0]!.eventId))).event,
+          'invalid-proof',
+        );
+        const outOfScope = await fixture(admin);
+        const foreignToken = newToken();
+        await admin.query(
+          'INSERT INTO access_control.api_session(token_digest,user_id) VALUES($1,$2)',
+          [digestToken(foreignToken), outOfScope.id('author')],
+        );
+        assert.equal((await submit(proof, request, foreignToken)).status, 404);
+        await assert.rejects(
+          runtime.platform.repository.sql.query('SELECT transparency.review_event($1,$2,NULL)', [
+            digestToken(newToken()),
+            request,
+          ]),
+          { code: '28000' },
+        );
+
+        writeFileSync(retained, canonicalBytes(accepted));
+        assert.equal((await check(proof)).witness, 'matched');
+        const otherCommitments = ['b'.repeat(64), commitEvent(proof.entry)];
+        const split = signCheckpoint(
+          { ...accepted.body, rootHash: merkleRoot(otherCommitments) },
+          keys.privateKey,
+        );
+        const conflicting = await check({
+          ...proof,
+          checkpoint: split,
+          inclusionProof: inclusionProof(otherCommitments, 1),
+        });
+        assert.equal(conflicting.event, 'verified');
+        assert.equal(conflicting.witness, 'split-view');
+
+        await admin.query("SET session_replication_role='replica'");
+        try {
+          await admin.query(
+            'UPDATE transparency.log_state SET tree_size=1 WHERE institution_id=$1',
+            [logId],
+          );
+          const rolledBack = await check(proof);
+          assert.equal(rolledBack.event, 'journal-mismatch');
+          assert.equal(rolledBack.witness, 'journal-behind-witness');
+          await admin.query(
+            'UPDATE transparency.log_state SET tree_size=2 WHERE institution_id=$1',
+            [logId],
+          );
+          await admin.query(
+            'UPDATE academic.grade_version SET grade_points=9 WHERE record_id=$1 AND version_no=1',
+            [f.id('record')],
+          );
+          assert.equal((await check(proof)).event, 'journal-mismatch');
+        } finally {
+          await admin.query(
+            'UPDATE transparency.log_state SET tree_size=2 WHERE institution_id=$1',
+            [logId],
+          );
+          await admin.query(
+            'UPDATE academic.grade_version SET grade_points=8 WHERE record_id=$1 AND version_no=1',
+            [f.id('record')],
+          );
+          await admin.query("SET session_replication_role='origin'");
+        }
+        unlinkSync(retained);
+        assert.equal((await check(proof)).witness, 'unavailable');
+        unlinkSync(publicPath);
+        assert.equal((await check(proof)).event, 'key-unavailable');
+      } finally {
+        server.closeAllConnections();
+        server.close();
+        await runtime.close();
+        if (savedKey === undefined) delete process.env.ZK_LOG_PUBLIC_KEY_FILE;
+        else process.env.ZK_LOG_PUBLIC_KEY_FILE = savedKey;
+        if (savedWitness === undefined) delete process.env.LOG_WITNESS_DIRECTORY;
+        else process.env.LOG_WITNESS_DIRECTORY = savedWitness;
+        for (const path of [retained, publicPath]) rmSync(path, { force: true });
+        rmdirSync(directory);
       }
     },
   );
