@@ -720,6 +720,31 @@ projection and exact time/commit-order boundaries. Chromium exercises the
 stale-to-current publication flow and preserves the independent approval and
 private proof journeys. See the [experiment and demo](development/anomaly-demo.md).
 
+## 2026-11-26 — Week 10 integrated verification and recovery
+
+The offline witness admits a signed initial observation and proves later
+append-only extensions with the pinned public key. It serializes local writes
+and preserves the previously accepted bytes on rollback, same-size conflicts,
+bad signatures and missing consistency paths. The signer can export a checkpoint
+transfer for a separately operated witness. The lab uses its own witness
+directory on the same host.
+
+Migration `0015` adds a single scoped event comparison function and leaves the
+physical schema unchanged. It was applied locally after validating and saving a
+custom-format PostgreSQL backup. SQL independently reconstructs the authorised
+approval and compares its committed position, salt and payload. The API checks
+the uploaded signature, Merkle inclusion and witness comparison and returns
+verdicts and counts. Review and Provenance show the result alongside graph
+freshness and advisory anomaly scores.
+
+The production build, quality gate, 45 SQL checks, 65 isolated integration
+checks and two Chromium journeys passed. The cases cover altered proofs,
+conflicting roots, shorter journals, missing trust, scope denial, MongoDB
+delivery recovery and Neo4j reset/rebuild. The browser verifies a real approval
+while Neo4j is behind and exercises an invalid proof beside a controlled low
+score. It also checks the real browser-local proof and credential revocation.
+See the [integrated verification demo](development/integrated-verification-demo.md).
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

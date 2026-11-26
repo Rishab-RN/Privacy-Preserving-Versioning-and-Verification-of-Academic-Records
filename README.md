@@ -3,7 +3,7 @@
 A DBMS project exploring how academic records can be corrected, audited and shared
 with verifiers while limiting unnecessary disclosure of student information.
 
-**Current phase — Week 9 anomaly review.**
+**Current phase — Week 10 integrated verification and recovery.**
 Scoped record changes now feed a transactionally ordered institutional log.
 Canonical salted commitments, signed checkpoints, inclusion/consistency proofs and
 an offline verifier complement the recoverable MongoDB worker. A separate operator
@@ -21,6 +21,9 @@ Neo4j traces accepted revisions to approval actors and evidence and reports how
 far the graph has caught up. The anomaly review ranks approved corrections using
 Python Isolation Forest and Neo4j relationship counts. It shows the model version,
 freshness and feature explanations. See the [anomaly demo](docs/development/anomaly-demo.md).
+Reviewers can now check signed approval evidence against SQL and a retained
+checkpoint alongside the graph and model panels. See the
+[integrated demo](docs/development/integrated-verification-demo.md).
 The selected academic bounds and approval rules remain subject to institutional
 policy review.
 

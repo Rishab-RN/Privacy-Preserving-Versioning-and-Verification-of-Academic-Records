@@ -38,6 +38,11 @@ log/event identity separately from the untrusted proof. Export with
 checkpoint to the verifier's `--previous` option to check extension consistency.
 Input files use canonical UTF-8 JSON, not pretty-printed JSON.
 
+Run `npm run log:link` to export a checkpoint transfer and
+`npm run log:witness -- observe` on the receiving host to retain it. The witness
+uses a pinned public key and its own state directory. See the
+[integrated verification guide](../../docs/development/integrated-verification-demo.md).
+
 ## State and recovery
 
 - `.env.log` contains separate generated service passwords. Setup authenticates
