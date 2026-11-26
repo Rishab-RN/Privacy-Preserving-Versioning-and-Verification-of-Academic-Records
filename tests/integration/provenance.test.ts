@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { Pool } from 'pg';
 import { fixture, connectTestClient } from '../database/helpers.js';
 import { createApp } from '../../apps/api/src/app.js';
@@ -9,6 +11,7 @@ import { openDataRuntime, readDataConfig } from '../../apps/api/src/data-runtime
 import { digestToken, newToken } from '../../apps/api/src/security.js';
 import {
   cursorFor,
+  extractGraphFeatures,
   openGraph,
   priorFeatures,
   rebuild,
@@ -18,6 +21,7 @@ import {
 } from '../../apps/api/src/provenance/graph.js';
 import { readSource } from '../../apps/api/src/provenance/source.js';
 import { reviewSql } from '../../apps/api/scripts/graph/baseline.js';
+import { projectRoot } from '../../apps/api/scripts/db/config.js';
 
 test(
   'Neo4j projection reconciles outbox order, SQL answers, bounded features and reviewer scope',
@@ -129,6 +133,21 @@ test(
         code: '42501',
       });
     });
+    await t.test(
+      'anomaly snapshots are read-only and restricted to the reviewer institution',
+      async () => {
+        assert.equal((await get(scope, foreign, '/anomalies' + target)).status, 404);
+        assert.equal((await get(outside, reviewer, '/anomalies' + target)).status, 404);
+        assert.equal((await get(scope, reviewer, '/anomalies?version=3')).status, 400);
+        const empty = await get(scope, reviewer, '/anomalies' + target);
+        assert.equal(empty.status, 200);
+        assert.deepEqual(await empty.json(), {
+          status: 'unavailable',
+          committed: 4,
+          reason: 'missing-snapshot',
+        });
+      },
+    );
 
     await t.test(
       'two overlapping workers and a duplicate retry produce one exact graph',
@@ -191,6 +210,100 @@ test(
           version: 4,
         });
         assert.deepEqual({ ...after, head: before.head }, before);
+      },
+    );
+    await t.test(
+      'anomaly counts exclude equal timestamps, late commits and events before the exact lower bound',
+      async () => {
+        const featureScope = randomUUID();
+        const source = (await readSource(worker, scope, 0)).facts[0]!;
+        const facts = [
+          '2026-01-01T00:00:00.123455Z',
+          '2026-01-01T00:00:00.123456Z',
+          '2026-01-31T00:00:00.123456Z',
+          '2026-01-31T00:00:00.123456Z',
+          '2026-01-30T00:00:00.000000Z',
+        ].map((occurred_at, position) => ({
+          ...source,
+          occurred_at,
+          position,
+          request_id: randomUUID(),
+          event_id: randomUUID(),
+          version_no: position + 2,
+        }));
+        try {
+          await rebuild(graph, featureScope, facts.length, facts);
+          const result = await extractGraphFeatures(graph, featureScope, facts.length, facts);
+          assert.deepEqual(result.counts.get(facts[3]!.request_id), { pair30d: 1, evidence30d: 1 });
+          await assert.rejects(
+            extractGraphFeatures(graph, featureScope, facts.length + 1, facts),
+            /must match the SQL snapshot/,
+          );
+        } finally {
+          await graph.executeQuery('MATCH (n:Prov {scope:$scope}) DETACH DELETE n', {
+            scope: featureScope,
+          });
+          await graph.executeQuery('MATCH (h:ProvenanceHead {key:$scope}) DELETE h', {
+            scope: featureScope,
+          });
+        }
+      },
+    );
+    await t.test(
+      'a scoped graph reset and rebuild preserve SQL while old scores become stale',
+      async () => {
+        const directory = resolve(projectRoot, '.runtime/anomaly');
+        mkdirSync(directory, { recursive: true });
+        const file = resolve(directory, scope + '.json');
+        const before = await cursorFor(graph, scope);
+        writeFileSync(
+          file,
+          JSON.stringify({
+            scope,
+            through: before.cursor,
+            syncedAt: before.syncedAt,
+            generatedAt: new Date().toISOString(),
+            modelVersion: 'isolation-forest-graph-v1-0000000000000000',
+            featureSchema: 'decision-features-v1',
+            trainedOn: 'synthetic',
+            threshold: 0.5,
+            rows: [],
+          }),
+          { flag: 'wx' },
+        );
+        const graphOffline = createApp(runtime.platform).listen(0, '127.0.0.1');
+        try {
+          await once(graphOffline, 'listening');
+          const addr = graphOffline.address();
+          assert.ok(addr && typeof addr !== 'string');
+          const inactive = await fetch(
+            `http://127.0.0.1:${addr.port}/api/v1/provenance/${scope}/anomalies`,
+            {
+              headers: { Authorization: 'Bearer ' + reviewer },
+            },
+          );
+          assert.deepEqual(await inactive.json(), {
+            status: 'unavailable',
+            committed: before.cursor,
+            reason: 'graph-unavailable',
+          });
+          assert.equal((await (await get(scope, reviewer, '/anomalies')).json()).status, 'current');
+          const sql = await readSource(worker, scope, 0);
+          // The enclosing harness owns this random fixture scope exclusively.
+          await graph.executeQuery('MATCH (n:Prov {scope:$scope}) DETACH DELETE n', { scope });
+          await graph.executeQuery('MATCH (h:ProvenanceHead {key:$scope}) DELETE h', { scope });
+          assert.equal((await (await get(scope, reviewer, target)).json()).status, 'lagging');
+          assert.equal((await (await get(scope, reviewer, '/anomalies')).json()).status, 'stale');
+          assert.deepEqual(await readSource(worker, scope, 0), sql);
+          await rebuild(graph, scope, sql.size, sql.facts);
+          assert.equal((await (await get(scope, reviewer, target)).json()).status, 'current');
+          assert.equal((await (await get(scope, reviewer, '/anomalies')).json()).status, 'stale');
+          assert.deepEqual(await readSource(worker, scope, 0), sql);
+        } finally {
+          graphOffline.closeAllConnections();
+          graphOffline.close();
+          rmSync(file);
+        }
       },
     );
   },

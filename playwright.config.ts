@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { browserWitnessDirectory } from './tests/browser/log.js';
 
 export default defineConfig({
   testDir: 'tests/browser',
@@ -21,7 +22,11 @@ export default defineConfig({
     {
       command: 'node apps/api/dist/server.js',
       url: 'http://127.0.0.1:4017/health/live',
-      env: { API_HOST: '127.0.0.1', API_PORT: '4017' },
+      env: {
+        API_HOST: '127.0.0.1',
+        API_PORT: '4017',
+        LOG_WITNESS_DIRECTORY: browserWitnessDirectory,
+      },
       reuseExistingServer: false,
       timeout: 30000,
     },

@@ -50,9 +50,12 @@ export function Workspace({
         .map(({ institutionId }) => institutionId),
     ),
   ];
-  const [graphTarget, setGraphTarget] = useState<{ recordId: string; version: number } | null>(
-    null,
-  );
+  const [graphTarget, setGraphTarget] = useState<{
+    recordId: string;
+    version: number;
+    requestId: string;
+    eventId: string | null;
+  } | null>(null);
   const pages: Page[] = [
     'Overview',
     'Records',
@@ -321,7 +324,15 @@ export function Workspace({
             />
           )}
           {page === 'Provenance' && (
-            <Provenance api={api} institutions={institutions} initial={graphTarget} />
+            <Provenance
+              api={api}
+              institutions={institutions}
+              initial={graphTarget}
+              openRequest={(id) => {
+                remember(id);
+                navigate('Review');
+              }}
+            />
           )}
           {page === 'Review' && (
             <Review
@@ -331,8 +342,8 @@ export function Workspace({
               recent={recent}
               activeRequest={activeRequest}
               remember={remember}
-              openProvenance={(recordId, version) => {
-                setGraphTarget({ recordId, version });
+              openProvenance={(recordId, version, requestId, eventId) => {
+                setGraphTarget({ recordId, version, requestId, eventId });
                 setPage('Provenance');
               }}
             />

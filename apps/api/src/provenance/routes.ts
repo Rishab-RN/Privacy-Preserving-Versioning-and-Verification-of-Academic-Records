@@ -7,6 +7,7 @@ import { parse, uuid } from '../inputs.js';
 import { workflowFailure } from '../workflow.js';
 import { review } from './graph.js';
 import type { ProvenanceReview } from '@scholarproof/contracts';
+import { loadAnomalyReview } from './anomalies.js';
 
 const reviewQuery = z
   .object({
@@ -22,9 +23,8 @@ const reviewQuery = z
   .refine((value) => (value.recordId === undefined) === (value.version === undefined));
 
 export function installProvenanceRoutes(router: Router, platform: Platform, graph?: Driver) {
-  router.get('/provenance/:institutionId', async (req, res) => {
-    const { principal, digest } = await platform.authenticate(req.get('authorization'));
-    const scope = parse(uuid, req.params.institutionId);
+  async function access(header: string | undefined, scope: string) {
+    const { principal, digest } = await platform.authenticate(header);
     if (
       !principal.roles.some(
         (role) =>
@@ -32,8 +32,7 @@ export function installProvenanceRoutes(router: Router, platform: Platform, grap
       )
     )
       throw notFound();
-    const { recordId, version } = parse(reviewQuery, req.query);
-    const head = async () => {
+    return async () => {
       try {
         const { rows } = await platform.repository.sql.query<{ value: string }>(
           'SELECT provenance.review_head($1,$2) AS value',
@@ -46,6 +45,27 @@ export function installProvenanceRoutes(router: Router, platform: Platform, grap
         workflowFailure(e);
       }
     };
+  }
+  router.get('/provenance/:institutionId/anomalies', async (req, res) => {
+    const scope = parse(uuid, req.params.institutionId);
+    const head = await access(req.get('authorization'), scope);
+    const { recordId, version } = parse(reviewQuery, req.query);
+    const committed = await head();
+    const result = await loadAnomalyReview(
+      scope,
+      committed,
+      graph,
+      recordId !== undefined && version !== undefined ? { recordId, version } : undefined,
+    );
+    const current = await head();
+    if (result.status === 'current' && current !== committed) {
+      res.json({ ...result, status: 'stale', committed: current, selected: null, queue: [] });
+    } else res.json({ ...result, committed: current });
+  });
+  router.get('/provenance/:institutionId', async (req, res) => {
+    const scope = parse(uuid, req.params.institutionId);
+    const head = await access(req.get('authorization'), scope);
+    const { recordId, version } = parse(reviewQuery, req.query);
     await head();
     if (!graph) throw new ApiFailure(503, 'GRAPH_UNAVAILABLE', 'Provenance service is unavailable');
     const to = new Date(),

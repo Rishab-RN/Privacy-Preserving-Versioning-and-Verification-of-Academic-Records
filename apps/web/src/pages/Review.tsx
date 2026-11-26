@@ -4,6 +4,7 @@ import type { Api } from '../types.js';
 import { message } from '../api.js';
 import { date, idPattern } from '../format.js';
 import { Panel, Field, Alert, Badge, Empty } from '../ui.js';
+import { CorrectionIntegrity } from './CorrectionIntegrity.js';
 export function Review({
   api,
   registrar,
@@ -19,7 +20,12 @@ export function Review({
   recent: string[];
   activeRequest: string;
   remember: (id: string) => void;
-  openProvenance: (recordId: string, version: number) => void;
+  openProvenance: (
+    recordId: string,
+    version: number,
+    requestId: string,
+    eventId: string | null,
+  ) => void;
 }) {
   const [id, setId] = useState(activeRequest),
     [result, setResult] = useState<ChangeRequestStatus | null>(null),
@@ -60,6 +66,8 @@ export function Review({
       setBusy(false);
     }
   }
+  const approvalEventId =
+    result?.deliveries.find(({ kind }) => kind === 'grade.accepted')?.eventId ?? null;
   return (
     <>
       <Panel
@@ -240,7 +248,14 @@ export function Review({
             {result.decision?.versionNo && (
               <button
                 className="secondary"
-                onClick={() => openProvenance(result.recordId, result.decision!.versionNo!)}
+                onClick={() =>
+                  openProvenance(
+                    result.recordId,
+                    result.decision!.versionNo!,
+                    result.requestId,
+                    approvalEventId,
+                  )
+                }
               >
                 View version provenance
               </button>
@@ -295,6 +310,14 @@ export function Review({
             Find a request to inspect its proposal, decision and delivery state.
           </Empty>
         )
+      )}
+      {result?.decision?.code === 'approved' && (
+        <CorrectionIntegrity
+          key={result.requestId}
+          api={api}
+          requestId={result.requestId}
+          eventId={approvalEventId}
+        />
       )}
     </>
   );

@@ -7,11 +7,11 @@ import {
   canonicalBytes,
   compareCheckpoints,
   consistencyProof,
-  parseCanonical,
   signCheckpoint,
   verifyEventProof,
 } from '@academic-records/verification';
-import type { EventProofBundle, SignedCheckpoint } from '@academic-records/verification';
+import type { EventProofBundle } from '@academic-records/verification';
+import type { SignedCheckpoint } from '@academic-records/verification';
 import { assertRetainedPrefix } from './anchor.js';
 import { auditJournal } from './audit.js';
 import {
@@ -71,10 +71,33 @@ function requiredCheckpoint(path: string) {
   return checkpoint;
 }
 
+function linkedProof(
+  snapshot: Awaited<ReturnType<typeof readJournal>>,
+  checkpoint: SignedCheckpoint,
+  previousPath: string,
+  trusted: ReturnType<typeof createPublicKey>,
+) {
+  const previous = requiredCheckpoint(resolve(root, previousPath));
+  assertRetainedPrefix(snapshot, previous, trusted);
+  if (previous.body.treeSize > checkpoint.body.treeSize)
+    throw new JournalError(
+      'CHECKPOINT_CONFLICT',
+      'Requested checkpoint predates the prior observation',
+    );
+  const proof = consistencyProof(
+    journalCommitments(snapshot).slice(0, checkpoint.body.treeSize),
+    previous.body.treeSize,
+  );
+  const comparison = compareCheckpoints(previous, checkpoint, proof, trusted);
+  if (comparison.code !== 'valid' && comparison.code !== 'unchanged')
+    throw new JournalError('CHECKPOINT_CONFLICT', 'Requested checkpoint extension is invalid');
+  return proof;
+}
+
 async function run() {
   const [command, ...args] = process.argv.slice(2);
-  if (!command || !['publish', 'audit', 'export', 'demo'].includes(command))
-    throw new Error('Use publish, audit, export or demo');
+  if (!command || !['publish', 'audit', 'export', 'link', 'demo'].includes(command))
+    throw new Error('Use publish, audit, export, link or demo');
   const input = options(args);
   const fixture =
     command === 'demo'
@@ -118,6 +141,20 @@ async function run() {
         report.integrity === 'invalid' ? 1 : report.integrity === 'unavailable' ? 2 : 0;
       return;
     }
+    if (command === 'link') {
+      const target = input['--out'];
+      if (!target || input['--event-id'] || input['--credential-id'])
+        throw new Error('Provide --out and optionally --previous for a checkpoint transfer');
+      const snapshot = await readJournal(runtime.sql, logId),
+        checkpoint = requiredCheckpoint(path);
+      assertRetainedPrefix(snapshot, checkpoint, trusted);
+      const previousPath = input['--previous'];
+      const proof = previousPath ? linkedProof(snapshot, checkpoint, previousPath, trusted) : [];
+      const targetPath = outputPath(target);
+      save(targetPath, { checkpoint, consistencyProof: proof });
+      emit({ checkpointTransfer: targetPath, treeSize: checkpoint.body.treeSize });
+      return;
+    }
     if (command === 'export') {
       const credentialId = input['--credential-id'];
       if (
@@ -144,22 +181,8 @@ async function run() {
           'Credential issuance was not found in this log',
         );
       const bundle = exportEventProof(snapshot, checkpoint, eventId);
-      if (input['--previous']) {
-        const previous = parseCanonical(
-          readFileSync(outputPath(input['--previous'])),
-        ) as unknown as SignedCheckpoint;
-        const proof = consistencyProof(
-          journalCommitments(snapshot).slice(0, checkpoint.body.treeSize),
-          previous.body.treeSize,
-        );
-        const comparison = compareCheckpoints(previous, checkpoint, proof, trusted);
-        if (!['valid', 'unchanged'].includes(comparison.code))
-          throw new JournalError(
-            'CHECKPOINT_CONFLICT',
-            'Requested checkpoint extension is invalid',
-          );
-        bundle.consistencyProof = proof;
-      }
+      if (input['--previous'])
+        bundle.consistencyProof = linkedProof(snapshot, checkpoint, input['--previous'], trusted);
       const target = outputPath(input['--out'] ?? `.runtime/log-demo/${logId}-${eventId}.json`);
       save(target, bundle);
       emit({

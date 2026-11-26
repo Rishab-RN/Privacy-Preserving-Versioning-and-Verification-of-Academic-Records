@@ -45,5 +45,9 @@ The owner confirmed [mandatory capabilities](required-capabilities.md) on
 ML anomaly detection. On 25 November the owner also made ZK mandatory before
 Week 7. Its implemented predicate is the approved course-grade threshold. Vector
 search remains use-case based. The [Week 8 Neo4j projection](provenance.md)
-provides scoped provenance, repeatable queries and recovery. ML implementation
-is scheduled for Week 9.
+provides scoped provenance, repeatable queries and recovery. The
+[Week 9 anomaly review](../development/anomaly-demo.md) describes decision-time
+features, experimental baselines and the read-only reviewer workflow.
+The [Week 10 integrated demo](../development/integrated-verification-demo.md)
+describes the scoped approval check, offline checkpoint witness and cross-store
+recovery scenarios.

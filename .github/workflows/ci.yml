@@ -112,11 +112,26 @@ jobs:
       - run: npm run access:demo
       - run: npm run worker:setup
       - run: npm run graph -- setup
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/anomaly/requirements.txt
+      - run: python -m pip install -r apps/anomaly/requirements.txt
+      - run: python -m unittest discover -s apps/anomaly
+      - run: python apps/anomaly/run.py evaluate
       - run: npm run workflow:demo
       - run: npm run build
       - run: npm run access:smoke
       - run: npm run workflow:smoke
       - run: npm run log:setup
       - run: npm run log:demo
+      - name: Publish synthetic demonstration ranks
+        run: |
+          scope=$(node -p "JSON.parse(require('node:fs').readFileSync('.runtime/workflow-fixture.json','utf8')).institutionId")
+          npm run graph -- sync "$scope"
+          python apps/anomaly/run.py publish "$scope"
       - run: npx playwright install --with-deps chromium
       - run: npm run test:web
+        env:
+          ANOMALY_PYTHON: python

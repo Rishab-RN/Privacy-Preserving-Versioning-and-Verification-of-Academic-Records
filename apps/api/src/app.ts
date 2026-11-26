@@ -10,6 +10,7 @@ import { installWorkflowRoutes } from './workflow.js';
 import { installPrivacyRoutes } from './privacy.js';
 import type { Driver } from 'neo4j-driver';
 import { installProvenanceRoutes } from './provenance/routes.js';
+import { installCorrectionIntegrity } from './correction-integrity.js';
 
 export function createApp(platform?: Platform, graph?: Driver) {
   const app = express();
@@ -122,6 +123,7 @@ export function createApp(platform?: Platform, graph?: Driver) {
     installWorkflowRoutes(api, platform);
     installPrivacyRoutes(api, platform);
     installProvenanceRoutes(api, platform, graph);
+    installCorrectionIntegrity(api, platform);
   }
   app.use('/api/v1', api);
 

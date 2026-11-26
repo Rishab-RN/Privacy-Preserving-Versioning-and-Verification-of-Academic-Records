@@ -71,19 +71,30 @@ RETURN digest,count,requestIds ORDER BY count DESC,digest LIMIT 20`;
 
 // Both time and commit order are exclusive. A late commit with an earlier
 // timestamp must not appear in the feature history of an already logged event.
-export const features = `
-MATCH (target:Correction {key:$scope+':'+$requestId})-[:PROPOSED_BY]->(a:Actor {scope:$scope})
+const featureMatches = `
+MATCH (target)-[:PROPOSED_BY]->(a:Actor {scope:$scope})
 MATCH (target)-[:APPROVED_BY]->(b:Actor {scope:$scope})
 MATCH (target)-[:USES_EVIDENCE]->(:Evidence {scope:$scope})-[:HAS_DIGEST]->(h:EvidenceDigest {scope:$scope})
-CALL (target,a,b) {
+CALL (target,a,b,lowerBound) {
   OPTIONAL MATCH (a)<-[:PROPOSED_BY]-(past:Correction {scope:$scope})-[:APPROVED_BY]->(b)
-  WHERE past.occurredAt >= $from AND past.occurredAt < target.occurredAt AND past.position < target.position
+  WHERE past.occurredAt >= lowerBound AND past.occurredAt < target.occurredAt AND past.position < target.position
   RETURN count(past) AS priorPairCount
 }
-CALL (target,h) {
+CALL (target,h,lowerBound) {
   OPTIONAL MATCH (h)<-[:HAS_DIGEST]-(:Evidence {scope:$scope})<-[:USES_EVIDENCE]-(past:Correction {scope:$scope})
-  WHERE past.occurredAt >= $from AND past.occurredAt < target.occurredAt AND past.position < target.position
+  WHERE past.occurredAt >= lowerBound AND past.occurredAt < target.occurredAt AND past.position < target.position
   RETURN count(past) AS priorEvidenceCount
 }
-RETURN target.id AS requestId,target.occurredAt AS eventTime,priorPairCount,priorEvidenceCount
 `;
+export const features = `
+MATCH (target:Correction {key:$scope+':'+$requestId})
+WITH target,$from AS lowerBound
+${featureMatches}
+RETURN target.id AS requestId,target.occurredAt AS eventTime,priorPairCount,priorEvidenceCount`;
+export const featureBatch = `
+UNWIND $targets AS observation
+MATCH (target:Correction {key:$scope+':'+observation.requestId})
+WITH target,observation.from AS lowerBound
+${featureMatches}
+RETURN target.id AS requestId,target.occurredAt AS eventTime,target.position AS position,
+       priorPairCount,priorEvidenceCount`;

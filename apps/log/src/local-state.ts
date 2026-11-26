@@ -78,7 +78,7 @@ export function writeObservation(
   mkdirSync(dirname(path), { recursive: true });
   const temporary = path + '.' + randomUUID() + '.tmp';
   try {
-    writeFileSync(temporary, canonicalBytes(checkpoint), { flag: 'wx', mode: 0o600 });
+    writeFileSync(temporary, canonicalBytes(checkpoint), { flag: 'wx', mode: 0o600, flush: true });
     renameSync(temporary, path);
   } finally {
     if (existsSync(temporary)) unlinkSync(temporary);

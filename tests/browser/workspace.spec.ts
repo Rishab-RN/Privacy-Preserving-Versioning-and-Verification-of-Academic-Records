@@ -1,9 +1,14 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
+import { canonicalBytes } from '@academic-records/verification';
+import type { EventProofBundle } from '@academic-records/verification';
+import type { AnomalyReview } from '@scholarproof/contracts';
+import { browserWitnessDirectory, retainBrowserCheckpoint, runLog } from './log.js';
 
 const accounts = JSON.parse(readFileSync(resolve('.runtime/demo-accounts.json'), 'utf8')) as {
   subject: string;
@@ -28,7 +33,9 @@ async function login(
   await page.getByLabel('Account ID', { exact: true }).fill(account.subject);
   await page.getByLabel('Password', { exact: true }).fill(account.password);
   await page.getByRole('button', { name: 'Sign in to workspace' }).click();
-  await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible({
+    timeout: 15000,
+  });
 }
 test('live student, auditor and independent registrar browser journeys', async ({ page }) => {
   mkdirSync(out, { recursive: true });
@@ -179,11 +186,46 @@ test('live student, auditor and independent registrar browser journeys', async (
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve(out, '05-independent-approval.png'), fullPage: true });
   if (process.env.GRAPH_NEO4J_PASSWORD) {
+    const artifact = resolve('.runtime/log-demo/browser-approval-' + randomUUID() + '.json');
+    const transfer = resolve('.runtime/log-demo/browser-witness-' + randomUUID() + '.json');
+    const retained = resolve(browserWitnessDirectory, fixture.institutionId + '.json');
+    const eventId = await page
+      .getByText('Approval event', { exact: false })
+      .filter({ has: page.locator('code') })
+      .locator('code')
+      .innerText();
+    await runLog('publish', ['--log-id', fixture.institutionId]);
+    await retainBrowserCheckpoint(
+      fixture.institutionId,
+      transfer,
+      existsSync(retained) ? ['--previous', retained] : [],
+    );
+    await runLog('export', [
+      '--log-id',
+      fixture.institutionId,
+      '--event-id',
+      eventId,
+      '--out',
+      artifact,
+    ]);
     await page.getByRole('button', { name: 'View version provenance' }).click();
     await expect(page.getByLabel('Grade record ID', { exact: true })).toHaveValue(fixture.recordId);
     await expect(page.getByLabel('Grade version', { exact: true })).toHaveValue(applied);
     await page.getByRole('button', { name: 'Load provenance' }).click();
     await expect(page.getByText('Graph catching up', { exact: true })).toBeVisible();
+    const integrityFile = page.getByLabel('Signed approval proof file', { exact: true });
+    const checkApproval = page.getByRole('button', { name: 'Check signed approval', exact: true });
+    await integrityFile.setInputFiles(artifact);
+    await checkApproval.click();
+    await expect(
+      page.getByText('Signed proof matches the SQL event', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Matches retained checkpoint', { exact: true })).toBeVisible();
+    await expect(page.getByText('Graph catching up', { exact: true })).toBeVisible();
+    if (process.env.ANOMALY_PYTHON) {
+      await expect(page.getByText('Stale snapshot', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Review this correction' })).toHaveCount(0);
+    }
     await promisify(execFile)(
       process.execPath,
       [
@@ -201,6 +243,53 @@ test('live student, auditor and independent registrar browser journeys', async (
     await page.getByRole('button', { name: 'Load provenance' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText('Caught up', { exact: true })).toBeVisible();
+    if (process.env.ANOMALY_PYTHON) {
+      await promisify(execFile)(
+        process.env.ANOMALY_PYTHON,
+        ['apps/anomaly/run.py', 'publish', fixture.institutionId],
+        { timeout: 30000 },
+      );
+      await page.getByRole('button', { name: 'Load provenance' }).click();
+      await expect(page.getByText('Current snapshot', { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Features that increased this score' }),
+      ).toBeVisible();
+      await expect(page.locator('.risk-detail')).toContainText(`Version ${applied} ·`);
+      await page.locator('.risk-grid').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: resolve(out, '16-anomaly-review.png') });
+      const scoresRoute = '**/api/v1/provenance/*/anomalies?*';
+      await page.route(scoresRoute, async (route) => {
+        const response = await route.fetch();
+        const data = (await response.json()) as AnomalyReview;
+        if (data.status === 'current' && data.selected) {
+          // Exercise the explicit low-score presentation independently of the lab model's output.
+          data.selected = { ...data.selected, flagged: false, score: data.threshold / 2 };
+        }
+        await route.fulfill({ response, json: data });
+      });
+      await page.getByRole('button', { name: 'Load provenance' }).click();
+      await expect(page.getByText('Below review cutoff', { exact: true })).toBeVisible();
+      const damaged = JSON.parse(readFileSync(artifact, 'utf8')) as EventProofBundle;
+      damaged.inclusionProof[0] = '0'.repeat(64);
+      await integrityFile.setInputFiles({
+        name: 'invalid-approval.json',
+        mimeType: 'application/json',
+        buffer: canonicalBytes(damaged),
+      });
+      await checkApproval.click();
+      await expect(page.getByText('Invalid signed proof', { exact: true })).toBeVisible();
+      await expect(page.getByText('Below review cutoff', { exact: true })).toBeVisible();
+      await page.unroute(scoresRoute);
+      await page.getByRole('button', { name: 'Load provenance' }).click();
+      await expect(page.getByText('Current snapshot', { exact: true })).toBeVisible();
+    }
+    await integrityFile.setInputFiles(artifact);
+    await checkApproval.click();
+    await expect(
+      page.getByText('Signed proof matches the SQL event', { exact: true }),
+    ).toBeVisible();
+    await page.locator('.integrity-result').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: resolve(out, '17-integrated-verification.png') });
     const ancestry = page.getByRole('region', { name: 'Version ancestry' });
     await expect(ancestry.getByText(requestId, { exact: true })).toBeVisible();
     const relationships = page.getByRole('group', { name: 'Inspect approval relationships' });

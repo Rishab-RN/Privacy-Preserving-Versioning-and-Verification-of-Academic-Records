@@ -8,6 +8,7 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
+      '**/.venv/**',
       'research/**',
       'plans/**',
       'planning/**',
