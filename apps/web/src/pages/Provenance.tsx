@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import type { ProvenanceReview } from '@scholarproof/contracts';
+import type { AnomalyReview as ReviewData, ProvenanceReview } from '@scholarproof/contracts';
 import type { Api } from '../types.js';
 import { message } from '../api.js';
 import { date, idPattern } from '../format.js';
 import { Alert, Badge, Field, Panel, Icon } from '../ui.js';
+import { AnomalyReview } from './AnomalyReview.js';
 
 const signalViews = ['Approval pairs', 'Upward corrections', 'Evidence reuse'] as const;
 
@@ -116,10 +117,12 @@ export function Provenance({
   api,
   institutions,
   initial,
+  openRequest,
 }: {
   api: Api;
   institutions: string[];
   initial: { recordId: string; version: number } | null;
+  openRequest: (requestId: string) => void;
 }) {
   const [institution, setInstitution] = useState(institutions[0] ?? '');
   const [recordId, setRecordId] = useState(initial?.recordId ?? '');
@@ -127,21 +130,28 @@ export function Provenance({
   const [result, setResult] = useState<ProvenanceReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [anomaly, setAnomaly] = useState<ReviewData | null>(null);
+  const [anomalyError, setAnomalyError] = useState('');
   const [signal, setSignal] = useState<(typeof signalViews)[number]>('Approval pairs');
 
   async function load(event: FormEvent) {
     event.preventDefault();
     setResult(null);
+    setAnomaly(null);
     setError('');
+    setAnomalyError('');
     setBusy(true);
-    try {
-      const params = recordId ? '?' + new URLSearchParams({ recordId, version }) : '';
-      setResult(await api<ProvenanceReview>(`/provenance/${institution}${params}`));
-    } catch (reason) {
-      setError(message(reason));
-    } finally {
-      setBusy(false);
-    }
+    const params = recordId ? '?' + new URLSearchParams({ recordId, version }) : '';
+    const path = `/provenance/${institution}`;
+    const [provenance, scores] = await Promise.allSettled([
+      api<ProvenanceReview>(path + params),
+      api<ReviewData>(path + '/anomalies' + params),
+    ]);
+    if (provenance.status === 'fulfilled') setResult(provenance.value);
+    else setError(message(provenance.reason));
+    if (scores.status === 'fulfilled') setAnomaly(scores.value);
+    else setAnomalyError(message(scores.reason));
+    setBusy(false);
   }
   return (
     <>
@@ -158,6 +168,8 @@ export function Provenance({
               onChange={(event) => {
                 setInstitution(event.target.value);
                 setResult(null);
+                setAnomaly(null);
+                setAnomalyError('');
               }}
             >
               {institutions.map((id) => (
@@ -179,6 +191,8 @@ export function Provenance({
               onChange={(event) => {
                 setRecordId(event.target.value);
                 setResult(null);
+                setAnomaly(null);
+                setAnomalyError('');
               }}
             />
           </Field>
@@ -194,6 +208,8 @@ export function Provenance({
               onChange={(event) => {
                 setVersion(event.target.value);
                 setResult(null);
+                setAnomaly(null);
+                setAnomalyError('');
               }}
             />
           </Field>
@@ -203,6 +219,7 @@ export function Provenance({
         </form>
       </Panel>
       {error && <Alert>{error}</Alert>}
+      {anomalyError && <Alert>Anomaly review unavailable. {anomalyError}</Alert>}
       {result && (
         <>
           <Panel title="Projection freshness">
@@ -217,6 +234,9 @@ export function Provenance({
               <p>Results are partial until the graph catches up. Refresh to check progress.</p>
             )}
           </Panel>
+          {anomaly && (
+            <AnomalyReview result={anomaly} openRequest={openRequest} targeted={!!recordId} />
+          )}
           {recordId && (
             <Panel
               title="Version ancestry"
@@ -300,6 +320,9 @@ export function Provenance({
             )}
           </Panel>
         </>
+      )}
+      {!result && anomaly && (
+        <AnomalyReview result={anomaly} openRequest={openRequest} targeted={!!recordId} />
       )}
     </>
   );

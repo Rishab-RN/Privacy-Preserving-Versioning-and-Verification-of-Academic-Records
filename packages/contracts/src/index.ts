@@ -117,3 +117,38 @@ export interface ChangeRequestStatus extends ChangeProposalInput {
     lastErrorCode: string | null;
   }[];
 }
+
+export type AnomalyFeature =
+  'delta' | 'missingDelta' | 'record30d' | 'course30d' | 'proposer30d' | 'pair30d' | 'evidence30d';
+
+export interface AnomalyRank {
+  requestId: string;
+  recordId: string;
+  version: number;
+  occurredAt: string;
+  score: number;
+  rank: number;
+  flagged: boolean;
+  signals: { feature: AnomalyFeature; value: number; effect: number }[];
+  rules: AnomalyFeature[];
+}
+
+export type AnomalyReview =
+  | {
+      status: 'unavailable';
+      committed: number;
+      reason: 'missing-snapshot' | 'invalid-snapshot' | 'graph-unavailable';
+    }
+  | {
+      status: 'current' | 'stale';
+      committed: number;
+      through: number;
+      generatedAt: string;
+      modelVersion: string;
+      featureSchema: 'decision-features-v1';
+      trainedOn: 'synthetic';
+      threshold: number;
+      total: number;
+      selected: AnomalyRank | null;
+      queue: AnomalyRank[];
+    };

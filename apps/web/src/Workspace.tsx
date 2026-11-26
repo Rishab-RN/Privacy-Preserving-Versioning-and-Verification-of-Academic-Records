@@ -321,7 +321,15 @@ export function Workspace({
             />
           )}
           {page === 'Provenance' && (
-            <Provenance api={api} institutions={institutions} initial={graphTarget} />
+            <Provenance
+              api={api}
+              institutions={institutions}
+              initial={graphTarget}
+              openRequest={(id) => {
+                remember(id);
+                navigate('Review');
+              }}
+            />
           )}
           {page === 'Review' && (
             <Review

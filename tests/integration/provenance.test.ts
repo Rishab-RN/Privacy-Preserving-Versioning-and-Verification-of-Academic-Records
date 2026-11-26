@@ -9,6 +9,7 @@ import { openDataRuntime, readDataConfig } from '../../apps/api/src/data-runtime
 import { digestToken, newToken } from '../../apps/api/src/security.js';
 import {
   cursorFor,
+  extractGraphFeatures,
   openGraph,
   priorFeatures,
   rebuild,
@@ -129,6 +130,21 @@ test(
         code: '42501',
       });
     });
+    await t.test(
+      'anomaly snapshots are read-only and restricted to the reviewer institution',
+      async () => {
+        assert.equal((await get(scope, foreign, '/anomalies' + target)).status, 404);
+        assert.equal((await get(outside, reviewer, '/anomalies' + target)).status, 404);
+        assert.equal((await get(scope, reviewer, '/anomalies?version=3')).status, 400);
+        const empty = await get(scope, reviewer, '/anomalies' + target);
+        assert.equal(empty.status, 200);
+        assert.deepEqual(await empty.json(), {
+          status: 'unavailable',
+          committed: 4,
+          reason: 'missing-snapshot',
+        });
+      },
+    );
 
     await t.test(
       'two overlapping workers and a duplicate retry produce one exact graph',
@@ -191,6 +207,43 @@ test(
           version: 4,
         });
         assert.deepEqual({ ...after, head: before.head }, before);
+      },
+    );
+    await t.test(
+      'anomaly counts exclude equal timestamps, late commits and events before the exact lower bound',
+      async () => {
+        const featureScope = randomUUID();
+        const source = (await readSource(worker, scope, 0)).facts[0]!;
+        const facts = [
+          '2026-01-01T00:00:00.123455Z',
+          '2026-01-01T00:00:00.123456Z',
+          '2026-01-31T00:00:00.123456Z',
+          '2026-01-31T00:00:00.123456Z',
+          '2026-01-30T00:00:00.000000Z',
+        ].map((occurred_at, position) => ({
+          ...source,
+          occurred_at,
+          position,
+          request_id: randomUUID(),
+          event_id: randomUUID(),
+          version_no: position + 2,
+        }));
+        try {
+          await rebuild(graph, featureScope, facts.length, facts);
+          const result = await extractGraphFeatures(graph, featureScope, facts.length, facts);
+          assert.deepEqual(result.counts.get(facts[3]!.request_id), { pair30d: 1, evidence30d: 1 });
+          await assert.rejects(
+            extractGraphFeatures(graph, featureScope, facts.length + 1, facts),
+            /must match the SQL snapshot/,
+          );
+        } finally {
+          await graph.executeQuery('MATCH (n:Prov {scope:$scope}) DETACH DELETE n', {
+            scope: featureScope,
+          });
+          await graph.executeQuery('MATCH (h:ProvenanceHead {key:$scope}) DELETE h', {
+            scope: featureScope,
+          });
+        }
       },
     );
   },

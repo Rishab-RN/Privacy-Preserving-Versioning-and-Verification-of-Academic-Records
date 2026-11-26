@@ -184,6 +184,10 @@ test('live student, auditor and independent registrar browser journeys', async (
     await expect(page.getByLabel('Grade version', { exact: true })).toHaveValue(applied);
     await page.getByRole('button', { name: 'Load provenance' }).click();
     await expect(page.getByText('Graph catching up', { exact: true })).toBeVisible();
+    if (process.env.ANOMALY_PYTHON) {
+      await expect(page.getByText('Stale snapshot', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Review this correction' })).toHaveCount(0);
+    }
     await promisify(execFile)(
       process.execPath,
       [
@@ -201,6 +205,21 @@ test('live student, auditor and independent registrar browser journeys', async (
     await page.getByRole('button', { name: 'Load provenance' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText('Caught up', { exact: true })).toBeVisible();
+    if (process.env.ANOMALY_PYTHON) {
+      await promisify(execFile)(
+        process.env.ANOMALY_PYTHON,
+        ['apps/anomaly/run.py', 'publish', fixture.institutionId],
+        { timeout: 30000 },
+      );
+      await page.getByRole('button', { name: 'Load provenance' }).click();
+      await expect(page.getByText('Current snapshot', { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Features that increased this score' }),
+      ).toBeVisible();
+      await expect(page.locator('.risk-detail')).toContainText(`Version ${applied} ·`);
+      await page.locator('.risk-grid').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: resolve(out, '16-anomaly-review.png') });
+    }
     const ancestry = page.getByRole('region', { name: 'Version ancestry' });
     await expect(ancestry.getByText(requestId, { exact: true })).toBeVisible();
     const relationships = page.getByRole('group', { name: 'Inspect approval relationships' });
