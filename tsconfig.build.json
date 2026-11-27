@@ -17,6 +17,9 @@
       "path": "packages/assessment"
     },
     {
+      "path": "packages/access-matrix"
+    },
+    {
       "path": "apps/api"
     },
     {
