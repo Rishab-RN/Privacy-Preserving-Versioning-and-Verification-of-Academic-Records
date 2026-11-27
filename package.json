@@ -59,6 +59,7 @@
     "worker:once": "npm run once --workspace @scholarproof/worker",
     "worker:replay": "npm run replay --workspace @scholarproof/worker",
     "dev:worker": "npm run dev --workspace @scholarproof/worker",
+    "pilot:setup": "npm run build:pilot-data && npm run pilot:setup --workspace @scholarproof/api",
     "workflow:demo": "npm run workflow:demo --workspace @scholarproof/api",
     "workflow:smoke": "npm run workflow:smoke --workspace @scholarproof/api",
     "log:setup": "npm run build:verification && npm run setup --workspace @academic-records/log",
