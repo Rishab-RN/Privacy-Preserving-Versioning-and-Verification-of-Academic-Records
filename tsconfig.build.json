@@ -20,6 +20,9 @@
       "path": "packages/access-matrix"
     },
     {
+      "path": "packages/pilot-data"
+    },
+    {
       "path": "apps/api"
     },
     {
