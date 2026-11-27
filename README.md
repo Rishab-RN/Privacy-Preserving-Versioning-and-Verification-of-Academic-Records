@@ -102,6 +102,7 @@ packages/
   assessment/               Versioned assessment policy, course results and SGPA/CGPA
   access-matrix/            Pilot permission matrix and generated access-test cases
   pilot-data/               Deterministic synthetic pilot dataset
+  cases/                    Student case intake rules and routing
   zk/                       Course-grade predicate, commitments and real proofs
 db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
