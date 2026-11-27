@@ -11,6 +11,7 @@ import { installPrivacyRoutes } from './privacy.js';
 import type { Driver } from 'neo4j-driver';
 import { installProvenanceRoutes } from './provenance/routes.js';
 import { installCorrectionIntegrity } from './correction-integrity.js';
+import { installPilotRosterRoutes } from './pilot-roster.js';
 
 export function createApp(platform?: Platform, graph?: Driver) {
   const app = express();
@@ -124,6 +125,7 @@ export function createApp(platform?: Platform, graph?: Driver) {
     installPrivacyRoutes(api, platform);
     installProvenanceRoutes(api, platform, graph);
     installCorrectionIntegrity(api, platform);
+    installPilotRosterRoutes(api, platform);
   }
   app.use('/api/v1', api);
 

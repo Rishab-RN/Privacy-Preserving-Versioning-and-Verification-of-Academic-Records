@@ -27,7 +27,31 @@ export interface UserPrincipal {
   userId: string;
   subject: string;
   students: { studentId: string; institutionId: string }[];
-  roles: { institutionId: string; role: 'registrar' | 'examiner' | 'student' | 'auditor' }[];
+  roles: {
+    institutionId: string;
+    role:
+      | 'registrar'
+      | 'examiner'
+      | 'student'
+      | 'auditor'
+      | 'faculty'
+      | 'exam_staff'
+      | 'exam_approver'
+      | 'dean_academics';
+  }[];
+}
+
+export interface PilotOffering {
+  offeringId: string;
+  departmentCode: string;
+  courseCode: string;
+  sectionCode: string;
+  termCode: string;
+}
+
+export interface PilotRoster {
+  students: { enrolmentId: string; studentCode: string }[];
+  nextAfter: string | null;
 }
 export interface StudentSummary {
   studentId: string;
