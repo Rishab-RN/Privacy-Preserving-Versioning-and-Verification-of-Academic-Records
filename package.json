@@ -21,6 +21,7 @@
     "graph:up": "docker compose --env-file .env.graph -f infra/docker/neo4j.yaml up -d",
     "graph": "node --env-file-if-exists=.env --env-file-if-exists=.env.worker --env-file-if-exists=.env.graph --import tsx apps/api/scripts/graph/run.ts",
     "graph:measure": "node --env-file-if-exists=.env --env-file-if-exists=.env.graph --import tsx apps/api/scripts/graph/measure.ts",
+    "benchmark:verification": "npm run build:zk && npm run build:verification && node --import tsx apps/api/scripts/benchmark/verification.ts",
     "dev:api": "npm run build:zk && npm run build:contracts && npm run build:verification && npm run dev --workspace @scholarproof/api",
     "start:api": "npm run start --workspace @scholarproof/api",
     "dev:web": "npm run dev --workspace @scholarproof/web",
