@@ -858,6 +858,35 @@ agreement with the access-matrix fixture, identifier rules, scaling and option v
 The full local gate passed: lint, formatting, typecheck across every project, and 156
 tooling/unit checks. No schema, API or UI changed.
 
+## 2026-11-27 — Student case intake rules
+
+The owner merged the four product packages and the Week 11 component benchmark into `main`
+(PRs #10 and #11, CI green). `packages/cases` (branch `feat/case-intake`) is the first piece
+of student case handling. It decides whether a student may file a Paper Viewing registration,
+a make-up registration, an I-grade request, a course drop or a withdrawal. Each decision lists
+every failing reason, the deadline, the ordered route, and the consequence of the case. The
+routes run through roles: exam staff, expert team, exam approver, counsellor, HoD, Dean
+Academics, Chief Superintendent and the Grading Advisory Committee.
+
+The rules follow the 2022-scheme and AY 2026-27 handbooks:
+
+- **Paper Viewing:** SEE theory only, after provisional results.
+- **Make-up:** I or X grades only, not in fast-track semesters.
+- **I grade:** intimation before the exam and documents within the deadline.
+- **Drop and withdrawal:** not in first year, at least 16 credits must remain, inside the
+  calendar windows.
+
+The editions differ only in the AY 2026-27 rule that clearing an I grade counts as an attempt.
+Term dates are calendar data from CoE circulars, and the calendar is validated. Three
+interpretations are marked as proposals: I-grade timing for every reason, Paper Viewing scope,
+and the correction-workflow approval.
+
+All 12 package checks passed. They use the synthetic pilot students: the Paper Viewing
+candidate may register, the X-grade student may take the make-up, and the absent student may
+request an I grade, while the NE students are refused with the right reasons. The full local
+gate passed: lint, formatting, typecheck across every project, and 168 tooling/unit checks.
+No schema, API or UI changed.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

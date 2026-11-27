@@ -17,6 +17,7 @@ packages/
   assessment/               Versioned assessment policy, course results and SGPA/CGPA
   access-matrix/            Pilot permission matrix, reference evaluator and generated cases
   pilot-data/               Deterministic synthetic pilot institution, marks and transcripts
+  cases/                    Student case intake rules: Paper Viewing, make-up, I grade, drop, withdrawal
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
