@@ -14,6 +14,15 @@
       "path": "packages/credentials"
     },
     {
+      "path": "packages/assessment"
+    },
+    {
+      "path": "packages/access-matrix"
+    },
+    {
+      "path": "packages/pilot-data"
+    },
+    {
       "path": "apps/api"
     },
     {

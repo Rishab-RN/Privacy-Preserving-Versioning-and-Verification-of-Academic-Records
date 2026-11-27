@@ -745,6 +745,119 @@ while Neo4j is behind and exercises an invalid proof beside a controlled low
 score. It also checks the real browser-local proof and credential revocation.
 See the [integrated verification demo](development/integrated-verification-demo.md).
 
+## 2026-11-27 — Product direction and assessment policy package
+
+The owner set a new goal: grow the lab prototype into an end-to-end, RVCE-inspired
+academic operations and verifiable records product. Students, faculty and examiners,
+HoDs, non-teaching exam staff, the CoE office, Dean Academics and auditors each get
+their own sign-in, workspace and permissions. A local planning pass compared this
+with public RVCE sources and chose a first pilot. It covers one AIML 2022-scheme
+Semester V Database Management Systems (CD252IA) offering: faculty marks entry,
+department review, authorized publication, student view, a Paper Viewing correction
+and a private proof. RVCE's SAP SLcM stays the institutional system of record, and
+this product is positioned as a companion. The public sources disagree on the
+integrated-course CIE structure, so assessment rules are versioned policy data that
+RVCE staff must confirm.
+
+`packages/assessment` is the first product slice, built on `feat/assessment-policy`.
+It encodes two cited rubrics: the AIML syllabus for CD252IA and the handbook effective
+in AY 2026-27. Both cover SEE eligibility, the 35%/40% passing standards, the 10-point
+grades, grade X and the better-of rule for Paper Viewing. Arithmetic is exact, so a
+result that displays as 40.00% still fails if it is below 40%. Each result reports
+`roundingSensitive` while official rounding is unconfirmed. The 2022-scheme
+handbook's integrated table is not encoded because its SEE split is not legible.
+Nothing is stored or published yet. Marks batches, review and publication follow as
+separate tickets.
+
+All 20 package checks passed, including a hand-computed golden result, every
+grade-band edge and the half mark below it, policy-variant equivalence and
+key-order determinism. The full quality gate passed locally: lint, formatting,
+typecheck across every project, and 112 tooling/unit checks (the 92 existing plus
+20 new). The compiled package builds and imports. SQL, integration and browser
+suites were not re-run, because this slice changes no schema, API or UI.
+
+## 2026-11-27 — Pilot access matrix
+
+`packages/access-matrix` on `feat/access-matrix`, stacked on the assessment branch, is the
+executable specification of pilot permissions. It covers 16 actions and 17 synthetic
+personas, and it includes an anonymous caller:
+
+- Students see only their own published results.
+- Teachers and SEE examiners work on assigned offerings and stages only.
+- HoDs and delegates review only their department's CIE batches.
+- Exam-section staff can validate imports and reconcile rosters under a time-bound
+  delegation, but cannot edit, review or publish.
+- The CoE office publishes results.
+- The Dean Academics and the auditor have read-only access.
+
+A reference evaluator returns the expected status for every persona, action and resource.
+It follows the existing API convention: 401 without a session, 403 without capability,
+404 outside scope, then separation-of-duties denials (`SELF_REVIEW`, `SELF_APPROVAL`,
+`SOD_CONFLICT`). It produces 846 expected outcomes for the pilot fixture. Each grant cites
+an RVCE source, existing repository policy, or a proposal awaiting confirmation.
+
+The evaluator is a test oracle. SQL and API routes remain the enforcement boundary, and
+T1–T6 integration tests will replay its cases against them. A generated `MATRIX.md` gives
+reviewers a readable copy and fails a test when it is stale. The pilot fixture now places
+the multi-role HoD in section AI-B, so no section has two teachers.
+
+All 19 package checks passed. They cover every acceptance check from the pilot plan,
+each separation rule, delegation-window boundaries and policy invariants. Delegations can
+confer only validation and roster reads, oversight roles are read-only, and every decision
+has a separation rule. The main checkout's dependency folder was found partly deleted
+mid-session, so this worktree used its own clean `npm ci` instead. With that install, the
+full local gate passed: lint, formatting, typecheck across every project, and 131
+tooling/unit checks (the 112 earlier plus 19 new). No schema, API or UI changed.
+
+## 2026-11-27 — SGPA and CGPA calculator
+
+`summarizeTranscript` in `packages/assessment` (branch `feat/gpa-calculator`) computes
+SGPA per term, cumulative CGPA, earned credits, the percentage equivalent, degree standing
+and outstanding courses from published grades. It follows the handbook formulas as
+written:
+
+- SGPA excludes only transitional grades, so an F counts as zero points with its credits.
+- CGPA excludes F grades, so a later pass replaces the failure.
+- Grades without points and non-credit courses never count.
+
+Two cited policies capture the differences between editions. The 2022-scheme handbook
+requires CGPA ≥ 5.00 for the degree, with Distinction, First and Second Class at 7, 6 and 5.
+The AY 2026-27 handbook adds a Pass Class from 4, and its DX grade does not count.
+Averages are exact. Class and degree decisions use the exact CGPA and report when a
+two-decimal CGPA would change them.
+
+MP and Ab grades are refused until RVCE says how they count. The handbooks award
+malpractice "a credit of 0" with grade MP in one edition and NE in the other.
+
+All 34 package checks passed (the 20 earlier plus 14 new). They use real AIML 2022-scheme
+Semester V and VI codes and credits with synthetic grades, and include a hand-computed
+golden transcript for an F followed by a supplementary pass. The full local gate passed:
+lint, formatting, typecheck across every project, and 145 tooling/unit checks.
+
+## 2026-11-27 — Synthetic pilot dataset
+
+`packages/pilot-data` (branch `feat/pilot-data`) generates the synthetic pilot
+institution from a seed. It produces:
+
+- CD252IA sections AI-A, AI-B and IS-A for one AIML 2022-scheme Semester V term
+- the access-matrix staff personas, with their duties and delegations
+- 28 students with `SYN`-prefixed USNs that cannot match a real USN
+- CIE/SEE component marks
+- results computed by the assessment package
+- AIML Semester V transcripts with SGPA
+
+Eight named AI-A students have fixed marks, so every outcome is present: distinction,
+a demo pass for the private-proof login, a Paper Viewing candidate who moves from F to B+,
+transitional X, SEE absence, a rounding-sensitive fail, and NE for attendance and for CIE.
+Sections scale to 240+ students for later measurements. An export command writes JSON to
+the ignored runtime folder. The dataset contains no passwords.
+
+All 11 package checks passed. They cover a pinned SHA-256 fingerprint for the default
+dataset, every scenario outcome, exact recomputation of every stored result and SGPA,
+agreement with the access-matrix fixture, identifier rules, scaling and option validation.
+The full local gate passed: lint, formatting, typecheck across every project, and 156
+tooling/unit checks. No schema, API or UI changed.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

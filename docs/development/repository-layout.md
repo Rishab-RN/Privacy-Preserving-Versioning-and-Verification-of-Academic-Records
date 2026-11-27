@@ -14,6 +14,9 @@ packages/
   contracts/                Shared request/response types and data contracts
   verification/             Independent commitments, signatures, Merkle proofs and CLI
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
+  assessment/               Versioned assessment policy, course results and SGPA/CGPA
+  access-matrix/            Pilot permission matrix, reference evaluator and generated cases
+  pilot-data/               Deterministic synthetic pilot institution, marks and transcripts
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
@@ -83,6 +86,14 @@ checks are in `tests/integration/`. No new dependency was added for this slice.
   and signing keys. It depends only on Node built-ins. Its result binds a pinned
   public key and externally expected event/log identity; retained observations
   establish the checked history extension, not current credential status.
+- `packages/assessment/` evaluates versioned assessment policy from component marks
+  with exact arithmetic and Node built-ins only. It computes; it does not store or
+  publish results, and its policies await institutional confirmation.
+- `packages/access-matrix/` is the executable specification of pilot permissions and
+  the oracle for generated access tests. It never authorizes requests. SQL functions
+  and API routes remain the enforcement boundary.
+- `packages/pilot-data/` builds deterministic synthetic fixtures from those two packages.
+  Seed scripts and demos consume it. It contains no credentials and no real people.
 - The API owns request handling and application composition. Background job
   processing belongs in the worker when a durable job workflow is introduced.
 - Database migrations are the schema history. Application startup must not silently

@@ -1,0 +1,21 @@
+{
+  "name": "@academic-records/access-matrix",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --project tsconfig.check.json",
+    "test": "tsx --test test/*.test.ts",
+    "render": "tsx scripts/render.ts"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
