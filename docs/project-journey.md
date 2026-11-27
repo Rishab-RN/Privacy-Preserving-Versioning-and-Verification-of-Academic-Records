@@ -858,6 +858,31 @@ agreement with the access-matrix fixture, identifier rules, scaling and option v
 The full local gate passed: lint, formatting, typecheck across every project, and 156
 tooling/unit checks. No schema, API or UI changed.
 
+## 2026-11-28 — Synthetic pilot provisioning
+
+`npm run pilot:setup` (branch `feat/pilot-setup`, built on Codex's `feat/pilot-roster-scope`
+T1 slice) seeds a separate synthetic institution, `ARDC`, from `generatePilotData()`. It
+creates:
+
+- the CD252IA catalogue, term, grading scheme and three sections
+- 28 students with enrolments
+- 42 logins (14 staff personas and every student) with institutional roles
+- the migration `0016` department, duty and roster-delegation facts that match the
+  access-matrix fixture
+
+Every fact has a deterministic ID inside one transaction, so a repeated run changes nothing.
+Passwords are generated once into ignored `.runtime/pilot-accounts.json`, verified and never
+reset. A conflicting fact stops the run without overwriting anything. See
+[pilot setup](development/pilot-setup.md).
+
+The new integration test provisions a disposable database twice and rejects changed passwords
+and mismatched accounts. It then checks every persona's roster access through the migration
+`0016` functions against `PILOT_WORLD`: F1 sees AI-A only, H1, H2 and S1 see AI-A and AI-B,
+P1 sees all three sections, and roles without a grant receive 42501. Locally, 61 of 62
+integration checks passed, including Codex's live roster test. The private-proof check needs
+the ZK development ceremony, which this worktree did not have; CI runs it. The quality gate
+passed with 156 tooling/unit checks.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
