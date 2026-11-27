@@ -14,6 +14,9 @@
       "path": "packages/credentials"
     },
     {
+      "path": "packages/assessment"
+    },
+    {
       "path": "apps/api"
     },
     {
