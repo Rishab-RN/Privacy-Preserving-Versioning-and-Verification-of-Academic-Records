@@ -54,7 +54,7 @@
     "access:setup": "npm run access:setup --workspace @scholarproof/api",
     "access:demo": "npm run access:demo --workspace @scholarproof/api",
     "access:smoke": "npm run access:smoke --workspace @scholarproof/api",
-    "test:integration": "npm run build:zk && npm run build:verification && npm run test:integration --workspace @scholarproof/api",
+    "test:integration": "npm run build:zk && npm run build:verification && npm run build:pilot-data && npm run test:integration --workspace @scholarproof/api",
     "worker:setup": "npm run setup --workspace @scholarproof/worker",
     "worker:once": "npm run once --workspace @scholarproof/worker",
     "worker:replay": "npm run replay --workspace @scholarproof/worker",
