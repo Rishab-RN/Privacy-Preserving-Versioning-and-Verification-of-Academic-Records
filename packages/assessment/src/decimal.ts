@@ -70,11 +70,17 @@ export function roundHalfUpWhole(value: Ratio): Ratio {
   return ratio(2n * remainder >= value.den ? quotient + 1n : quotient, 1n);
 }
 
+/** Rounds half-up to two decimals. Used for display and rounding-sensitivity analysis. */
+export function roundHalfUpHundredths(value: Ratio): Ratio {
+  const scaled = value.num * 100n;
+  const hundredths = scaled / value.den + (2n * (scaled % value.den) >= value.den ? 1n : 0n);
+  return ratio(hundredths, 100n);
+}
+
 /** Display string with two decimals, rounded half-up. Decisions never use this value. */
 export function display(value: Ratio): string {
-  const scaled = value.num * 100n;
-  let hundredths = scaled / value.den;
-  if (2n * (scaled % value.den) >= value.den) hundredths += 1n;
+  const rounded = roundHalfUpHundredths(value);
+  const hundredths = (rounded.num * 100n) / rounded.den;
   const whole = hundredths / 100n;
   const fraction = (hundredths % 100n).toString().padStart(2, '0');
   return `${whole}.${fraction}`;

@@ -27,7 +27,7 @@ const cite = (source: 'S1' | 'S2' | 'S3' | 'PROP', locator: string): Citation =>
 });
 
 /** Table 4.3: identical in S2 p.30 and S3 p.38. */
-const RVCE_GRADE_BANDS: readonly GradeBand[] = [
+export const RVCE_GRADE_BANDS: readonly GradeBand[] = [
   { letter: 'O', minimumPercent: '90', points: 10 },
   { letter: 'A+', minimumPercent: '80', points: 9 },
   { letter: 'A', minimumPercent: '70', points: 8 },

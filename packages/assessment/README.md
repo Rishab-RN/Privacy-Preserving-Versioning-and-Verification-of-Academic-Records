@@ -1,7 +1,8 @@
 # Assessment policy and result calculator
 
 `@academic-records/assessment` turns published RVCE assessment rules into versioned,
-testable policy data and computes a course result from component marks. It has no runtime
+testable policy data. It computes a course result from component marks, and SGPA, CGPA and
+degree standing from published grades. It has no runtime
 dependency, database, network access or clock, so an auditor can recompute any result from the
 same inputs and policy version.
 
@@ -32,6 +33,9 @@ const result = calculateResult(RVCE_2022_ITL_S1, {
 - `resolvePaperViewing` applies a Paper Viewing Process revaluation using the better-of rule;
   call `calculateResult` again afterwards.
 - `assertPolicy` validates a policy object before use; `getPolicy(id)` returns a shipped policy.
+- `summarizeTranscript` computes SGPA per term, cumulative CGPA, earned credits, the percentage
+  equivalent, degree standing and outstanding courses from published grades (see
+  [SGPA and CGPA](#sgpa-and-cgpa)).
 
 Marks are decimal strings with at most two fractional digits. Arithmetic is exact (rational
 `bigint`), and decisions never use rounded display values. For example, 119.99 / 300 displays
@@ -83,8 +87,59 @@ Sources (accessed 27 November 2026; locators are PDF page numbers):
 | Improvement test selection is unpublished     | S3 names an optional third test without a rule                 | Supplying `test_improvement` raises `POLICY_UNCONFIRMED`                                                                                                        |
 | Attendance eligibility is an input            | Condonation is an administrative decision                      | `attendance.eligible` decides NE/DX; `percent` is used only for grade X                                                                                         |
 
-Transitional I and W grades, make-up results, MOOC rules and SGPA/CGPA are outside this package.
-They belong to later case-handling and transcript work.
+Deciding transitional I and W grades, make-up results and MOOC rules is outside this package.
+That belongs to later case-handling work; the package only consumes the resulting letters.
+
+## SGPA and CGPA
+
+```ts
+import { RVCE_2022_GPA_S2, summarizeTranscript } from '@academic-records/assessment';
+
+const summary = summarizeTranscript(
+  RVCE_2022_GPA_S2,
+  ['2026-27-ODD', '2027-SUPP'],
+  [
+    { course: 'CD252IA', term: '2026-27-ODD', credits: '4', letter: 'A+' },
+    { course: 'AI253IA', term: '2026-27-ODD', credits: '4', letter: 'F' },
+    { course: 'AI253IA', term: '2027-SUPP', credits: '4', letter: 'B' },
+    // …
+  ],
+);
+// summary.terms[i].sgpa / .cgpa, summary.cgpa, summary.standing, summary.outstanding
+```
+
+| Rule                       | 2022 scheme (`rvce-2022-gpa-s2`)                                                                                                 | AY 2026-27 (`rvce-acy2026-gpa-s3`)             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| SGPA                       | Σ(credits × points) / Σ credits over the term's courses, **excluding transitional grades**, so an F counts as 0 with its credits | Same (S3 p.38)                                 |
+| CGPA                       | Same over all terms so far, **excluding F grades**, so a later pass replaces the failure                                         | Same (S3 p.38)                                 |
+| Never counted              | I, W, X; NE/NSAR/NSSR (no grade points); audit and non-credit courses                                                            | I, W, X; DX/NE/NSAR/NSSR; audit and non-credit |
+| Credits earned             | Any passing grade, P or better                                                                                                   | Same (S3 p.39)                                 |
+| Degree minimum             | CGPA ≥ 5.00 (S2 p.35)                                                                                                            | CGPA ≥ 4.00, implied by Pass Class (`PROP`)    |
+| Class (all courses passed) | Distinction ≥ 7, First ≥ 6, Second ≥ 5 (S2 p.38)                                                                                 | Adds Pass Class ≥ 4 (S3 p.45)                  |
+| Percentage equivalent      | Two-decimal CGPA × 10 (S2 pp.37–38)                                                                                              | Same (S3 p.44)                                 |
+
+Averages are exact; `value` shows two decimals rounded half-up and `exact` gives the fraction.
+Class and degree standing use the exact CGPA. `standing.roundingSensitive` is true when a
+two-decimal CGPA would change either. For example, 6.995 displays as `7.00` but is First Class,
+not Distinction. S3 says CGPA is "calculated to the second decimal position" without saying
+whether that means rounding or truncation.
+
+Two letters are refused with `POLICY_UNCONFIRMED`:
+
+- **MP:** malpractice is "awarded with a credit of 0" for SGPA, with grade MP in S2 p.37 and
+  grade NE in S3 p.43. It is unclear whether the course drops out of SGPA or counts as zero points
+  with its credits.
+- **Ab:** a missed make-up after an I grade becomes Ab (S2 p.34). Its effect on the averages is
+  unpublished.
+
+The caller must:
+
+- list terms in chronological order;
+- remove the results of a rejected semester first (S2 §4.9);
+- pass only semesters III–VIII for lateral-entry students;
+- decide whether every programme course has been passed before using `classIfAllPassed`.
+
+Rank eligibility and tie-breaking (S3 §4.15) compare a whole cohort and are not computed here.
 
 ## Use in the pilot
 

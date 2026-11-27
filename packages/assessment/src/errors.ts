@@ -12,7 +12,13 @@ export type AssessmentErrorCode =
   | 'PVP_SEE_ONLY'
   | 'PVP_LAB_EXCLUDED'
   | 'PVP_THEORY_EXCLUDED'
-  | 'PVP_NOT_APPLICABLE';
+  | 'PVP_NOT_APPLICABLE'
+  | 'UNKNOWN_GRADE'
+  | 'INVALID_CREDITS'
+  | 'INVALID_TERMS'
+  | 'UNKNOWN_TERM'
+  | 'DUPLICATE_ATTEMPT'
+  | 'DUPLICATE_PASS';
 
 /** A rejected input or policy. `code` is stable and safe to map to an API error. */
 export class AssessmentError extends Error {
