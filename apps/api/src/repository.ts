@@ -1,14 +1,9 @@
 import type { Pool } from 'pg';
 import type { PasswordMaterial } from './security.js';
-import type { RecordHistoryResponse } from '@scholarproof/contracts';
+import type { RecordHistoryResponse, UserPrincipal } from '@scholarproof/contracts';
 
 export type Sql = Pick<Pool, 'query'>;
-export interface Principal {
-  userId: string;
-  subject: string;
-  students: { studentId: string; institutionId: string }[];
-  roles: { institutionId: string; role: 'registrar' | 'examiner' | 'student' | 'auditor' }[];
-}
+export type Principal = UserPrincipal;
 export interface EvidenceReference {
   evidence_id: string;
   institution_id: string;
