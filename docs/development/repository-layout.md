@@ -14,6 +14,7 @@ packages/
   contracts/                Shared request/response types and data contracts
   verification/             Independent commitments, signatures, Merkle proofs and CLI
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
+  assessment/               Versioned assessment policy and exact course-result calculator
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
@@ -83,6 +84,9 @@ checks are in `tests/integration/`. No new dependency was added for this slice.
   and signing keys. It depends only on Node built-ins. Its result binds a pinned
   public key and externally expected event/log identity; retained observations
   establish the checked history extension, not current credential status.
+- `packages/assessment/` evaluates versioned assessment policy from component marks
+  with exact arithmetic and Node built-ins only. It computes; it does not store or
+  publish results, and its policies await institutional confirmation.
 - The API owns request handling and application composition. Background job
   processing belongs in the worker when a durable job workflow is introduced.
 - Database migrations are the schema history. Application startup must not silently

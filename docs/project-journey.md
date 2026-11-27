@@ -745,6 +745,37 @@ while Neo4j is behind and exercises an invalid proof beside a controlled low
 score. It also checks the real browser-local proof and credential revocation.
 See the [integrated verification demo](development/integrated-verification-demo.md).
 
+## 2026-11-27 — Product direction and assessment policy package
+
+The owner set a new goal: grow the lab prototype into an end-to-end, RVCE-inspired
+academic operations and verifiable records product. Students, faculty and examiners,
+HoDs, non-teaching exam staff, the CoE office, Dean Academics and auditors each get
+their own sign-in, workspace and permissions. A local planning pass compared this
+with public RVCE sources and chose a first pilot. It covers one AIML 2022-scheme
+Semester V Database Management Systems (CD252IA) offering: faculty marks entry,
+department review, authorized publication, student view, a Paper Viewing correction
+and a private proof. RVCE's SAP SLcM stays the institutional system of record, and
+this product is positioned as a companion. The public sources disagree on the
+integrated-course CIE structure, so assessment rules are versioned policy data that
+RVCE staff must confirm.
+
+`packages/assessment` is the first product slice, built on `feat/assessment-policy`.
+It encodes two cited rubrics: the AIML syllabus for CD252IA and the handbook effective
+in AY 2026-27. Both cover SEE eligibility, the 35%/40% passing standards, the 10-point
+grades, grade X and the better-of rule for Paper Viewing. Arithmetic is exact, so a
+result that displays as 40.00% still fails if it is below 40%. Each result reports
+`roundingSensitive` while official rounding is unconfirmed. The 2022-scheme
+handbook's integrated table is not encoded because its SEE split is not legible.
+Nothing is stored or published yet. Marks batches, review and publication follow as
+separate tickets.
+
+All 20 package checks passed, including a hand-computed golden result, every
+grade-band edge and the half mark below it, policy-variant equivalence and
+key-order determinism. The full quality gate passed locally: lint, formatting,
+typecheck across every project, and 112 tooling/unit checks (the 92 existing plus
+20 new). The compiled package builds and imports. SQL, integration and browser
+suites were not re-run, because this slice changes no schema, API or UI.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

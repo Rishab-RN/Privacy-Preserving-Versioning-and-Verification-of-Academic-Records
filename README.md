@@ -99,6 +99,7 @@ packages/
   contracts/                Shared transport types
   verification/             Canonicalization, signatures and Merkle verification
   credentials/              Stateless selective-disclosure/holder-binding library
+  assessment/               Versioned assessment policy and exact result calculator
   zk/                       Course-grade predicate, commitments and real proofs
 db/                         SQL migrations, synthetic seeds and transcript query
 infra/                      Optional local database services
