@@ -14,7 +14,7 @@ packages/
   contracts/                Shared request/response types and data contracts
   verification/             Independent commitments, signatures, Merkle proofs and CLI
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
-  assessment/               Versioned assessment policy and exact course-result calculator
+  assessment/               Versioned assessment policy, course results and SGPA/CGPA
   access-matrix/            Pilot permission matrix, reference evaluator and generated cases
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/

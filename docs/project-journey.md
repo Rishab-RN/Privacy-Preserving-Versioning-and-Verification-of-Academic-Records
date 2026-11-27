@@ -809,6 +809,31 @@ mid-session, so this worktree used its own clean `npm ci` instead. With that ins
 full local gate passed: lint, formatting, typecheck across every project, and 131
 tooling/unit checks (the 112 earlier plus 19 new). No schema, API or UI changed.
 
+## 2026-11-27 — SGPA and CGPA calculator
+
+`summarizeTranscript` in `packages/assessment` (branch `feat/gpa-calculator`) computes
+SGPA per term, cumulative CGPA, earned credits, the percentage equivalent, degree standing
+and outstanding courses from published grades. It follows the handbook formulas as
+written:
+
+- SGPA excludes only transitional grades, so an F counts as zero points with its credits.
+- CGPA excludes F grades, so a later pass replaces the failure.
+- Grades without points and non-credit courses never count.
+
+Two cited policies capture the differences between editions. The 2022-scheme handbook
+requires CGPA ≥ 5.00 for the degree, with Distinction, First and Second Class at 7, 6 and 5.
+The AY 2026-27 handbook adds a Pass Class from 4, and its DX grade does not count.
+Averages are exact. Class and degree decisions use the exact CGPA and report when a
+two-decimal CGPA would change them.
+
+MP and Ab grades are refused until RVCE says how they count. The handbooks award
+malpractice "a credit of 0" with grade MP in one edition and NE in the other.
+
+All 34 package checks passed (the 20 earlier plus 14 new). They use real AIML 2022-scheme
+Semester V and VI codes and credits with synthetic grades, and include a hand-computed
+golden transcript for an F followed by a supplementary pass. The full local gate passed:
+lint, formatting, typecheck across every project, and 145 tooling/unit checks.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

@@ -99,7 +99,7 @@ packages/
   contracts/                Shared transport types
   verification/             Canonicalization, signatures and Merkle verification
   credentials/              Stateless selective-disclosure/holder-binding library
-  assessment/               Versioned assessment policy and exact result calculator
+  assessment/               Versioned assessment policy, course results and SGPA/CGPA
   access-matrix/            Pilot permission matrix and generated access-test cases
   zk/                       Course-grade predicate, commitments and real proofs
 db/                         SQL migrations, synthetic seeds and transcript query
