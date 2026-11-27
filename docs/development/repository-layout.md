@@ -15,6 +15,7 @@ packages/
   verification/             Independent commitments, signatures, Merkle proofs and CLI
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
   assessment/               Versioned assessment policy and exact course-result calculator
+  access-matrix/            Pilot permission matrix, reference evaluator and generated cases
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
@@ -87,6 +88,9 @@ checks are in `tests/integration/`. No new dependency was added for this slice.
 - `packages/assessment/` evaluates versioned assessment policy from component marks
   with exact arithmetic and Node built-ins only. It computes; it does not store or
   publish results, and its policies await institutional confirmation.
+- `packages/access-matrix/` is the executable specification of pilot permissions and
+  the oracle for generated access tests. It never authorizes requests. SQL functions
+  and API routes remain the enforcement boundary.
 - The API owns request handling and application composition. Background job
   processing belongs in the worker when a durable job workflow is introduced.
 - Database migrations are the schema history. Application startup must not silently

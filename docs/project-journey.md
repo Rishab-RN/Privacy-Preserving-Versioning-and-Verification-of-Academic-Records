@@ -776,6 +776,39 @@ typecheck across every project, and 112 tooling/unit checks (the 92 existing plu
 20 new). The compiled package builds and imports. SQL, integration and browser
 suites were not re-run, because this slice changes no schema, API or UI.
 
+## 2026-11-27 — Pilot access matrix
+
+`packages/access-matrix` on `feat/access-matrix`, stacked on the assessment branch, is the
+executable specification of pilot permissions. It covers 16 actions and 17 synthetic
+personas, and it includes an anonymous caller:
+
+- Students see only their own published results.
+- Teachers and SEE examiners work on assigned offerings and stages only.
+- HoDs and delegates review only their department's CIE batches.
+- Exam-section staff can validate imports and reconcile rosters under a time-bound
+  delegation, but cannot edit, review or publish.
+- The CoE office publishes results.
+- The Dean Academics and the auditor have read-only access.
+
+A reference evaluator returns the expected status for every persona, action and resource.
+It follows the existing API convention: 401 without a session, 403 without capability,
+404 outside scope, then separation-of-duties denials (`SELF_REVIEW`, `SELF_APPROVAL`,
+`SOD_CONFLICT`). It produces 846 expected outcomes for the pilot fixture. Each grant cites
+an RVCE source, existing repository policy, or a proposal awaiting confirmation.
+
+The evaluator is a test oracle. SQL and API routes remain the enforcement boundary, and
+T1–T6 integration tests will replay its cases against them. A generated `MATRIX.md` gives
+reviewers a readable copy and fails a test when it is stale. The pilot fixture now places
+the multi-role HoD in section AI-B, so no section has two teachers.
+
+All 19 package checks passed. They cover every acceptance check from the pilot plan,
+each separation rule, delegation-window boundaries and policy invariants. Delegations can
+confer only validation and roster reads, oversight roles are read-only, and every decision
+has a separation rule. The main checkout's dependency folder was found partly deleted
+mid-session, so this worktree used its own clean `npm ci` instead. With that install, the
+full local gate passed: lint, formatting, typecheck across every project, and 131
+tooling/unit checks (the 112 earlier plus 19 new). No schema, API or UI changed.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
