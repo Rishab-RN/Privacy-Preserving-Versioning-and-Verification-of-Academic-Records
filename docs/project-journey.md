@@ -834,6 +834,30 @@ Semester V and VI codes and credits with synthetic grades, and include a hand-co
 golden transcript for an F followed by a supplementary pass. The full local gate passed:
 lint, formatting, typecheck across every project, and 145 tooling/unit checks.
 
+## 2026-11-27 — Synthetic pilot dataset
+
+`packages/pilot-data` (branch `feat/pilot-data`) generates the synthetic pilot
+institution from a seed. It produces:
+
+- CD252IA sections AI-A, AI-B and IS-A for one AIML 2022-scheme Semester V term
+- the access-matrix staff personas, with their duties and delegations
+- 28 students with `SYN`-prefixed USNs that cannot match a real USN
+- CIE/SEE component marks
+- results computed by the assessment package
+- AIML Semester V transcripts with SGPA
+
+Eight named AI-A students have fixed marks, so every outcome is present: distinction,
+a demo pass for the private-proof login, a Paper Viewing candidate who moves from F to B+,
+transitional X, SEE absence, a rounding-sensitive fail, and NE for attendance and for CIE.
+Sections scale to 240+ students for later measurements. An export command writes JSON to
+the ignored runtime folder. The dataset contains no passwords.
+
+All 11 package checks passed. They cover a pinned SHA-256 fingerprint for the default
+dataset, every scenario outcome, exact recomputation of every stored result and SGPA,
+agreement with the access-matrix fixture, identifier rules, scaling and option validation.
+The full local gate passed: lint, formatting, typecheck across every project, and 156
+tooling/unit checks. No schema, API or UI changed.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

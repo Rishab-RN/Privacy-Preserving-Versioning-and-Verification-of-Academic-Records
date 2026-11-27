@@ -16,6 +16,7 @@ packages/
   credentials/              Flat selective disclosures, holder JWTs and artifact/log binding
   assessment/               Versioned assessment policy, course results and SGPA/CGPA
   access-matrix/            Pilot permission matrix, reference evaluator and generated cases
+  pilot-data/               Deterministic synthetic pilot institution, marks and transcripts
   zk/                       Circom course-grade predicate and Node/browser proof helpers
 db/
   migrations/               Reviewed, ordered PostgreSQL schema changes
@@ -91,6 +92,8 @@ checks are in `tests/integration/`. No new dependency was added for this slice.
 - `packages/access-matrix/` is the executable specification of pilot permissions and
   the oracle for generated access tests. It never authorizes requests. SQL functions
   and API routes remain the enforcement boundary.
+- `packages/pilot-data/` builds deterministic synthetic fixtures from those two packages.
+  Seed scripts and demos consume it. It contains no credentials and no real people.
 - The API owns request handling and application composition. Background job
   processing belongs in the worker when a durable job workflow is introduced.
 - Database migrations are the schema history. Application startup must not silently
