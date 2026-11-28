@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { once } from 'node:events';
-import type { Server } from 'node:http';
 import { test } from 'node:test';
 import type {
   PilotBatch,
@@ -11,32 +9,22 @@ import type {
   PilotBatchSummary,
 } from '@scholarproof/contracts';
 import { PILOT_WORLD, decide } from '../../packages/access-matrix/src/index.js';
-import { RVCE_2022_ITL_S1 } from '../../packages/assessment/src/index.js';
 import { generatePilotData } from '../../packages/pilot-data/src/index.js';
 import { pilotId } from '../../apps/api/scripts/pilot/provision.js';
-import { createApp } from '../../apps/api/src/app.js';
-import { openDataRuntime, readDataConfig } from '../../apps/api/src/data-runtime.js';
 import { connectTestClient } from '../database/helpers.js';
-import { provisionTestPilot, sessionFor } from './pilot-fixture.js';
+import {
+  personaSubjects,
+  provisionTestPilot,
+  sessionFor,
+  stageBody,
+  stageComponents as components,
+  startPilotApi,
+} from './pilot-fixture.js';
+import type { Stage } from './pilot-fixture.js';
 
-type Stage = 'cie' | 'see';
 const data = generatePilotData();
-const components = (stage: Stage) =>
-  RVCE_2022_ITL_S1.groups
-    .filter((group) => group.part === stage)
-    .flatMap((group) => group.components.filter((c) => !c.optional).map((c) => c.code));
-
-/** A revision built from the synthetic dataset; SEE covers only students with SEE marks. */
-function body(offering: string, stage: Stage, expectedRevision: number): PilotBatchInput {
-  const codes = components(stage);
-  const rows = data.assessments
-    .filter((a) => a.offering === offering && codes.every((code) => code in a.marks))
-    .map((a) => ({
-      enrolmentId: pilotId(`enrolment:${a.usn}`),
-      values: codes.map((code) => a.marks[code]!),
-    }));
-  return { stage, expectedRevision, components: codes, rows };
-}
+const body = (offering: string, stage: Stage, expectedRevision: number): PilotBatchInput =>
+  stageBody(data, offering, stage, expectedRevision);
 
 test('T3 marks batches are scoped, immutable and agree with the access matrix', async (t) => {
   const admin = await connectTestClient();
@@ -44,62 +32,11 @@ test('T3 marks batches are scoped, immutable and agree with the access matrix', 
   const fixture = await provisionTestPilot(admin, data);
   const offering = (key: string) => fixture.offerings[key as keyof typeof fixture.offerings];
 
-  const subjects = new Map(data.staff.map((member) => [member.key, member.subject]));
-  for (const student of data.students) {
-    if (student.persona) subjects.set(student.persona, student.subject);
-  }
+  const subjects = personaSubjects(data);
   const tokens = new Map<string, string>();
   for (const [key, subject] of subjects) tokens.set(key, await sessionFor(admin, subject));
-  const token = (key: string) => tokens.get(key)!;
+  const { runtime, call } = await startPilotApi(t, tokens);
 
-  const config = readDataConfig();
-  assert.ok(config);
-  const runtime = await openDataRuntime(config);
-  t.after(() => runtime.close());
-  // Each app instance limits a source address to 100 requests a minute, so the matrix replays
-  // rotate to a fresh instance before reaching that limit.
-  const servers: Server[] = [];
-  t.after(() => {
-    for (const server of servers) {
-      server.closeAllConnections();
-      server.close();
-    }
-  });
-  let port = 0;
-  let used = Number.POSITIVE_INFINITY;
-  async function baseUrl() {
-    if (used >= 90) {
-      const server = createApp(runtime.platform).listen(0, '127.0.0.1');
-      servers.push(server);
-      await once(server, 'listening');
-      const address = server.address();
-      assert.ok(address && typeof address !== 'string');
-      port = address.port;
-      used = 0;
-    }
-    used += 1;
-    return `http://127.0.0.1:${port}/api/v1`;
-  }
-
-  type Reply<T> = T & { error?: { code: string; message: string } };
-  async function call<T>(
-    method: 'GET' | 'POST',
-    path: string,
-    as: string | null,
-    payload?: unknown,
-    key: string | null = randomUUID(),
-  ): Promise<{ status: number; json: Reply<T>; code: string | undefined }> {
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (as) headers.authorization = `Bearer ${token(as)}`;
-    if (key && method === 'POST' && payload !== undefined) headers['idempotency-key'] = key;
-    const response = await fetch(`${await baseUrl()}${path}`, {
-      method,
-      headers,
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    });
-    const json = (await response.json()) as Reply<T>;
-    return { status: response.status, json, code: json.error?.code };
-  }
   const create = (as: string, key: string, input: PilotBatchInput, idempotency?: string) =>
     call<PilotBatchCreated>(
       'POST',

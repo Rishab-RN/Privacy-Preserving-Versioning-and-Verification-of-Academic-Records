@@ -46,10 +46,10 @@ if (
 
 await runDatabaseCommand(async (client) => {
   const ready = await client.query<{ ready: boolean }>(
-    "SELECT to_regclass('assessment.offering_policy') IS NOT NULL AS ready",
+    "SELECT to_regclass('assessment.validation_delegation') IS NOT NULL AS ready",
   );
   if (!ready.rows[0]?.ready)
-    throw new MigrationError('Apply migrations through 0017 before pilot:setup');
+    throw new MigrationError('Apply migrations through 0018 before pilot:setup');
   console.info(`Provisioning the synthetic pilot institution (${accounts.length} accounts)…`);
   const fixture = await provisionPilot(client, accounts, {
     hash: hashPassword,

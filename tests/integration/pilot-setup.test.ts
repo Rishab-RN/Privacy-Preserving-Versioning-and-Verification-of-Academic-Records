@@ -22,6 +22,7 @@ test('pilot provisioning seeds the synthetic institution once and matches the ac
     departmentDuties: 4,
     rosterDelegations: 1,
     offeringPolicies: 3,
+    validationDelegations: 3, // S1 for AI; S2 for AI and IS
   });
   const second = await provisionPilot(admin, accounts, tools, data);
   assert.deepEqual(second, first, 'a repeated run changes nothing');
