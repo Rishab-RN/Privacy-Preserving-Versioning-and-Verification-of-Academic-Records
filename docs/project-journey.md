@@ -912,6 +912,40 @@ integration checks passed, including Codex's live roster test. The private-proof
 the ZK development ceremony, which this worktree did not have; CI runs it. The quality gate
 passed with 156 tooling/unit checks.
 
+## 2026-11-28 — T3 pilot marks batches
+
+The owner assigned T3 to Claude. Migration `0017` adds four BCNF, append-only relations:
+
+- `assessment.offering_policy`: an offering's assessment policy, frozen once marks exist
+- `assessment.batch`: immutable CIE/SEE revisions keyed by offering, stage and revision
+- `assessment.mark`: marks, with `NULL` recording an absence
+- `assessment.batch_submission`: submission facts
+
+Course teachers enter CIE and SEE examiners enter SEE, for their migration `0016` offering
+duties. Five SECURITY DEFINER functions, owned by a non-login role, implement the rules:
+
+- Without any entry duty the caller gets 403; outside the covered offering and stage, 404.
+- A stale expected revision is `STALE_REVISION` and a reused key with different content is
+  `IDEMPOTENCY_CONFLICT`.
+- A new revision while the head awaits review is `BATCH_UNDER_REVIEW`, and only the author can
+  submit the latest revision.
+
+The API validates each row with the new `validateStageMarks` in `packages/assessment` against
+the offering's frozen policy and the live roster, so a stored revision always satisfies the
+calculator. CIE batches must cover every enrolled student. Revisions use a compact column form
+and return a SHA-256 content digest for later signing. Reads are limited to the stage author,
+the reviewing HoD or delegate, and exam approvers. `pilot:setup` now freezes the
+`rvce-2022-itl-s1` policy on each section. See
+[pilot marks batches](architecture/assessment-batches.md).
+
+The integration test runs the real API under the restricted identity. It covers revision,
+retry, conflict, stale, review-lock and submission paths, eight validation errors, scoped
+reads, table access denial and immutability. It also replays every persona's `batch.create`
+(all three sections and both stages) and `batch.submit` outcomes against the access matrix.
+All 45 database checks passed with `0017` applied to fresh and concurrent migration runs.
+Locally, 68 of 69 integration checks passed; the private-proof check again needs the ZK
+ceremony that CI provides. The quality gate passed with 170 tooling/unit checks.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
