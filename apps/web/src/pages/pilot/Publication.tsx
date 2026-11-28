@@ -3,6 +3,7 @@ import type {
   PilotAttendance,
   PilotBatchSummary,
   PilotDeskOffering,
+  PilotFinalizeResult,
   PilotPublication,
   PilotPublishResult,
   PilotRoster,
@@ -54,10 +55,13 @@ export function Publication({
     setState(null);
     try {
       const publication = await loadPublication(api, offeringId);
-      const [list, roster] = await Promise.all([
-        api<{ batches: PilotBatchSummary[] }>(`/pilot/offerings/${offeringId}/batches`),
-        publication ? Promise.resolve([]) : fullRoster(api, offeringId),
-      ]);
+      // Readiness and attendance matter only until the offering is published.
+      const [list, roster] = publication
+        ? [{ batches: [] as PilotBatchSummary[] }, []]
+        : await Promise.all([
+            api<{ batches: PilotBatchSummary[] }>(`/pilot/offerings/${offeringId}/batches`),
+            fullRoster(api, offeringId),
+          ]);
       setState({
         publication,
         cie: list.batches.filter((b) => b.stage === 'cie').at(-1),
@@ -129,10 +133,27 @@ export function Publication({
     }
   }
 
+  async function finalize() {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await api<PilotFinalizeResult>(`/pilot/offerings/${offeringId}/finalize`, {});
+      setNotice(
+        `Declared ${result.records} results final; ${result.revised} changed after paper viewing.`,
+      );
+      await load();
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const pending = state?.publication?.pendingCorrections ?? 0;
   return (
     <Panel
-      title="Publish provisional results"
-      subtitle="Publishing needs the approved CIE revision and the submitted SEE revision. You cannot publish an offering whose marks you entered, validated or reviewed."
+      title="Publish results"
+      subtitle="Provisional publication needs the approved CIE revision and the submitted SEE revision; final publication closes paper viewing. You cannot publish an offering whose marks you entered, validated or reviewed."
     >
       <div className="pilot-toolbar">
         <OfferingPicker offerings={offerings} value={offeringId} onChange={setOfferingId} />
@@ -154,7 +175,27 @@ export function Publication({
         </div>
       )}
       {!state && !error && <p role="status">Loading the offering…</p>}
-      {state?.publication && <ResultsTable publication={state.publication} />}
+      {state?.publication && (
+        <>
+          <ResultsTable publication={state.publication} />
+          {!state.publication.final && (
+            <div className="pilot-actions">
+              <button
+                className="primary"
+                disabled={busy || pending > 0}
+                onClick={() => void finalize()}
+              >
+                Publish final results
+              </button>
+              <small>
+                {pending > 0
+                  ? `${pending} correction request${pending === 1 ? '' : 's'} must be decided first.`
+                  : 'Publish once the paper-viewing window has closed. Final grades cannot be corrected.'}
+              </small>
+            </div>
+          )}
+        </>
+      )}
       {state && !state.publication && (
         <>
           <Field

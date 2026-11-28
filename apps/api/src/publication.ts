@@ -10,6 +10,7 @@ import type { AssessmentPolicy, CourseResult } from '@academic-records/assessmen
 import type {
   PilotBatchStage,
   PilotCourseResult,
+  PilotFinalizeResult,
   PilotPublication,
   PilotPublishedResult,
   PilotPublishResult,
@@ -249,10 +250,13 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
             gradePoints: number | string | null;
             outcome: Outcome;
             current: StoredGrade;
+            finalVersionNo: number | null;
             attendance: StoredAttendance;
             marks: StoredMarks;
             revisions: StoredMarks;
           }[];
+          final: PilotPublication['final'];
+          pending_corrections: number;
         }>('SELECT * FROM assessment.publication_view($1,$2)', [digest, offeringId])
         .catch(batchFailure)
     ).rows[0]!;
@@ -286,10 +290,13 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
             marks: currentInput.marks[component.code]!,
             maximum: component.maximum,
           })),
+        finalVersionNo: stored.finalVersionNo,
         ...present(current, currentPoints, stored.current.outcome),
+        // A final publication must have fixed the current version.
         matches:
           reproduces(published, { ...stored, gradePoints: points(stored.gradePoints) }) &&
-          reproduces(current, { ...stored.current, gradePoints: currentPoints }),
+          reproduces(current, { ...stored.current, gradePoints: currentPoints }) &&
+          (row.final === null || stored.finalVersionNo === stored.current.versionNo),
       };
     });
     const publication: PilotPublication = {
@@ -305,8 +312,37 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
         records: results.length,
         mismatches: results.filter((r) => !r.matches).map((r) => r.studentCode),
       },
+      final: row.final,
+      pendingCorrections: row.pending_corrections,
     };
     response.json(publication);
+  });
+
+  router.post('/pilot/offerings/:offeringId/finalize', async (request, response) => {
+    const { digest } = await platform.authenticate(request.get('authorization'));
+    const offeringId = parse(uuid, request.params.offeringId);
+    parse(noQuery, request.body ?? {});
+    const row = (
+      await sql()
+        .query<{
+          publication_id: string;
+          published_at: string;
+          records: number;
+          revised: number;
+          created: boolean;
+        }>('SELECT * FROM assessment.finalize_results($1,$2)', [digest, offeringId])
+        .catch(batchFailure)
+    ).rows[0]!;
+    const result: PilotFinalizeResult = {
+      publicationId: row.publication_id,
+      offeringId,
+      kind: 'final',
+      publishedAt: row.published_at,
+      records: row.records,
+      revised: row.revised,
+      alreadyFinal: !row.created,
+    };
+    response.status(row.created ? 201 : 200).json(result);
   });
 
   router.get('/pilot/my-results', async (request, response) => {

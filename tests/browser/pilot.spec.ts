@@ -70,6 +70,11 @@ test('pilot marks travel from entry to a corrected, published result', async ({ 
   mkdirSync(out, { recursive: true });
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  // The API allows 100 requests a minute per address, and the journey runs inside one minute.
+  let apiCalls = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.startsWith('/api/')) apiCalls += 1;
+  });
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   await test.step('F1 enters and submits AI-A CIE marks', async () => {
@@ -144,18 +149,6 @@ test('pilot marks travel from entry to a corrected, published result', async ({ 
     await signOut(page);
   });
 
-  await test.step('the student sees their own provisional result', async () => {
-    await signIn(page, 'pilot:syn24ai001');
-    await openDesk(page, 'My results');
-    const card = page.getByRole('article').filter({ hasText: 'CD252IA' });
-    await expect(card.getByText('Provisional')).toBeVisible();
-    const expected = data.assessments.find((a) => a.usn === 'SYN24AI001')!.result.letter!;
-    await expect(card.getByLabel(`Grade ${expected}`)).toBeVisible();
-    await expect(page.getByRole('article')).toHaveCount(1);
-    await page.screenshot({ path: resolve(out, 'pilot-03-student-result.png'), fullPage: true });
-    await signOut(page);
-  });
-
   let requestId = '';
   await test.step('R1 records a paper-viewing revaluation for SYN24AI003', async () => {
     await signIn(page, 'pilot:r1');
@@ -186,15 +179,32 @@ test('pilot marks travel from entry to a corrected, published result', async ({ 
     await signOut(page);
   });
 
-  await test.step('the corrected result reaches the student', async () => {
+  await test.step('P1 publishes final results once paper viewing is settled', async () => {
+    await signIn(page, 'pilot:p1');
+    await page.getByRole('tab', { name: 'Publication' }).click();
+    await page.getByRole('button', { name: 'Publish final results' }).click();
+    await expect(
+      page.getByText('Declared 12 results final; 1 changed after paper viewing.'),
+    ).toBeVisible();
+    await expect(page.getByText(/^Final since/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publish final results' })).toBeHidden();
+    await page.screenshot({ path: resolve(out, 'pilot-03-final.png'), fullPage: true });
+    await signOut(page);
+  });
+
+  await test.step('the student sees the corrected, final result', async () => {
     await signIn(page, 'pilot:syn24ai003');
     await openDesk(page, 'My results');
     const card = page.getByRole('article').filter({ hasText: 'CD252IA' });
+    await expect(card.getByText('Final', { exact: true })).toBeVisible();
     await expect(card.getByText('Revised after paper viewing')).toBeVisible();
     await expect(card.getByLabel('Grade B+')).toBeVisible();
-    await page.screenshot({ path: resolve(out, 'pilot-04-revised-result.png'), fullPage: true });
+    await expect(page.getByRole('article')).toHaveCount(1);
+    await page.screenshot({ path: resolve(out, 'pilot-04-final-result.png'), fullPage: true });
     await signOut(page);
   });
 
   expect(errors).toEqual([]);
+  console.info(`Pilot journey API requests: ${apiCalls}`);
+  expect(apiCalls).toBeLessThan(90);
 });

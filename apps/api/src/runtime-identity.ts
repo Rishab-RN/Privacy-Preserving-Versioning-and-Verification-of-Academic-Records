@@ -135,6 +135,7 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
           'assessment.pvp_context(text,uuid)',
           'assessment.propose_pvp(text,uuid,uuid,integer,uuid,jsonb,numeric,text,text)',
           'assessment.my_desk(text)',
+          'assessment.finalize_results(text,uuid)',
         ],
       ],
     );

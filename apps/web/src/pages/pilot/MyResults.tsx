@@ -40,7 +40,7 @@ export function MyResults({ api }: { api: Api }) {
                   </small>
                 </div>
                 <div className="status-row">
-                  <Badge tone="amber">{r.label}</Badge>
+                  <Badge tone={r.label === 'Final' ? 'green' : 'amber'}>{r.label}</Badge>
                   {r.revisedAfterPvp && <Badge tone="green">Revised after paper viewing</Badge>}
                 </div>
               </header>

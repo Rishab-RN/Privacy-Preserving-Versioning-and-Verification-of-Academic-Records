@@ -200,6 +200,8 @@ export interface PilotPublishedResult extends PilotCourseResult {
   revisedAfterPvp: boolean;
   /** Components eligible for paper viewing, with current marks (`AB` when absent). */
   paperViewing: { code: string; marks: string; maximum: string }[];
+  /** The version the final publication fixed, or null before final publication. */
+  finalVersionNo: number | null;
   /** Whether recomputation reproduces both the published and the current stored grade. */
   matches: boolean;
 }
@@ -215,6 +217,22 @@ export interface PilotPublication {
   results: PilotPublishedResult[];
   /** Recomputation of every stored grade; mismatches lists student codes. */
   audit: { records: number; mismatches: string[] };
+  /** The final publication that closed paper viewing, once declared. */
+  final: { publicationId: string; publisherSubject: string; publishedAt: string } | null;
+  /** Correction requests on the offering's records awaiting a decision. */
+  pendingCorrections: number;
+}
+
+export interface PilotFinalizeResult {
+  publicationId: string;
+  offeringId: string;
+  kind: 'final';
+  publishedAt: string;
+  records: number;
+  /** Records whose final version differs from the provisional one. */
+  revised: number;
+  /** True when the same approver had already declared the results final. */
+  alreadyFinal: boolean;
 }
 
 export interface PilotStudentResult extends PilotCourseResult {

@@ -75,6 +75,11 @@ export function Workspace({
   const transcriptRequest = useRef(0);
   const [history, setHistory] = useState<TranscriptResponse['records'][number] | null>(null);
   useEffect(() => {
+    // Pilot-only staff have no student directory, so there is nothing to load.
+    if (pilotOnly) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     void api<{ students: StudentSummary[] }>('/students')
       .then((result) => {
