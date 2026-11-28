@@ -57,18 +57,26 @@ const reviewInput = z
 const validateInput = z.object({ note: z.string().trim().min(1).max(500).optional() }).strict();
 const noQuery = z.object({}).strict();
 
-/** Custom SQL states raised by migrations 0017 and 0018 for batch workflow conflicts. */
+/** Custom SQL states raised by migrations 0017 to 0019 for marks and publication conflicts. */
 const BATCH_STATES: Record<string, [number, string, string]> = {
   AB001: [409, 'BATCH_NOT_SUBMITTED', 'Only submitted batches can be validated or reviewed'],
   AB002: [409, 'ALREADY_REVIEWED', 'The batch already has a review'],
   AB003: [403, 'SELF_REVIEW', 'Authors cannot review their own batch'],
-  AB004: [403, 'SOD_CONFLICT', 'Entry, validation and review must be held by different people'],
+  AB004: [
+    403,
+    'SOD_CONFLICT',
+    'Entry, validation, review and publication must be held by different people',
+  ],
   AB005: [409, 'ALREADY_VALIDATED', 'The batch was already validated'],
   AB006: [409, 'BATCH_APPROVED', 'The approved revision is locked for publication'],
+  AB007: [409, 'CIE_NOT_APPROVED', 'The latest CIE revision is not approved'],
+  AB008: [409, 'SEE_NOT_SUBMITTED', 'The latest SEE revision is not submitted'],
+  AB009: [409, 'ALREADY_PUBLISHED', 'The offering already has provisional results'],
+  AB010: [404, 'NOT_PUBLISHED', 'The offering has no published results'],
 };
 
 /** Maps batch-specific SQL states, then defers to the shared workflow mapping. */
-function batchFailure(error: unknown): never {
+export function batchFailure(error: unknown): never {
   const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : undefined;
   const mapped = typeof code === 'string' ? BATCH_STATES[code] : undefined;
   if (mapped) throw new ApiFailure(...mapped);
