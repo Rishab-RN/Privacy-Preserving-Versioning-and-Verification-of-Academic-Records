@@ -59,6 +59,25 @@ Rules:
   persona against `packages/access-matrix`. Its world uses the current time, the real batch
   history and the real publication state.
 
+## Final publication
+
+After the paper-viewing window, an exam approver declares the results final with
+`POST /api/v1/pilot/offerings/:offeringId/finalize` (migration `0022`):
+
+- **Authority and separation:** the same rules as provisional publication apply.
+- **Readiness (409):**
+  - final publication needs the provisional publication (`PROVISIONAL_REQUIRED`)
+  - every correction request on the offering's records must be decided first (`PVP_PENDING`)
+  - the same approver retrying gets the original (200); anyone else gets `ALREADY_FINAL`
+- **No new grade rows:** `assessment.final_grade` records each record's current version, so
+  records revised after paper viewing are fixed at their corrected version. The response
+  reports how many were revised.
+- **Closing paper viewing:** afterwards a paper-viewing proposal returns 409 `RESULTS_FINAL`,
+  and the correction guard rejects any other change request for those records.
+- **Views:** the publication view adds the final publication, pending-correction count and each
+  record's final version. The audit also checks that the final version is the current one.
+  Students see the result labelled **Final**.
+
 ## Relations
 
 | Physical relation                   | Candidate key and dependency                                                  |
@@ -67,8 +86,9 @@ Rules:
 | `assessment.publication_input`      | (publication, batch); the batch determines its stage and revision             |
 | `assessment.publication_attendance` | (publication, enrolment) determines eligibility and percentage                |
 | `assessment.publication_grade`      | (record, version) determines the publication                                  |
+| `assessment.final_grade`            | (final publication, record) determines the final version                      |
 
-All four are in BCNF and reject `UPDATE` and `DELETE`. The policy follows from the offering's
+All five are in BCNF and reject `UPDATE` and `DELETE`. The policy follows from the offering's
 frozen policy, so it is not stored again. Triggers require inputs, attendance and grades to
 belong to the published offering. The grade-version guard now also accepts exam approvers as
 authors. The API role can execute only the four new allow-listed functions and cannot read the
@@ -79,7 +99,7 @@ tables.
 - Publication does not yet emit signed transparency-log events. That needs a new log event
   source and log-reader support.
 - The audit recomputes on read; it is not yet a scheduled job or a log-audit report.
-- Final publication after the paper-viewing window and proofs on published version 1 grades are
-  later slices. Paper-viewing corrections are described in
-  [paper-viewing corrections](pvp-corrections.md).
+- The paper-viewing window has no stored dates; the approver decides when it has closed.
+- Proofs on published version 1 grades are a later slice. Paper-viewing corrections are
+  described in [paper-viewing corrections](pvp-corrections.md).
 - The staff and student result screens are described in the [pilot demo](../development/pilot-demo.md).

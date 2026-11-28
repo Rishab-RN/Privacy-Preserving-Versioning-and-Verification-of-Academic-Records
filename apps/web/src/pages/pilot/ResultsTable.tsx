@@ -14,9 +14,15 @@ export function ResultsTable({
   return (
     <>
       <p className="pilot-audit">
-        {publication.kind === 'final' ? 'Final' : 'Provisional'} results published{' '}
-        {date(publication.publishedAt)} by {publication.publisherSubject} under{' '}
-        {publication.policy.id} v{publication.policy.version}.{' '}
+        Provisional results published {date(publication.publishedAt)} by{' '}
+        {publication.publisherSubject} under {publication.policy.id} v{publication.policy.version}.{' '}
+        {publication.final ? (
+          <Badge tone="green">
+            Final since {date(publication.final.publishedAt)} ({publication.final.publisherSubject})
+          </Badge>
+        ) : (
+          <Badge tone="amber">Provisional</Badge>
+        )}{' '}
         {audit.mismatches.length === 0 ? (
           <Badge tone="green">Audit: all {audit.records} grades recompute</Badge>
         ) : (

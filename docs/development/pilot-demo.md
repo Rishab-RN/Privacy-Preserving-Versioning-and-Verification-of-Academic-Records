@@ -44,6 +44,8 @@ needs a pilot whose AI-A marks have not been entered yet.
 | 7    | `pilot:r1` (registrar)        | Paper viewing     | **Revalue SYN24AI003**, raise `see_part_b` from 20 to 26, give a reason and file the request | "Correction request filed" with the request ID                      |
 | 8    | `pilot:r2` (second registrar) | Review            | Find the request ID, add a reason, **Approve correction** and confirm                        | A new grade version is committed                                    |
 | 9    | `pilot:syn24ai003` (student)  | My results        | Open the CD252IA card                                                                        | B+, version 2, "Revised after paper viewing"                        |
+| 10   | `pilot:p1` (CoE approver)     | Publication       | After the paper-viewing window, **Publish final results**                                    | "Declared 12 results final; 1 changed after paper viewing."         |
+| 11   | `pilot:syn24ai003` (student)  | My results        | Open the CD252IA card again                                                                  | B+, labelled Final                                                  |
 
 Things the screens refuse, as the API does:
 
@@ -51,14 +53,20 @@ Things the screens refuse, as the API does:
 - IS-A drops out of P2's Publication list once P2 has reviewed or validated it.
 - A lab component or a lower mark cannot be revalued.
 - R1 cannot approve their own correction.
+- Final publication waits while any correction request is undecided.
+- After final publication, paper viewing is closed.
 
 After step 9, SYN24AI003 can open **Private proofs** and request a grade-threshold credential
 for the corrected record, when the ZK setup (`npm run zk:setup`) is configured.
 
 ## Automated journey
 
-`tests/browser/pilot.spec.ts` runs these nine steps in a real browser as part of
-`npm run test:web`. It uses its own API and web preview processes, signs in nine times, and
-saves screenshots to `.runtime/frontend-evidence/pilot-*.png`. CI runs `npm run pilot:setup`
-first. Locally, the journey skips itself when AI-A already has marks, because pilot facts are
-append-only and cannot be reset.
+`tests/browser/pilot.spec.ts` runs these steps in a real browser as part of `npm run test:web`,
+apart from step 6 and the provisional check in step 9 (the integration tests cover both).
+
+- It uses its own API and web preview processes and signs in nine times.
+- It keeps its API requests under 90, since the API allows 100 a minute per address.
+- It saves screenshots to `.runtime/frontend-evidence/pilot-*.png`.
+
+CI runs `npm run pilot:setup` first. Locally, the journey skips itself when AI-A already has
+marks, because pilot facts are append-only and cannot be reset.

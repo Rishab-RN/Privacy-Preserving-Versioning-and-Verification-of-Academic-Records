@@ -57,7 +57,7 @@ const reviewInput = z
 const validateInput = z.object({ note: z.string().trim().min(1).max(500).optional() }).strict();
 const noQuery = z.object({}).strict();
 
-/** Custom SQL states raised by migrations 0017 to 0019 for marks and publication conflicts. */
+/** Custom SQL states raised by migrations 0017 to 0022 for marks and publication conflicts. */
 const BATCH_STATES: Record<string, [number, string, string]> = {
   AB001: [409, 'BATCH_NOT_SUBMITTED', 'Only submitted batches can be validated or reviewed'],
   AB002: [409, 'ALREADY_REVIEWED', 'The batch already has a review'],
@@ -73,6 +73,10 @@ const BATCH_STATES: Record<string, [number, string, string]> = {
   AB008: [409, 'SEE_NOT_SUBMITTED', 'The latest SEE revision is not submitted'],
   AB009: [409, 'ALREADY_PUBLISHED', 'The offering already has provisional results'],
   AB010: [404, 'NOT_PUBLISHED', 'The offering has no published results'],
+  AB011: [409, 'RESULTS_FINAL', 'Final results cannot be corrected'],
+  AB012: [409, 'PROVISIONAL_REQUIRED', 'Final results need a provisional publication'],
+  AB013: [409, 'PVP_PENDING', 'Decide the pending correction requests first'],
+  AB014: [409, 'ALREADY_FINAL', 'The offering already has final results'],
 };
 
 /** Maps batch-specific SQL states, then defers to the shared workflow mapping. */

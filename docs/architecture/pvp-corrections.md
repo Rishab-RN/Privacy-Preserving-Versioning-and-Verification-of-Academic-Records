@@ -79,5 +79,5 @@ relation is in BCNF and rejects `UPDATE` and `DELETE`. The API role can execute 
 - Published version 1 grades are not proof-eligible, so there is no earlier credential to
   supersede. Extending eligibility to publication-authorized versions is a separate change to
   `privacy.*`.
-- Final publication after the PVP window is a later slice. The paper-viewing screen and the
-  browser journey are described in the [pilot demo](../development/pilot-demo.md).
+- Final publication closes paper viewing; see [final publication](result-publication.md). The
+  paper-viewing screen and the browser journey are described in the [pilot demo](../development/pilot-demo.md).

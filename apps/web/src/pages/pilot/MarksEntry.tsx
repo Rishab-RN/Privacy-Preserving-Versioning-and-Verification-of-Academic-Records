@@ -75,6 +75,18 @@ export function MarksEntry({ api, offerings }: { api: Api; offerings: PilotDeskO
     }
   }
 
+  /** After a save or submit only the head changes; the grid already holds its values. */
+  async function refreshHead() {
+    if (!current) return;
+    const list = await api<{ batches: PilotBatchSummary[] }>(
+      `/pilot/offerings/${current.offering.offeringId}/batches`,
+    );
+    const latest = list.batches.filter((b) => b.stage === current.stage).at(-1);
+    setLoaded((state) => state && { ...state, head: latest });
+    setDirty(false);
+    key.current = null;
+  }
+
   useEffect(() => {
     setNotice('');
     void load();
@@ -138,7 +150,7 @@ export function MarksEntry({ api, offerings }: { api: Api; offerings: PilotDeskO
         },
         key.current,
       );
-      await load();
+      await refreshHead();
       setNotice(`Saved revision ${created.revisionNo}. Submit it when the marks are final.`);
     } catch (e) {
       setError(message(e));
@@ -153,7 +165,7 @@ export function MarksEntry({ api, offerings }: { api: Api; offerings: PilotDeskO
     setError('');
     try {
       await api(`/pilot/batches/${head.batchId}/submit`, {});
-      await load();
+      await refreshHead();
       setNotice(
         current!.stage === 'cie'
           ? 'Submitted for department review.'

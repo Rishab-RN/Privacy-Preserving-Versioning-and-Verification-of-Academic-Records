@@ -104,8 +104,16 @@ export function PaperViewing({
         {publication === null && (
           <Empty title="Not published yet">Corrections start after provisional publication.</Empty>
         )}
+        {publication?.final && (
+          <p className="pilot-audit" role="status">
+            Results are final; paper viewing is closed for this offering.
+          </p>
+        )}
         {publication && (
-          <ResultsTable publication={publication} action={{ label: 'Revalue', onSelect: select }} />
+          <ResultsTable
+            publication={publication}
+            {...(publication.final ? {} : { action: { label: 'Revalue', onSelect: select } })}
+          />
         )}
       </Panel>
       {row && (
