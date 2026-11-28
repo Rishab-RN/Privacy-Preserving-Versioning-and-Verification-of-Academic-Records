@@ -82,4 +82,4 @@ tables.
 - Final publication after the paper-viewing window and proofs on published version 1 grades are
   later slices. Paper-viewing corrections are described in
   [paper-viewing corrections](pvp-corrections.md).
-- The student and staff result screens belong to the pilot frontend slice.
+- The staff and student result screens are described in the [pilot demo](../development/pilot-demo.md).

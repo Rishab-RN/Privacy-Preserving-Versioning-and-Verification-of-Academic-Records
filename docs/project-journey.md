@@ -1064,6 +1064,38 @@ All 45 database checks passed with `0020` applied. Locally, 83 of 84 integration
 the private-proof check again needs the ZK ceremony that CI provides. The quality gate passed
 with 170 tooling/unit checks.
 
+## 2026-11-28 — Pilot web desks
+
+The owner asked Claude to start the pilot frontend. A new **Marks & results** page in the
+workspace shows each person only the desks their duties allow:
+
+- Marks entry for course teachers (CIE) and SEE examiners (SEE).
+- Department review for HoDs and delegates.
+- The exam-office validation queue for delegated staff.
+- Publication with pasted attendance for exam approvers.
+- Published results with the recomputation audit.
+- Paper-viewing corrections for registrars.
+- My results for students.
+
+Pilot staff without a records desk land on it after signing in. Approval of a correction reuses
+the existing Review page.
+
+Migration `0021` adds `assessment.my_desk`. It returns, per offering, the flags the UI needs:
+entry stages, review, validation, publishing, result reading, correction and published state.
+Each flag repeats the authority check of the function it leads to. A new entry-form route
+returns a stage's components and maxima from the frozen policy. Publication rows now list the
+components open to paper viewing with their current marks.
+
+`tests/browser/pilot.spec.ts` drives all nine steps in a real browser, from F1's CIE entry to
+SYN24AI003's revised B+. Sign-ins are limited to 10 per 15 minutes per API process, so the
+journey runs against its own API and preview servers. CI provisions the pilot before
+`test:web`. `tests/integration/pilot-desk.test.ts` checks each persona's desk flags and the
+entry form. [The pilot demo](development/pilot-demo.md) is the manual walkthrough.
+
+The journey was first run locally against a disposable database with its own API and web
+servers. That run found a login rate-limit clash, ambiguous offering labels and roster order,
+which were fixed before the journey passed.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
