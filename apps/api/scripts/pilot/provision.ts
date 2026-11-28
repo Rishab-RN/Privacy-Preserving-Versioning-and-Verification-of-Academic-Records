@@ -38,6 +38,7 @@ export interface PilotFixture {
     readonly offeringDuties: number;
     readonly departmentDuties: number;
     readonly rosterDelegations: number;
+    readonly offeringPolicies: number;
   };
 }
 
@@ -194,6 +195,16 @@ export async function provisionPilot(
         [id],
         { department_id: departmentId(offering.department) },
       );
+      const policy = data.meta.policies.assessment;
+      await ensure(
+        client,
+        `assessment policy ${offering.key}`,
+        'INSERT INTO assessment.offering_policy(offering_id,policy_id,policy_version) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
+        [id, policy.id, policy.version],
+        'SELECT policy_id,policy_version FROM assessment.offering_policy WHERE offering_id=$1',
+        [id],
+        { policy_id: policy.id, policy_version: String(policy.version) },
+      );
     }
 
     const users = new Map<string, string>();
@@ -315,7 +326,9 @@ export async function provisionPilot(
           (SELECT count(*) FROM pilot.department_duty a JOIN pilot.department d USING(department_id)
             WHERE d.institution_id=$1) AS "departmentDuties",
           (SELECT count(*) FROM pilot.roster_delegation a JOIN pilot.department d USING(department_id)
-            WHERE d.institution_id=$1) AS "rosterDelegations"`,
+            WHERE d.institution_id=$1) AS "rosterDelegations",
+          (SELECT count(*) FROM assessment.offering_policy p JOIN pilot.offering_department USING(offering_id)
+            JOIN pilot.department d USING(department_id) WHERE d.institution_id=$1) AS "offeringPolicies"`,
         [institutionId],
       )
     ).rows[0]!;
@@ -333,6 +346,7 @@ export async function provisionPilot(
         offeringDuties: Number(counts.offeringDuties),
         departmentDuties: Number(counts.departmentDuties),
         rosterDelegations: Number(counts.rosterDelegations),
+        offeringPolicies: Number(counts.offeringPolicies),
       },
     };
   } catch (error) {

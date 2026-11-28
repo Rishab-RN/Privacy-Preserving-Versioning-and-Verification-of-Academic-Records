@@ -18,6 +18,9 @@
     },
     {
       "path": "../../packages/verification"
+    },
+    {
+      "path": "../../packages/assessment"
     }
   ]
 }

@@ -53,6 +53,52 @@ export interface PilotRoster {
   students: { enrolmentId: string; studentCode: string }[];
   nextAfter: string | null;
 }
+
+export type PilotBatchStage = 'cie' | 'see';
+
+/** One marks revision in column form: `values[i]` is the entry for `components[i]`. */
+export interface PilotBatchInput {
+  stage: PilotBatchStage;
+  /** The revision this one replaces; 0 for the first revision. */
+  expectedRevision: number;
+  components: string[];
+  /** Decimal marks such as `"17.5"`, or `"AB"` where the policy allows absence. */
+  rows: { enrolmentId: string; values: string[] }[];
+}
+
+export interface PilotBatchCreated {
+  batchId: string;
+  offeringId: string;
+  stage: PilotBatchStage;
+  revisionNo: number;
+  /** False when an exact retry returned the existing revision. */
+  created: boolean;
+  /** SHA-256 of the canonical rows, for later signing and comparison. */
+  contentDigest: string;
+}
+
+export interface PilotBatchSummary {
+  batchId: string;
+  stage: PilotBatchStage;
+  revisionNo: number;
+  authorSubject: string;
+  createdAt: string;
+  submittedAt: string | null;
+}
+
+export interface PilotBatch extends PilotBatchSummary {
+  offeringId: string;
+  policy: { id: string; version: number };
+  components: string[];
+  rows: { enrolmentId: string; studentCode: string; values: string[] }[];
+}
+
+export interface PilotBatchSubmission {
+  batchId: string;
+  submittedAt: string;
+  /** True when the batch had already been submitted. */
+  alreadySubmitted: boolean;
+}
 export interface StudentSummary {
   studentId: string;
   studentCode: string;

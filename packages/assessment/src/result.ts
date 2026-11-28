@@ -211,6 +211,29 @@ function cieOnly(policy: AssessmentPolicy, input: StudentAssessment): Totals {
   return cie;
 }
 
+/**
+ * Validates one student's entries for a single stage (a CIE or SEE marks batch): every code must
+ * belong to that part, every required component must be present, and values must be valid marks
+ * within their maxima. `AB` is accepted only where the policy allows absence.
+ */
+export function validateStageMarks(
+  policy: AssessmentPolicy,
+  part: Part,
+  marks: Readonly<Record<string, string>>,
+): void {
+  checkEntries(policy, marks);
+  const index = locate(policy);
+  for (const code of Object.keys(marks)) {
+    if (index.get(code)?.group.part !== part) {
+      throw new AssessmentError(
+        'UNKNOWN_COMPONENT',
+        `${code} is not a ${part.toUpperCase()} component`,
+      );
+    }
+  }
+  partTotals(policy, marks, part);
+}
+
 /** CIE scores and SEE eligibility. SEE entries may be present and are validated, not used. */
 export function evaluateCie(policy: AssessmentPolicy, input: StudentAssessment): CieEvaluation {
   const cie = cieOnly(policy, input);

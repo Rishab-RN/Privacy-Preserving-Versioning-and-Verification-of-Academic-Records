@@ -14,8 +14,9 @@ data is untouched:
 | Students  | 28 students (`SYN24AI001`…, `SYN24IS001`…) with programme membership and enrolments                                                                 |
 | Accounts  | 42 logins with institutional roles: 14 staff personas (`pilot:f1`, `pilot:h1`, …) and every student (`pilot:syn24ai001`, …)                         |
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
+| Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`)                                                            |
 
-Apply migrations through `0016` first. From the repository root:
+Apply migrations through `0017` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -55,10 +56,19 @@ Expected results:
 `tests/integration/pilot-setup.test.ts` provisions a disposable database twice and checks these
 outcomes for every persona against `PILOT_WORLD`.
 
+## Enter marks
+
+With the same F1 token, `POST /api/v1/pilot/offerings/<AI-A offering ID>/batches` creates a CIE
+revision. Send an `Idempotency-Key` header and a body with `stage`, `expectedRevision` (0 for the
+first), `components` and one row of values per enrolment. Then
+`POST /api/v1/pilot/batches/<batch ID>/submit` submits it. The offering IDs are in
+`.runtime/pilot-fixture.json`. The rules, errors and read scope are in
+[pilot marks batches](../architecture/assessment-batches.md).
+
 ## Limits
 
-- Migration `0016` models roster delegations only. S2's `validate_import` delegation, marks
-  batches, review and publication arrive with the following slices.
+- Migration `0016` models roster delegations only. S2's `validate_import` delegation, review
+  and publication arrive with the following slices.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.
