@@ -39,6 +39,7 @@ export interface PilotFixture {
     readonly departmentDuties: number;
     readonly rosterDelegations: number;
     readonly offeringPolicies: number;
+    readonly validationDelegations: number;
   };
 }
 
@@ -276,6 +277,8 @@ export async function provisionPilot(
     }
 
     const subjectByKey = new Map(data.staff.map((member) => [member.key, member.subject]));
+    const rosterDelegations: string[] = [];
+    const validationDelegations: string[] = [];
     for (const member of data.staff) {
       const user = userFor(member.subject);
       for (const role of member.roles) await assignRole(user, role);
@@ -292,44 +295,62 @@ export async function provisionPilot(
           [departmentId(duty.department), termId, user, duty.duty],
         );
       }
-      // Migration 0016 models roster delegations only; other delegated tasks arrive with T3/T4.
+      // Roster reconciliation (migration 0016) and import validation (migration 0018) are the
+      // delegated tasks the pilot models; `track_request` arrives with case handling.
       for (const [index, delegation] of member.delegations.entries()) {
-        if (!delegation.tasks.includes('reconcile_roster')) continue;
         const grantor = userFor(subjectByKey.get(delegation.grantor) ?? '');
         for (const department of delegation.departments) {
-          await client.query(
-            `INSERT INTO pilot.roster_delegation(delegation_id,department_id,term_id,grantor_id,grantee_id,valid_during)
-             VALUES($1,$2,$3,$4,$5,tstzrange($6,$7,'[)')) ON CONFLICT DO NOTHING`,
-            [
-              pilotId(`delegation:${member.key}:${index}:${department}`),
-              departmentId(department),
-              termId,
-              grantor,
-              user,
-              delegation.validFrom,
-              delegation.validUntil,
-            ],
-          );
+          const values = [
+            departmentId(department),
+            termId,
+            grantor,
+            user,
+            delegation.validFrom,
+            delegation.validUntil,
+          ];
+          if (delegation.tasks.includes('reconcile_roster')) {
+            const id = pilotId(`delegation:${member.key}:${index}:${department}`);
+            rosterDelegations.push(id);
+            await client.query(
+              `INSERT INTO pilot.roster_delegation(delegation_id,department_id,term_id,grantor_id,grantee_id,valid_during)
+               VALUES($1,$2,$3,$4,$5,tstzrange($6,$7,'[)')) ON CONFLICT DO NOTHING`,
+              [id, ...values],
+            );
+          }
+          if (delegation.tasks.includes('validate_import')) {
+            const id = pilotId(`validation:${member.key}:${index}:${department}`);
+            validationDelegations.push(id);
+            await client.query(
+              `INSERT INTO assessment.validation_delegation(delegation_id,department_id,term_id,grantor_id,grantee_id,valid_during)
+               VALUES($1,$2,$3,$4,$5,tstzrange($6,$7,'[)')) ON CONFLICT DO NOTHING`,
+              [id, ...values],
+            );
+          }
         }
       }
     }
 
+    // Accounts and delegations count only what this run seeds, so facts that tests or later
+    // slices add to the same institution do not change the report.
     const counts = (
       await client.query<Record<keyof PilotFixture['counts'], string>>(
         `SELECT
           (SELECT count(*) FROM academic.role_assignment WHERE institution_id=$1 AND role_code='student') AS students,
-          (SELECT count(DISTINCT user_id) FROM academic.role_assignment WHERE institution_id=$1) AS accounts,
+          (SELECT count(DISTINCT r.user_id) FROM academic.role_assignment r JOIN academic.app_user u USING(user_id)
+            WHERE r.institution_id=$1 AND u.auth_subject=ANY($2::text[])) AS accounts,
           (SELECT count(*) FROM academic.enrolment e JOIN pilot.offering_department USING(offering_id)
             JOIN pilot.department d USING(department_id) WHERE d.institution_id=$1) AS enrolments,
           (SELECT count(*) FROM pilot.offering_duty a JOIN pilot.offering_department USING(offering_id)
             JOIN pilot.department d USING(department_id) WHERE d.institution_id=$1) AS "offeringDuties",
           (SELECT count(*) FROM pilot.department_duty a JOIN pilot.department d USING(department_id)
             WHERE d.institution_id=$1) AS "departmentDuties",
-          (SELECT count(*) FROM pilot.roster_delegation a JOIN pilot.department d USING(department_id)
-            WHERE d.institution_id=$1) AS "rosterDelegations",
+          (SELECT count(*) FROM pilot.roster_delegation WHERE delegation_id=ANY($3::uuid[]))
+            AS "rosterDelegations",
           (SELECT count(*) FROM assessment.offering_policy p JOIN pilot.offering_department USING(offering_id)
-            JOIN pilot.department d USING(department_id) WHERE d.institution_id=$1) AS "offeringPolicies"`,
-        [institutionId],
+            JOIN pilot.department d USING(department_id) WHERE d.institution_id=$1) AS "offeringPolicies",
+          (SELECT count(*) FROM assessment.validation_delegation WHERE delegation_id=ANY($4::uuid[]))
+            AS "validationDelegations"`,
+        [institutionId, accounts.map((a) => a.subject), rosterDelegations, validationDelegations],
       )
     ).rows[0]!;
     await client.query('COMMIT');
@@ -347,6 +368,7 @@ export async function provisionPilot(
         departmentDuties: Number(counts.departmentDuties),
         rosterDelegations: Number(counts.rosterDelegations),
         offeringPolicies: Number(counts.offeringPolicies),
+        validationDelegations: Number(counts.validationDelegations),
       },
     };
   } catch (error) {

@@ -77,6 +77,21 @@ export interface PilotBatchCreated {
   contentDigest: string;
 }
 
+export interface PilotBatchReview {
+  verdict: 'approved' | 'returned';
+  reviewerSubject: string;
+  reviewedAt: string;
+  reason: string | null;
+}
+
+export interface PilotBatchValidation {
+  validatorSubject: string;
+  checkedAt: string;
+  /** Enrolled students without a row in the batch when it was validated. */
+  missingRows: number;
+  note: string | null;
+}
+
 export interface PilotBatchSummary {
   batchId: string;
   stage: PilotBatchStage;
@@ -84,6 +99,36 @@ export interface PilotBatchSummary {
   authorSubject: string;
   createdAt: string;
   submittedAt: string | null;
+  review: PilotBatchReview | null;
+  validation: PilotBatchValidation | null;
+}
+
+export interface PilotReviewInput {
+  verdict: 'approved' | 'returned';
+  /** Required when returning a batch. */
+  reason?: string;
+}
+
+export interface PilotReviewResult {
+  batchId: string;
+  verdict: 'approved' | 'returned';
+  reviewedAt: string;
+  alreadyReviewed: boolean;
+}
+
+export interface PilotValidationResult {
+  batchId: string;
+  checkedAt: string;
+  missingRows: number;
+  alreadyValidated: boolean;
+}
+
+export interface PilotQueueEntry {
+  batchId: string;
+  offeringId: string;
+  stage: PilotBatchStage;
+  revisionNo: number;
+  submittedAt: string;
 }
 
 export interface PilotBatch extends PilotBatchSummary {

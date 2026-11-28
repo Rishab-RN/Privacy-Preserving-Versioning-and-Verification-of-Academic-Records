@@ -5,9 +5,14 @@ import type { AssessmentPolicy, Part } from '@academic-records/assessment';
 import type {
   PilotBatch,
   PilotBatchCreated,
+  PilotBatchReview,
   PilotBatchStage,
   PilotBatchSubmission,
   PilotBatchSummary,
+  PilotBatchValidation,
+  PilotQueueEntry,
+  PilotReviewResult,
+  PilotValidationResult,
 } from '@scholarproof/contracts';
 import { z } from 'zod';
 import { ApiFailure } from './errors.js';
@@ -40,9 +45,33 @@ const batchInput = z
   .strict();
 type BatchInput = z.infer<typeof batchInput>;
 
+const reviewInput = z
+  .object({
+    verdict: z.enum(['approved', 'returned']),
+    reason: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict()
+  .refine((input) => input.verdict === 'approved' || input.reason !== undefined, {
+    message: 'A return needs a reason',
+  });
+const validateInput = z.object({ note: z.string().trim().min(1).max(500).optional() }).strict();
+const noQuery = z.object({}).strict();
+
+/** Custom SQL states raised by migrations 0017 and 0018 for batch workflow conflicts. */
+const BATCH_STATES: Record<string, [number, string, string]> = {
+  AB001: [409, 'BATCH_NOT_SUBMITTED', 'Only submitted batches can be validated or reviewed'],
+  AB002: [409, 'ALREADY_REVIEWED', 'The batch already has a review'],
+  AB003: [403, 'SELF_REVIEW', 'Authors cannot review their own batch'],
+  AB004: [403, 'SOD_CONFLICT', 'Entry, validation and review must be held by different people'],
+  AB005: [409, 'ALREADY_VALIDATED', 'The batch was already validated'],
+  AB006: [409, 'BATCH_APPROVED', 'The approved revision is locked for publication'],
+};
+
 /** Maps batch-specific SQL states, then defers to the shared workflow mapping. */
 function batchFailure(error: unknown): never {
   const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : undefined;
+  const mapped = typeof code === 'string' ? BATCH_STATES[code] : undefined;
+  if (mapped) throw new ApiFailure(...mapped);
   if (code === '40001') {
     throw new ApiFailure(409, 'STALE_REVISION', 'A newer revision exists; reload the latest one');
   }
@@ -142,7 +171,8 @@ export function installAssessmentBatchRoutes(router: Router, platform: Platform)
     const { rows } = await sql()
       .query<PilotBatchSummary>(
         `SELECT batch_id AS "batchId", stage, revision_no AS "revisionNo",
-           author_subject AS "authorSubject", created_at AS "createdAt", submitted_at AS "submittedAt"
+           author_subject AS "authorSubject", created_at AS "createdAt", submitted_at AS "submittedAt",
+           review, validation
          FROM assessment.list_batches($1,$2)`,
         [digest, offeringId],
       )
@@ -223,6 +253,8 @@ export function installAssessmentBatchRoutes(router: Router, platform: Platform)
             component: string;
             points: string | number | null;
           }[];
+          review: PilotBatchReview | null;
+          validation: PilotBatchValidation | null;
         }>('SELECT * FROM assessment.read_batch($1,$2)', [digest, batchId])
         .catch(batchFailure)
     ).rows[0]!;
@@ -249,6 +281,8 @@ export function installAssessmentBatchRoutes(router: Router, platform: Platform)
       authorSubject: row.author_subject,
       createdAt: row.created_at,
       submittedAt: row.submitted_at,
+      review: row.review,
+      validation: row.validation,
       policy: { id: row.policy_id, version: row.policy_version },
       components,
       rows: [...rows.values()],
@@ -273,5 +307,76 @@ export function installAssessmentBatchRoutes(router: Router, platform: Platform)
       alreadySubmitted: !row.created,
     };
     response.json(result);
+  });
+
+  router.post('/pilot/batches/:batchId/review', async (request, response) => {
+    const { digest } = await platform.authenticate(request.get('authorization'));
+    const batchId = parse(uuid, request.params.batchId);
+    const input = parse(reviewInput, request.body);
+    const row = (
+      await sql()
+        .query<{ reviewed_at: string; verdict: 'approved' | 'returned'; created: boolean }>(
+          'SELECT reviewed_at,verdict,created FROM assessment.review_batch($1,$2,$3,$4)',
+          [digest, batchId, input.verdict, input.reason ?? null],
+        )
+        .catch(batchFailure)
+    ).rows[0]!;
+    const result: PilotReviewResult = {
+      batchId,
+      verdict: row.verdict,
+      reviewedAt: row.reviewed_at,
+      alreadyReviewed: !row.created,
+    };
+    response.json(result);
+  });
+
+  router.post('/pilot/batches/:batchId/validate', async (request, response) => {
+    const { digest } = await platform.authenticate(request.get('authorization'));
+    const batchId = parse(uuid, request.params.batchId);
+    const input = parse(validateInput, request.body);
+    const row = (
+      await sql()
+        .query<{ checked_at: string; missing_rows: number; created: boolean }>(
+          'SELECT checked_at,missing_rows,created FROM assessment.validate_batch($1,$2,$3)',
+          [digest, batchId, input.note ?? null],
+        )
+        .catch(batchFailure)
+    ).rows[0]!;
+    const result: PilotValidationResult = {
+      batchId,
+      checkedAt: row.checked_at,
+      missingRows: row.missing_rows,
+      alreadyValidated: !row.created,
+    };
+    response.json(result);
+  });
+
+  router.get('/pilot/review-queue', async (request, response) => {
+    const { digest } = await platform.authenticate(request.get('authorization'));
+    parse(noQuery, request.query);
+    const { rows } = await sql()
+      .query<PilotQueueEntry & { authorSubject: string; validation: PilotBatchValidation | null }>(
+        `SELECT batch_id AS "batchId", offering_id AS "offeringId", 'cie' AS stage,
+           revision_no AS "revisionNo", submitted_at AS "submittedAt",
+           author_subject AS "authorSubject", validation
+         FROM assessment.review_queue($1)`,
+        [digest],
+      )
+      .catch(batchFailure);
+    response.json({ batches: rows });
+  });
+
+  router.get('/pilot/validation-queue', async (request, response) => {
+    const { digest } = await platform.authenticate(request.get('authorization'));
+    parse(noQuery, request.query);
+    const { rows } = await sql()
+      .query<PilotQueueEntry>(
+        `SELECT batch_id AS "batchId", offering_id AS "offeringId", stage,
+           revision_no AS "revisionNo", submitted_at AS "submittedAt"
+         FROM assessment.validation_queue($1)`,
+        [digest],
+      )
+      .catch(batchFailure);
+    response.json({ batches: rows });
   });
 }

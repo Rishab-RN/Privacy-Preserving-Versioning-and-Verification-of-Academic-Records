@@ -207,6 +207,7 @@ try {
       join(projectRoot, 'tests/integration/pilot-roster.test.ts'),
       join(projectRoot, 'tests/integration/pilot-setup.test.ts'),
       join(projectRoot, 'tests/integration/assessment-batches.test.ts'),
+      join(projectRoot, 'tests/integration/batch-review.test.ts'),
     ],
     {
       cwd: projectRoot,
