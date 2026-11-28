@@ -4,7 +4,14 @@ import { once } from 'node:events';
 import type { Server } from 'node:http';
 import type { TestContext } from 'node:test';
 import type { Client } from 'pg';
-import type { PilotBatchInput } from '@scholarproof/contracts';
+import type {
+  PilotAttendance,
+  PilotBatchCreated,
+  PilotBatchInput,
+  PilotBatchSubmission,
+  PilotBatchSummary,
+  PilotReviewResult,
+} from '@scholarproof/contracts';
 import { RVCE_2022_ITL_S1 } from '../../packages/assessment/src/index.js';
 import { generatePilotData } from '../../packages/pilot-data/src/index.js';
 import type { PilotData } from '../../packages/pilot-data/src/index.js';
@@ -149,4 +156,87 @@ export async function startPilotApi(t: TestContext, tokens: ReadonlyMap<string, 
     return { status: response.status, json, code: json.error?.code };
   };
   return { runtime, call };
+}
+
+/** Imported attendance for an offering, taken from the synthetic dataset. */
+export function pilotAttendance(data: PilotData, offering: string): PilotAttendance[] {
+  return data.assessments
+    .filter((a) => a.offering === offering)
+    .map((a) => ({
+      enrolmentId: pilotId(`enrolment:${a.usn}`),
+      eligible: a.attendance.eligible,
+      ...(a.attendance.percent ? { percent: a.attendance.percent } : {}),
+    }));
+}
+
+/**
+ * Drives pilot marks through the API to a required state, reusing facts that earlier tests in
+ * the same database may already have recorded.
+ */
+export function pilotWorkflow(
+  call: PilotCall,
+  data: PilotData,
+  offerings: Readonly<Record<string, string>>,
+) {
+  const head = async (as: string, key: string, stage: Stage) =>
+    (
+      await call<{ batches: PilotBatchSummary[] }>(
+        'GET',
+        `/pilot/offerings/${offerings[key]}/batches`,
+        as,
+      )
+    ).json.batches
+      .filter((b) => b.stage === stage)
+      .at(-1);
+
+  /** Brings a stage's head to submitted, entering or resubmitting it when needed. */
+  async function submitted(author: string, key: string, stage: Stage) {
+    let current = await head(author, key, stage);
+    if (!current || current.review?.verdict === 'returned') {
+      const created = await call<PilotBatchCreated>(
+        'POST',
+        `/pilot/offerings/${offerings[key]}/batches`,
+        author,
+        stageBody(data, key, stage, current?.revisionNo ?? 0),
+      );
+      assert.equal(created.status, 201, JSON.stringify(created.json));
+      current = await head(author, key, stage);
+    }
+    if (!current!.submittedAt) {
+      const done = await call<PilotBatchSubmission>(
+        'POST',
+        `/pilot/batches/${current!.batchId}/submit`,
+        author,
+      );
+      assert.equal(done.status, 200);
+    }
+    return (await head(author, key, stage))!;
+  }
+
+  /** Approves an unreviewed CIE head; an earlier test may already have reviewed it. */
+  async function reviewed(author: string, key: string, reviewer: string) {
+    const current = await submitted(author, key, 'cie');
+    if (!current.review) {
+      const done = await call<PilotReviewResult>(
+        'POST',
+        `/pilot/batches/${current.batchId}/review`,
+        reviewer,
+        { verdict: 'approved' },
+      );
+      assert.equal(done.status, 200, JSON.stringify(done.json));
+    }
+    return (await head(author, key, 'cie'))!;
+  }
+
+  /** Publishes AI-A as P1 after F1's CIE is approved by H1 and E1's SEE is submitted. */
+  async function publishedAiA() {
+    await reviewed('F1', 'ai-a', 'H1');
+    await submitted('E1', 'ai-a', 'see');
+    const done = await call('POST', `/pilot/offerings/${offerings['ai-a']}/publish`, 'P1', {
+      attendance: pilotAttendance(data, 'ai-a'),
+    });
+    assert.ok(done.status === 200 || done.status === 201, JSON.stringify(done.json));
+  }
+
+  return { head, submitted, reviewed, publishedAiA };
 }

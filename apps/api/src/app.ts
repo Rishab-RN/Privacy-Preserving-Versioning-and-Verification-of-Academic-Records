@@ -14,6 +14,7 @@ import { installCorrectionIntegrity } from './correction-integrity.js';
 import { installPilotRosterRoutes } from './pilot-roster.js';
 import { installAssessmentBatchRoutes } from './assessment-batches.js';
 import { installPublicationRoutes } from './publication.js';
+import { installPvpRoutes } from './pvp.js';
 
 export function createApp(platform?: Platform, graph?: Driver) {
   const app = express();
@@ -130,6 +131,7 @@ export function createApp(platform?: Platform, graph?: Driver) {
     installPilotRosterRoutes(api, platform);
     installAssessmentBatchRoutes(api, platform);
     installPublicationRoutes(api, platform);
+    installPvpRoutes(api, platform);
   }
   app.use('/api/v1', api);
 

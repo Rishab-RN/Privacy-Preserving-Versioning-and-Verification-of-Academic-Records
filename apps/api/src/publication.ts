@@ -43,17 +43,17 @@ const publishInput = z
 const noQuery = z.object({}).strict();
 
 /** Stored marks keyed by component; `null` records an absence. */
-type StoredMarks = Readonly<Record<string, number | string | null>>;
-interface StoredAttendance {
+export type StoredMarks = Readonly<Record<string, number | string | null>>;
+export interface StoredAttendance {
   readonly eligible: boolean;
   readonly percent: number | string | null;
 }
-type Outcome = PilotCourseResult['outcome'];
+export type Outcome = PilotCourseResult['outcome'];
 
-const invalid = (code: string, message: string) => new ApiFailure(422, code, message);
+export const invalid = (code: string, message: string) => new ApiFailure(422, code, message);
 const decimal = (value: number | string) => Number(value).toFixed(2);
 
-function loadPolicy(id: string, version: number): AssessmentPolicy {
+export function loadPolicy(id: string, version: number): AssessmentPolicy {
   let policy: AssessmentPolicy;
   try {
     policy = getPolicy(id);
@@ -66,7 +66,7 @@ function loadPolicy(id: string, version: number): AssessmentPolicy {
   return policy;
 }
 
-function calculatorInput(marks: StoredMarks, attendance: StoredAttendance) {
+export function calculatorInput(marks: StoredMarks, attendance: StoredAttendance) {
   return {
     attendance: {
       eligible: attendance.eligible,
@@ -82,13 +82,13 @@ function calculatorInput(marks: StoredMarks, attendance: StoredAttendance) {
 }
 
 /** The stored form of a result. Results without grade points (NE, X, SEE absent) are incomplete. */
-function storedForm(result: CourseResult): { gradePoints: number | null; outcome: Outcome } {
+export function storedForm(result: CourseResult): { gradePoints: number | null; outcome: Outcome } {
   return result.gradePoints === null || result.outcome === null
     ? { gradePoints: null, outcome: 'incomplete' }
     : { gradePoints: result.gradePoints, outcome: result.outcome };
 }
 
-function present(
+export function present(
   result: CourseResult,
   gradePoints: number | null,
   outcome: Outcome,
@@ -108,6 +108,21 @@ function present(
 }
 
 const points = (value: number | string | null) => (value === null ? null : Number(value));
+
+interface StoredGrade {
+  readonly versionNo: number;
+  readonly gradePoints: number | string | null;
+  readonly outcome: Outcome;
+}
+
+/** Whether a recomputed result reproduces a stored grade version. */
+function reproduces(
+  result: CourseResult,
+  stored: { gradePoints: number | null; outcome: Outcome },
+): boolean {
+  const expected = storedForm(result);
+  return expected.gradePoints === stored.gradePoints && expected.outcome === stored.outcome;
+}
 
 export function installPublicationRoutes(router: Router, platform: Platform) {
   const sql = () => platform.repository.sql;
@@ -233,24 +248,33 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
             versionNo: number;
             gradePoints: number | string | null;
             outcome: Outcome;
+            current: StoredGrade;
             attendance: StoredAttendance;
             marks: StoredMarks;
+            revisions: StoredMarks;
           }[];
         }>('SELECT * FROM assessment.publication_view($1,$2)', [digest, offeringId])
         .catch(batchFailure)
     ).rows[0]!;
     const policy = loadPolicy(row.policy_id, row.policy_version);
     const results = row.results.map((stored): PilotPublishedResult => {
-      const computed = calculateResult(policy, calculatorInput(stored.marks, stored.attendance));
-      const expected = storedForm(computed);
-      const gradePoints = points(stored.gradePoints);
+      const published = calculateResult(policy, calculatorInput(stored.marks, stored.attendance));
+      const current = calculateResult(
+        policy,
+        calculatorInput({ ...stored.marks, ...stored.revisions }, stored.attendance),
+      );
+      const currentPoints = points(stored.current.gradePoints);
       return {
         enrolmentId: stored.enrolmentId,
         studentCode: stored.studentCode,
         recordId: stored.recordId,
-        versionNo: stored.versionNo,
-        ...present(computed, gradePoints, stored.outcome),
-        matches: expected.gradePoints === gradePoints && expected.outcome === stored.outcome,
+        versionNo: stored.current.versionNo,
+        publishedVersionNo: stored.versionNo,
+        revisedAfterPvp: stored.current.versionNo !== stored.versionNo,
+        ...present(current, currentPoints, stored.current.outcome),
+        matches:
+          reproduces(published, { ...stored, gradePoints: points(stored.gradePoints) }) &&
+          reproduces(current, { ...stored.current, gradePoints: currentPoints }),
       };
     });
     const publication: PilotPublication = {
@@ -283,24 +307,32 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
         published_at: string;
         policy_id: string;
         policy_version: number;
+        record_id: string;
+        published_version: number;
         version_no: number;
         grade_points: string | null;
         outcome: Outcome;
         attendance: StoredAttendance;
         marks: StoredMarks;
+        revisions: StoredMarks;
       }>('SELECT * FROM assessment.my_results($1)', [digest])
       .catch(batchFailure);
     const results = rows.map((row): PilotStudentResult => {
       const policy = loadPolicy(row.policy_id, row.policy_version);
-      const computed = calculateResult(policy, calculatorInput(row.marks, row.attendance));
+      const computed = calculateResult(
+        policy,
+        calculatorInput({ ...row.marks, ...row.revisions }, row.attendance),
+      );
       return {
         offeringId: row.offering_id,
+        recordId: row.record_id,
         courseCode: row.course_code,
         section: row.section_code,
         term: row.term_code,
         label: row.kind === 'final' ? 'Final' : 'Provisional',
         publishedAt: row.published_at,
         versionNo: row.version_no,
+        revisedAfterPvp: row.version_no !== row.published_version,
         ...present(computed, points(row.grade_points), row.outcome),
       };
     });
