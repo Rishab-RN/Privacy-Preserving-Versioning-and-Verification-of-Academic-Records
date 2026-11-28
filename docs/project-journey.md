@@ -946,6 +946,40 @@ All 45 database checks passed with `0017` applied to fresh and concurrent migrat
 Locally, 68 of 69 integration checks passed; the private-proof check again needs the ZK
 ceremony that CI provides. The quality gate passed with 170 tooling/unit checks.
 
+## 2026-11-28 — T4 department review and validation
+
+The owner assigned T4 to Claude. Migration `0018` adds three BCNF, append-only relations:
+
+- `assessment.validation_delegation`: time-bound exam-section delegations from an exam approver
+- `assessment.validation_report`: one report per revision, recording the missing-row count;
+  the validator is derived through the delegation
+- `assessment.batch_review`: one HoD or delegate verdict per CIE revision, `approved` or
+  `returned` with a reason
+
+New SECURITY DEFINER functions validate, review and list the two queues:
+
+- A delegation counts only inside its window and while its grantor is still an exam approver.
+- Only the submitted head can be validated or reviewed.
+- An author cannot review their own revision (`SELF_REVIEW`), and nobody both validates and
+  reviews a revision or validates their own (`SOD_CONFLICT`).
+- Exact retries return the original fact; a second, different actor gets `ALREADY_VALIDATED` or
+  `ALREADY_REVIEWED`.
+
+Revision creation now reads the head's review: a returned head reopens entry, and an approved
+head is locked with `BATCH_APPROVED`. Batch reads include the review and validation.
+`pilot:setup` seeds S1's and S2's validation delegations and requires `0018`. Its counts now
+cover only the facts it seeds, so test-only facts in the same institution do not change the
+report. See [pilot marks batches](architecture/assessment-batches.md).
+
+The integration test runs the real API under the restricted identity. It covers the queues,
+validation and review paths, the return-and-reopen cycle, retries, expired delegations,
+separation-of-duties conflicts, immutability and table-access denial. It also replays
+`batch.validate` and `batch.review` for every persona against the access matrix, using the
+current time and the batch history the test builds. The marks-batch test helpers moved into
+the shared pilot fixture. All 45 database checks passed with `0018` applied. Locally, 73 of 74
+integration checks passed; the private-proof check again needs the ZK ceremony that CI
+provides. The quality gate passed with 170 tooling/unit checks.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

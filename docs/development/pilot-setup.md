@@ -14,9 +14,9 @@ data is untouched:
 | Students  | 28 students (`SYN24AI001`…, `SYN24IS001`…) with programme membership and enrolments                                                                 |
 | Accounts  | 42 logins with institutional roles: 14 staff personas (`pilot:f1`, `pilot:h1`, …) and every student (`pilot:syn24ai001`, …)                         |
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
-| Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`)                                                            |
+| Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`), and the S1/S2 validation delegations (migration `0018`)   |
 
-Apply migrations through `0017` first. From the repository root:
+Apply migrations through `0018` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -65,10 +65,24 @@ first), `components` and one row of values per enrolment. Then
 `.runtime/pilot-fixture.json`. The rules, errors and read scope are in
 [pilot marks batches](../architecture/assessment-batches.md).
 
+## Review and validate
+
+After F1 submits the AI-A CIE revision:
+
+| Signed in as | Request                                       | Result                                         |
+| ------------ | --------------------------------------------- | ---------------------------------------------- |
+| S1 or S2     | `GET /api/v1/pilot/validation-queue`          | The submitted head, until someone validates it |
+| S1           | `POST /api/v1/pilot/batches/<ID>/validate`    | 201 with the missing-row count                 |
+| H1 or H2     | `GET /api/v1/pilot/review-queue`              | The submitted CIE head                         |
+| H1 or H2     | `POST .../review` `{"verdict":"approved"}`    | 201; F1 can no longer add a revision           |
+| H1 or H2     | `POST .../review` `{"verdict":"returned", …}` | Needs a `reason`; F1 may then add a revision   |
+| H1           | Review the AI-B revision H1 entered           | 403 `SELF_REVIEW`                              |
+
+A revision gets one review, so approval and return are alternatives.
+
 ## Limits
 
-- Migration `0016` models roster delegations only. S2's `validate_import` delegation, review
-  and publication arrive with the following slices.
+- Publication and student-facing results arrive with the following slices.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.
