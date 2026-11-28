@@ -194,8 +194,11 @@ export interface PilotPublishedResult extends PilotCourseResult {
   enrolmentId: string;
   studentCode: string;
   recordId: string;
+  /** The current grade version; the breakdown includes approved paper-viewing revisions. */
   versionNo: number;
-  /** Whether recomputation reproduces the stored grade points and outcome. */
+  publishedVersionNo: number;
+  revisedAfterPvp: boolean;
+  /** Whether recomputation reproduces both the published and the current stored grade. */
   matches: boolean;
 }
 
@@ -214,12 +217,29 @@ export interface PilotPublication {
 
 export interface PilotStudentResult extends PilotCourseResult {
   offeringId: string;
+  recordId: string;
   courseCode: string;
   section: string;
   term: string;
   label: 'Provisional' | 'Final';
   publishedAt: string;
   versionNo: number;
+  revisedAfterPvp: boolean;
+}
+
+/** An expert team's revalued SEE theory marks after the Paper Viewing Process. */
+export interface PilotPvpInput {
+  expectedVersion: number;
+  /** Revised marks by component code, as decimal strings. */
+  revised: Record<string, string>;
+  reason: string;
+}
+
+export interface PilotPvpProposal {
+  request: ChangeRequestStatus;
+  evidenceId: string;
+  increased: string[];
+  result: { letter: string | null; gradePoints: number | null; outcome: string };
 }
 export interface StudentSummary {
   studentId: string;

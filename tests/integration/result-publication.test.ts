@@ -2,14 +2,9 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import type {
-  PilotAttendance,
   PilotBatch,
-  PilotBatchCreated,
-  PilotBatchSubmission,
-  PilotBatchSummary,
   PilotPublication,
   PilotPublishResult,
-  PilotReviewResult,
   PilotStudentResult,
 } from '@scholarproof/contracts';
 import { PILOT_WORLD, decide } from '../../packages/access-matrix/src/index.js';
@@ -21,9 +16,10 @@ import { pilotId } from '../../apps/api/scripts/pilot/provision.js';
 import { connectTestClient } from '../database/helpers.js';
 import {
   personaSubjects,
+  pilotAttendance,
+  pilotWorkflow,
   provisionTestPilot,
   sessionFor,
-  stageBody,
   startPilotApi,
 } from './pilot-fixture.js';
 import type { Stage } from './pilot-fixture.js';
@@ -31,16 +27,7 @@ import type { Stage } from './pilot-fixture.js';
 const data = generatePilotData();
 const OFFERINGS = ['ai-a', 'ai-b', 'is-a'] as const;
 
-/** Imported attendance for an offering, taken from the synthetic dataset. */
-function attendanceFor(offering: string): PilotAttendance[] {
-  return data.assessments
-    .filter((a) => a.offering === offering)
-    .map((a) => ({
-      enrolmentId: pilotId(`enrolment:${a.usn}`),
-      eligible: a.attendance.eligible,
-      ...(a.attendance.percent ? { percent: a.attendance.percent } : {}),
-    }));
-}
+const attendanceFor = (offering: string) => pilotAttendance(data, offering);
 
 /** The stored grade for a computed result: results without grade points are incomplete. */
 function storedGrade(result: CourseResult) {
@@ -60,10 +47,6 @@ test('T5 publication is authorized, separated, audited and visible only to its s
   for (const [key, subject] of subjects) tokens.set(key, await sessionFor(admin, subject));
   const { runtime, call } = await startPilotApi(t, tokens);
 
-  const list = (as: string, key: string) =>
-    call<{ batches: PilotBatchSummary[] }>('GET', `/pilot/offerings/${offering(key)}/batches`, as);
-  const head = async (as: string, key: string, stage: Stage) =>
-    (await list(as, key)).json.batches.filter((b) => b.stage === stage).at(-1);
   const publish = (as: string | null, key: string, attendance: unknown = attendanceFor(key)) =>
     call<PilotPublishResult>('POST', `/pilot/offerings/${offering(key)}/publish`, as, {
       attendance,
@@ -73,44 +56,7 @@ test('T5 publication is authorized, separated, audited and visible only to its s
   const mine = (as: string) =>
     call<{ results: PilotStudentResult[] }>('GET', '/pilot/my-results', as);
 
-  /** Brings a stage's head to submitted, entering or resubmitting it when needed. */
-  async function submitted(author: string, key: string, stage: Stage) {
-    let current = await head(author, key, stage);
-    if (!current || current.review?.verdict === 'returned') {
-      const created = await call<PilotBatchCreated>(
-        'POST',
-        `/pilot/offerings/${offering(key)}/batches`,
-        author,
-        stageBody(data, key, stage, current?.revisionNo ?? 0),
-      );
-      assert.equal(created.status, 201, JSON.stringify(created.json));
-      current = await head(author, key, stage);
-    }
-    if (!current!.submittedAt) {
-      const done = await call<PilotBatchSubmission>(
-        'POST',
-        `/pilot/batches/${current!.batchId}/submit`,
-        author,
-      );
-      assert.equal(done.status, 200);
-    }
-    return (await head(author, key, stage))!;
-  }
-
-  /** Approves an unreviewed CIE head; the T4 test may already have reviewed it. */
-  async function reviewed(author: string, key: string, reviewer: string) {
-    const current = await submitted(author, key, 'cie');
-    if (!current.review) {
-      const done = await call<PilotReviewResult>(
-        'POST',
-        `/pilot/batches/${current.batchId}/review`,
-        reviewer,
-        { verdict: 'approved' },
-      );
-      assert.equal(done.status, 200, JSON.stringify(done.json));
-    }
-    return (await head(author, key, 'cie'))!;
-  }
+  const { submitted, reviewed } = pilotWorkflow(call, data, fixture.offerings);
 
   const aiCie = await reviewed('F1', 'ai-a', 'H1');
   assert.equal(aiCie.review?.verdict, 'approved');
