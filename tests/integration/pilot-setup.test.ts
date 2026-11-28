@@ -1,32 +1,17 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { PILOT_WORLD, decide } from '../../packages/access-matrix/src/index.js';
 import { generatePilotData } from '../../packages/pilot-data/src/index.js';
-import { pilotId, pilotSubjects, provisionPilot } from '../../apps/api/scripts/pilot/provision.js';
-import type { CredentialTools } from '../../apps/api/scripts/pilot/provision.js';
+import { pilotId, provisionPilot } from '../../apps/api/scripts/pilot/provision.js';
 import { digestToken, newToken } from '../../apps/api/src/security.js';
 import { connectTestClient } from '../database/helpers.js';
-
-// Deterministic stand-in for scrypt so the test stays fast; the CLI uses the real profile.
-const fakeKey = (password: string) => createHash('sha512').update(password).digest('hex');
-const tools: CredentialTools = {
-  hash: async (password) => ({
-    profile: 'scrypt-v1',
-    salt_hex: '0'.repeat(32),
-    derived_key_hex: fakeKey(password),
-  }),
-  verify: async (password, material) => material.derived_key_hex === fakeKey(password),
-};
+import { testAccounts, testCredentials as tools } from './pilot-fixture.js';
 
 test('pilot provisioning seeds the synthetic institution once and matches the access matrix', async (t) => {
   const admin = await connectTestClient();
   t.after(() => admin.end());
   const data = generatePilotData();
-  const accounts = pilotSubjects(data).map((subject, index) => ({
-    subject,
-    password: `pilot-test-password-${String(index).padStart(12, '0')}`,
-  }));
+  const accounts = testAccounts(data);
 
   const first = await provisionPilot(admin, accounts, tools, data);
   assert.deepEqual(first.counts, {
@@ -36,6 +21,7 @@ test('pilot provisioning seeds the synthetic institution once and matches the ac
     offeringDuties: 4,
     departmentDuties: 4,
     rosterDelegations: 1,
+    offeringPolicies: 3,
   });
   const second = await provisionPilot(admin, accounts, tools, data);
   assert.deepEqual(second, first, 'a repeated run changes nothing');

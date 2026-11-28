@@ -23,6 +23,7 @@
     "workflow:smoke": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.worker scripts/workflow/smoke.ts"
   },
   "dependencies": {
+    "@academic-records/assessment": "0.1.0",
     "@academic-records/verification": "0.1.0",
     "@academic-records/zk": "0.1.0",
     "@scholarproof/contracts": "0.1.0",
