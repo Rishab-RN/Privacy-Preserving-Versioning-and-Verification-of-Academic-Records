@@ -38,7 +38,7 @@ export {
   RVCE_ACY2026_GPA_S3,
   getGpaPolicy,
 } from './gpa-policies.js';
-export { ABSENT, calculateResult, evaluateCie } from './result.js';
+export { ABSENT, calculateResult, evaluateCie, validateStageMarks } from './result.js';
 export type {
   AttendanceInput,
   CieEvaluation,
