@@ -144,6 +144,83 @@ export interface PilotBatchSubmission {
   /** True when the batch had already been submitted. */
   alreadySubmitted: boolean;
 }
+
+/** Imported attendance for one enrolment, recorded with the publication. */
+export interface PilotAttendance {
+  enrolmentId: string;
+  /** Eligibility after any condonation, decided by the attendance process. */
+  eligible: boolean;
+  /** Recorded percentage with up to two decimals; used only for the X grade. */
+  percent?: string;
+}
+
+export interface PilotPublishInput {
+  attendance: PilotAttendance[];
+}
+
+export interface PilotPublishResult {
+  publicationId: string;
+  offeringId: string;
+  kind: 'provisional';
+  publishedAt: string;
+  records: number;
+  inputs: { cie: string; see: string };
+  /** True when the same publisher had already published with the same attendance. */
+  alreadyPublished: boolean;
+}
+
+export interface PilotScore {
+  marks: string;
+  maximum: string;
+  percent: string;
+}
+
+/**
+ * A course result. Grade points and outcome are the stored grade version; the letter, status,
+ * reasons and breakdown are recomputed from the stored inputs and the frozen policy.
+ */
+export interface PilotCourseResult {
+  status: 'graded' | 'not-eligible' | 'see-absent' | 'transitional';
+  letter: string | null;
+  gradePoints: number | null;
+  outcome: 'passed' | 'failed' | 'incomplete';
+  reasons: string[];
+  cie: { theory: PilotScore; lab: PilotScore; total: PilotScore };
+  see: { theory: PilotScore; lab: PilotScore } | null;
+  total: PilotScore | null;
+}
+
+export interface PilotPublishedResult extends PilotCourseResult {
+  enrolmentId: string;
+  studentCode: string;
+  recordId: string;
+  versionNo: number;
+  /** Whether recomputation reproduces the stored grade points and outcome. */
+  matches: boolean;
+}
+
+export interface PilotPublication {
+  publicationId: string;
+  offeringId: string;
+  kind: 'provisional' | 'final';
+  publisherSubject: string;
+  publishedAt: string;
+  policy: { id: string; version: number };
+  inputs: { batchId: string; stage: PilotBatchStage; revisionNo: number }[];
+  results: PilotPublishedResult[];
+  /** Recomputation of every stored grade; mismatches lists student codes. */
+  audit: { records: number; mismatches: string[] };
+}
+
+export interface PilotStudentResult extends PilotCourseResult {
+  offeringId: string;
+  courseCode: string;
+  section: string;
+  term: string;
+  label: 'Provisional' | 'Final';
+  publishedAt: string;
+  versionNo: number;
+}
 export interface StudentSummary {
   studentId: string;
   studentCode: string;

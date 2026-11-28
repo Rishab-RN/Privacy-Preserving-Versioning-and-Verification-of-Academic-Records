@@ -128,6 +128,10 @@ export async function assertSafeSqlIdentity(sql: Sql): Promise<void> {
           'assessment.review_batch(text,uuid,text,text)',
           'assessment.review_queue(text)',
           'assessment.validation_queue(text)',
+          'assessment.publication_inputs(text,uuid)',
+          'assessment.publish_results(text,uuid,uuid,uuid,jsonb,jsonb)',
+          'assessment.publication_view(text,uuid)',
+          'assessment.my_results(text)',
         ],
       ],
     );
