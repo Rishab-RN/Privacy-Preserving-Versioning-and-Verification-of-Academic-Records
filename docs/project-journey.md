@@ -980,6 +980,48 @@ the shared pilot fixture. All 45 database checks passed with `0018` applied. Loc
 integration checks passed; the private-proof check again needs the ZK ceremony that CI
 provides. The quality gate passed with 170 tooling/unit checks.
 
+## 2026-11-28 — T5 provisional result publication
+
+The owner assigned T5 to Claude. Migration `0019` adds four BCNF, append-only relations:
+
+- `assessment.publication`: one provisional publication per offering, with publisher and time
+- `assessment.publication_input`: the approved CIE head and submitted SEE head it used
+- `assessment.publication_attendance`: imported attendance eligibility and percentage
+- `assessment.publication_grade`: the grade versions it created
+
+An exam approver who took no part in the offering's marks publishes. The API computes every
+result with `calculateResult` from the frozen policy, the input revisions and the attendance.
+One transaction then records the facts and appends version 1 of each enrolment's grade through
+`academic.append_grade_version`, whose guard now accepts exam approvers as authors. The checks:
+
+- Readiness: `CIE_NOT_APPROVED` or `SEE_NOT_SUBMITTED`.
+- Separation of duties: a publisher who authored, validated or reviewed any revision of the
+  offering gets `SOD_CONFLICT`.
+- Retries: an exact retry returns the original; anything else is `ALREADY_PUBLISHED`.
+- Completeness: missing SEE rows for eligible students are `SEE_ROWS_MISSING`.
+
+Results without grade points (NE, X, SEE absent) are stored as `incomplete`.
+
+The staff publication view recomputes every stored grade from the stored inputs and reports
+mismatches. Students see only their own results, labelled Provisional, with the CIE/SEE
+breakdown. Signed log events, final publication and the result screens remain for later slices.
+See [pilot result publication](architecture/result-publication.md).
+
+The integration test publishes AI-A as P1 and covers the following:
+
+- Each of the 12 stored grades and breakdowns matches an independent recomputation from the
+  input revisions, with zero audit mismatches.
+- Authority, readiness, retry, attendance and completeness errors.
+- Reader scope.
+- Immutability and table-access denial.
+- A replay of `results.publish` and `result.read` for every persona against the access matrix,
+  using the real batch history and publication state.
+
+All 45 database checks passed with `0019` applied. Locally, 79 of 80 integration checks passed;
+the private-proof check again needs the ZK ceremony that CI provides. The quality gate passed
+with 170 tooling/unit checks. The first local run also showed that earlier tests correct AI-A
+marks, so the test now recomputes from the stored revisions instead of the raw dataset.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

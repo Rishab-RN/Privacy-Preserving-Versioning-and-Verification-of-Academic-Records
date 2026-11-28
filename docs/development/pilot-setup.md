@@ -16,7 +16,7 @@ data is untouched:
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
 | Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`), and the S1/S2 validation delegations (migration `0018`)   |
 
-Apply migrations through `0018` first. From the repository root:
+Apply migrations through `0019` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -72,17 +72,35 @@ After F1 submits the AI-A CIE revision:
 | Signed in as | Request                                       | Result                                         |
 | ------------ | --------------------------------------------- | ---------------------------------------------- |
 | S1 or S2     | `GET /api/v1/pilot/validation-queue`          | The submitted head, until someone validates it |
-| S1           | `POST /api/v1/pilot/batches/<ID>/validate`    | 201 with the missing-row count                 |
+| S1           | `POST /api/v1/pilot/batches/<ID>/validate`    | 200 with the missing-row count                 |
 | H1 or H2     | `GET /api/v1/pilot/review-queue`              | The submitted CIE head                         |
-| H1 or H2     | `POST .../review` `{"verdict":"approved"}`    | 201; F1 can no longer add a revision           |
+| H1 or H2     | `POST .../review` `{"verdict":"approved"}`    | 200; F1 can no longer add a revision           |
 | H1 or H2     | `POST .../review` `{"verdict":"returned", …}` | Needs a `reason`; F1 may then add a revision   |
 | H1           | Review the AI-B revision H1 entered           | 403 `SELF_REVIEW`                              |
 
 A revision gets one review, so approval and return are alternatives.
 
+## Publish results
+
+Once the AI-A CIE head is approved and E1 has submitted the SEE head, P1 publishes with
+`POST /api/v1/pilot/offerings/<AI-A offering ID>/publish`. The body is
+`{"attendance": [{"enrolmentId": "…", "eligible": true, "percent": "91.5"}, …]}`, with one entry
+per enrolled student. Then:
+
+| Signed in as        | Request                              | Result                                                  |
+| ------------------- | ------------------------------------ | ------------------------------------------------------- |
+| P1                  | `GET .../offerings/<ID>/publication` | 12 results and `audit.mismatches: []`                   |
+| F1, H1, H2, R1, A1  | The same view                        | 200                                                     |
+| SYN24AI001          | `GET /api/v1/pilot/my-results`       | CD252IA, grade A, 8.00, labelled Provisional            |
+| AI-B and IS-A users | `GET /api/v1/pilot/my-results`       | No CD252IA result                                       |
+| H1 or E1            | `POST .../publish`                   | 403: exam approvers only                                |
+| P2                  | `POST .../publish` for IS-A          | 403 `SOD_CONFLICT` once P2 has reviewed or validated it |
+
+The rules and the audit are in [pilot result publication](../architecture/result-publication.md).
+
 ## Limits
 
-- Publication and student-facing results arrive with the following slices.
+- Corrections, final publication and the result screens arrive with the following slices.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.

@@ -7,7 +7,8 @@ Submission is a separate immutable fact.
 
 After submission, exam-section staff may record a **validation report** under a time-bound
 delegation (migration `0018`), and the HoD or a delegate **reviews** CIE revisions: they approve
-them or return them with a reason. Publication (T5) builds on approved revisions.
+them or return them with a reason. [Publication (T5)](result-publication.md) builds on approved
+revisions.
 
 | API                                                | Behaviour                                                                               |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -96,7 +97,7 @@ tables, and the runtime privilege check enforces both.
 
 ## Limits
 
-- Submission and review are not yet signed-log events. Publication (T5) records signed facts.
+- Submission, review and publication are not yet signed-log events.
 - Attendance eligibility and the CIE minimum for SEE are applied at publication, not at SEE
   entry. SEE revisions have no department review; once submitted, they wait for publication.
 - Delegation windows use stored dates; there is no early revocation yet.
