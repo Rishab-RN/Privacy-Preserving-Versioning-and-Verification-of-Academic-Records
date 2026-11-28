@@ -17,7 +17,7 @@ data is untouched:
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
 | Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`), and the S1/S2 validation delegations (migration `0018`)   |
 
-Apply migrations through `0021` first. From the repository root:
+Apply migrations through `0022` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -122,7 +122,7 @@ The rules are in [paper-viewing corrections](../architecture/pvp-corrections.md)
 
 ## Limits
 
-- Final publication arrives with a following slice.
+- The paper-viewing window has no stored dates; the exam approver declares results final.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.

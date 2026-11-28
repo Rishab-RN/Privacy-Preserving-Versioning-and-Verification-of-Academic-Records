@@ -1096,6 +1096,43 @@ The journey was first run locally against a disposable database with its own API
 servers. That run found a login rate-limit clash, ambiguous offering labels and roster order,
 which were fixed before the journey passed.
 
+## 2026-11-28 — Final publication
+
+The owner asked for final publication. Migration `0022` adds `assessment.final_grade`, a BCNF,
+append-only relation keyed by final publication and record. After the paper-viewing window, an
+exam approver who took no part in the marks declares an offering's results final:
+
+- It needs the provisional publication (`PROVISIONAL_REQUIRED`).
+- It needs every correction request on the offering's records decided (`PVP_PENDING`).
+- The same approver's retry returns the original; anyone else gets `ALREADY_FINAL`.
+
+The final publication fixes each record's current version and adds no grade rows, so revised
+records stay at their corrected version. Afterwards, paper-viewing proposals return
+`RESULTS_FINAL` before any evidence is stored, and the correction guard rejects every other
+change request for those records. Finalization and proposals take the same offering lock. The
+publication view reports the final publication, pending corrections and final versions, and
+the audit checks that each final version is current. Students see results labelled Final.
+
+The publication desk has a **Publish final results** control that waits while corrections are
+pending. Paper viewing shows as closed once results are final.
+
+The browser journey now ends with P1 declaring the results final and SYN24AI003 seeing a final
+B+. Adding that step pushed the journey past the API's 100 requests a minute. The screens now
+avoid redundant reloads:
+
+- Marks entry refreshes only the head after save and submit.
+- The publication desk skips readiness checks once results are published.
+- Pilot-only staff skip the student directory.
+
+The journey makes 81 requests and asserts it stays under 90.
+
+`tests/integration/results-final.test.ts` covers authority, separation of duties, readiness,
+a pending correction that blocks finalization until it is rejected, retries, the unchanged
+grade-version count, the student's Final label, and closed correction routes. All 45 database
+checks passed with `0022` applied. Locally, 89 of 90 integration checks passed; the
+private-proof check again needs the ZK ceremony that CI provides. The browser journey passed
+against a disposable local database.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and
