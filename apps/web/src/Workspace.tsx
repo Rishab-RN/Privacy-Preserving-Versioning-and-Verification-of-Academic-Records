@@ -13,6 +13,7 @@ import { Evidence } from './pages/Evidence.js';
 import { Review } from './pages/Review.js';
 import { Provenance } from './pages/Provenance.js';
 import { CredentialStatus } from './pages/CredentialStatus.js';
+import { PilotDesk } from './pages/pilot/PilotDesk.js';
 const Zk = lazy(() => import('./pages/Zk.js').then((module) => ({ default: module.Zk })));
 export function Workspace({
   session,
@@ -23,7 +24,13 @@ export function Workspace({
   api: Api;
   logout: () => Promise<void>;
 }) {
-  const [page, setPage] = useState<Page>('Overview'),
+  // Pilot staff without a records desk land on their pilot desks.
+  const pilotOnly = session.principal.roles.every(({ role }) =>
+    ['faculty', 'examiner', 'exam_staff', 'exam_approver', 'dean_academics'].includes(role),
+  );
+  const [page, setPage] = useState<Page>(
+      pilotOnly && session.principal.roles.length > 0 ? 'Marks & results' : 'Overview',
+    ),
     [students, setStudents] = useState<StudentSummary[]>([]),
     [student, setStudent] = useState(''),
     [transcript, setTranscript] = useState<TranscriptResponse | null>(null);
@@ -58,6 +65,7 @@ export function Workspace({
   } | null>(null);
   const pages: Page[] = [
     'Overview',
+    'Marks & results',
     'Records',
     ...(canEvidence ? ['Evidence' as const] : []),
     ...(canReview ? ['Review' as const, 'Provenance' as const] : []),
@@ -134,6 +142,12 @@ export function Workspace({
     setPage(destination);
   }
   const screen: Partial<Record<Page, [string, string]>> = {
+    'Marks & results': [
+      'Marks and results',
+      desk === 'student'
+        ? 'Your published course results, with the CIE and SEE breakdown.'
+        : 'Enter, review, validate, publish and correct course results within your duties.',
+    ],
     Records: ['Academic records', 'Compare what was recorded with what took effect.'],
     Evidence: [
       'Supporting evidence',
@@ -354,6 +368,16 @@ export function Workspace({
             </Suspense>
           )}
           {page === 'Credential status' && <CredentialStatus api={api} />}
+          {page === 'Marks & results' && (
+            <PilotDesk
+              api={api}
+              student={hasStudentRole}
+              openRequest={(id) => {
+                remember(id);
+                navigate('Review');
+              }}
+            />
+          )}
           <footer className="workspace-footer">
             <span>Academic Records</span>
             <span>Privacy-Preserving Versioning and Verification of Academic Records</span>

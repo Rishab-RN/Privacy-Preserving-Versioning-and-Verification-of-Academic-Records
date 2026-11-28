@@ -1,0 +1,140 @@
+.pilot-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 22px;
+  border-bottom: 1px solid #e6eadf;
+}
+.pilot-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: #7d8c71;
+  cursor: pointer;
+}
+.pilot-tabs button[aria-selected='true'] {
+  color: #3f5530;
+  border-bottom-color: #6d8f4f;
+  font-weight: 600;
+}
+.pilot-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.pilot-toolbar .field {
+  margin: 0;
+  min-width: 240px;
+}
+.pilot-toolbar .status-row {
+  margin: 0;
+}
+.pilot-grid input {
+  width: 4.6em;
+  padding: 5px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+}
+.pilot-grid input[aria-invalid='true'] {
+  border-color: #c4554a;
+  background: #fbefed;
+}
+.pilot-grid th small {
+  display: block;
+  color: #9aa58e;
+  font-weight: 400;
+}
+.pilot-grid td:first-child,
+.pilot-grid th:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+}
+.pilot-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 18px;
+}
+.pilot-actions textarea {
+  min-width: 280px;
+  flex: 1;
+}
+.pilot-queue {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.pilot-queue li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border: 1px solid #e6eadf;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.pilot-queue li[aria-current='true'] {
+  border-color: #9bb586;
+  background: #f5f8f0;
+}
+.pilot-queue input {
+  min-width: 220px;
+}
+.pilot-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+.pilot-card {
+  border: 1px solid #e6eadf;
+  border-radius: 8px;
+  padding: 20px;
+}
+.pilot-card header {
+  display: grid;
+  gap: 8px;
+}
+.pilot-card header .status-row {
+  margin: 0;
+}
+.pilot-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.pilot-letter {
+  font-size: 40px;
+  font-weight: 700;
+  color: #3f5530;
+  margin: 14px 0 4px;
+}
+.pilot-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pilot-score {
+  display: grid;
+  font-size: 11px;
+  color: #8d9a81;
+}
+.pilot-score strong {
+  font-size: 13px;
+  color: #4d6340;
+}
+.pilot-audit {
+  margin: 0 0 14px;
+  font-size: 12px;
+}

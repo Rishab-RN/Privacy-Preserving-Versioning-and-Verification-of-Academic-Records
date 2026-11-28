@@ -7,5 +7,6 @@ export type Page =
   | 'Review'
   | 'Provenance'
   | 'Private proofs'
-  | 'Credential status';
+  | 'Credential status'
+  | 'Marks & results';
 export type Api = <T>(path: string, body?: unknown, key?: string) => Promise<T>;

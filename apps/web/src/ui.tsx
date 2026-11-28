@@ -10,6 +10,7 @@ export function Icon({ name }: { name: string }) {
       'M5 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M19 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M12 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M7 6h10 M6 8l5 8 M18 8l-5 8',
     'Private proofs': 'M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10z M9 12l2 2 4-5',
     'Credential status': 'M4 5h16v13H4z M8 9h8 M8 12h5 M15 17l2 2 4-5',
+    'Marks & results': 'M4 4h16v16H4z M4 10h16 M10 4v16 M13 14l2 2 3-4',
     search: 'M13 13l6 6 M15 10a5 5 0 1 1-10 0 5 5 0 0 1 10 0z',
     close: 'M6 6l12 12 M18 6L6 18',
     arrow: 'M5 12h14 M13 6l6 6-6 6',
