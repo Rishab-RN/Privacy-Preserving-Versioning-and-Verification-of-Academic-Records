@@ -131,6 +131,7 @@ jobs:
           scope=$(node -p "JSON.parse(require('node:fs').readFileSync('.runtime/workflow-fixture.json','utf8')).institutionId")
           npm run graph -- sync "$scope"
           python apps/anomaly/run.py publish "$scope"
+      - run: npm run pilot:setup
       - run: npx playwright install --with-deps chromium
       - run: npm run test:web
         env:

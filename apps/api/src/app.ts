@@ -15,6 +15,7 @@ import { installPilotRosterRoutes } from './pilot-roster.js';
 import { installAssessmentBatchRoutes } from './assessment-batches.js';
 import { installPublicationRoutes } from './publication.js';
 import { installPvpRoutes } from './pvp.js';
+import { installPilotDeskRoutes } from './pilot-desk.js';
 
 export function createApp(platform?: Platform, graph?: Driver) {
   const app = express();
@@ -132,6 +133,7 @@ export function createApp(platform?: Platform, graph?: Driver) {
     installAssessmentBatchRoutes(api, platform);
     installPublicationRoutes(api, platform);
     installPvpRoutes(api, platform);
+    installPilotDeskRoutes(api, platform);
   }
   app.use('/api/v1', api);
 

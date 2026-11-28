@@ -198,6 +198,8 @@ export interface PilotPublishedResult extends PilotCourseResult {
   versionNo: number;
   publishedVersionNo: number;
   revisedAfterPvp: boolean;
+  /** Components eligible for paper viewing, with current marks (`AB` when absent). */
+  paperViewing: { code: string; marks: string; maximum: string }[];
   /** Whether recomputation reproduces both the published and the current stored grade. */
   matches: boolean;
 }
@@ -225,6 +227,33 @@ export interface PilotStudentResult extends PilotCourseResult {
   publishedAt: string;
   versionNo: number;
   revisedAfterPvp: boolean;
+}
+
+/** What the caller may do on one pilot offering; the API still decides every request. */
+export interface PilotDeskOffering {
+  offeringId: string;
+  courseCode: string;
+  sectionCode: string;
+  termCode: string;
+  departmentCode: string;
+  /** Stages the caller enters marks for: course teachers enter CIE, SEE examiners SEE. */
+  entryStages: PilotBatchStage[];
+  reviews: boolean;
+  validates: boolean;
+  /** An exam approver who took no part in the offering's marks. */
+  publishes: boolean;
+  readsResults: boolean;
+  /** A registrar who may propose paper-viewing corrections. */
+  corrects: boolean;
+  published: boolean;
+}
+
+export interface PilotEntryForm {
+  policy: { id: string; version: number };
+  stage: PilotBatchStage;
+  components: { code: string; group: string; kind: 'theory' | 'lab'; maximum: string }[];
+  /** Whether `AB` may record an absence in this stage. */
+  absenceAllowed: boolean;
 }
 
 /** An expert team's revalued SEE theory marks after the Paper Viewing Process. */

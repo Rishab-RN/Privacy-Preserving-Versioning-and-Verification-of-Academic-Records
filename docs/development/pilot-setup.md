@@ -2,7 +2,8 @@
 
 `npm run pilot:setup` seeds the CD252IA marks-to-results pilot into the local development
 database from `generatePilotData()` (`packages/pilot-data`). Every person, USN and mark is
-synthetic.
+synthetic. To walk through the pilot in the web app, follow the
+[pilot demo](pilot-demo.md). The API calls below show the same steps without the screens.
 
 It creates a separate institution, `ARDC` (Academic Records Demo College), so existing demo
 data is untouched:
@@ -16,7 +17,7 @@ data is untouched:
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
 | Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`), and the S1/S2 validation delegations (migration `0018`)   |
 
-Apply migrations through `0020` first. From the repository root:
+Apply migrations through `0021` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -121,7 +122,7 @@ The rules are in [paper-viewing corrections](../architecture/pvp-corrections.md)
 
 ## Limits
 
-- Final publication and the result screens arrive with the following slices.
+- Final publication arrives with a following slice.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.

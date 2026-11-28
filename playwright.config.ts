@@ -37,5 +37,21 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 30000,
     },
+    // The pilot journey (tests/browser/pilot.spec.ts) uses its own API process so its sign-ins
+    // do not share the per-process login limit with the other journeys.
+    {
+      command: 'node apps/api/dist/server.js',
+      url: 'http://127.0.0.1:4018/health/live',
+      env: { API_HOST: '127.0.0.1', API_PORT: '4018' },
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
+    {
+      command: 'npm run preview --workspace @scholarproof/web -- --port 5178',
+      url: 'http://127.0.0.1:5178',
+      env: { WEB_API_PORT: '4018' },
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
   ],
 });

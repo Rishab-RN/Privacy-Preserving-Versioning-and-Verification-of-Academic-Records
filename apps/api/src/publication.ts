@@ -257,12 +257,20 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
         .catch(batchFailure)
     ).rows[0]!;
     const policy = loadPolicy(row.policy_id, row.policy_version);
+    const reviewable = policy.groups
+      .filter(
+        (group) =>
+          policy.paperViewing.parts.includes(group.part) &&
+          policy.paperViewing.kinds.includes(group.kind),
+      )
+      .flatMap((group) => group.components.filter((component) => !component.optional));
     const results = row.results.map((stored): PilotPublishedResult => {
       const published = calculateResult(policy, calculatorInput(stored.marks, stored.attendance));
-      const current = calculateResult(
-        policy,
-        calculatorInput({ ...stored.marks, ...stored.revisions }, stored.attendance),
+      const currentInput = calculatorInput(
+        { ...stored.marks, ...stored.revisions },
+        stored.attendance,
       );
+      const current = calculateResult(policy, currentInput);
       const currentPoints = points(stored.current.gradePoints);
       return {
         enrolmentId: stored.enrolmentId,
@@ -271,6 +279,13 @@ export function installPublicationRoutes(router: Router, platform: Platform) {
         versionNo: stored.current.versionNo,
         publishedVersionNo: stored.versionNo,
         revisedAfterPvp: stored.current.versionNo !== stored.versionNo,
+        paperViewing: reviewable
+          .filter((component) => currentInput.marks[component.code] !== undefined)
+          .map((component) => ({
+            code: component.code,
+            marks: currentInput.marks[component.code]!,
+            maximum: component.maximum,
+          })),
         ...present(current, currentPoints, stored.current.outcome),
         matches:
           reproduces(published, { ...stored, gradePoints: points(stored.gradePoints) }) &&

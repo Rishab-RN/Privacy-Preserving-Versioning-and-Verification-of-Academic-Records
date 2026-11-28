@@ -208,6 +208,7 @@ try {
       join(projectRoot, 'tests/integration/pilot-setup.test.ts'),
       join(projectRoot, 'tests/integration/assessment-batches.test.ts'),
       join(projectRoot, 'tests/integration/batch-review.test.ts'),
+      join(projectRoot, 'tests/integration/pilot-desk.test.ts'),
       join(projectRoot, 'tests/integration/result-publication.test.ts'),
       join(projectRoot, 'tests/integration/result-pvp-correction.test.ts'),
     ],
