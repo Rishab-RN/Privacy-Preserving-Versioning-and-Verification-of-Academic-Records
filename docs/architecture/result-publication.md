@@ -79,6 +79,7 @@ tables.
 - Publication does not yet emit signed transparency-log events. That needs a new log event
   source and log-reader support.
 - The audit recomputes on read; it is not yet a scheduled job or a log-audit report.
-- Final publication after the paper-viewing window, corrections (T6) and proofs on published
-  versions are later slices.
+- Final publication after the paper-viewing window and proofs on published version 1 grades are
+  later slices. Paper-viewing corrections are described in
+  [paper-viewing corrections](pvp-corrections.md).
 - The student and staff result screens belong to the pilot frontend slice.

@@ -1022,6 +1022,48 @@ the private-proof check again needs the ZK ceremony that CI provides. The qualit
 with 170 tooling/unit checks. The first local run also showed that earlier tests correct AI-A
 marks, so the test now recomputes from the stored revisions instead of the raw dataset.
 
+## 2026-11-28 — T6 paper-viewing corrections
+
+The owner assigned T6 to Claude. Migration `0020` adds `assessment.pvp_mark`, a BCNF,
+append-only relation of revised SEE marks keyed by evidence and component. A registrar submits
+the expert team's revaluation, and the API applies RVCE's paper-viewing rule with
+`resolvePaperViewing`:
+
+- lab examinations are excluded (`PVP_LAB_EXCLUDED`)
+- only SEE marks can change (`PVP_SEE_ONLY`)
+- absent components have nothing to revisit (`PVP_NOT_APPLICABLE`)
+- lower marks are refused (`NO_NEGATIVE_EVALUATION`)
+
+The API recomputes the grade and stores the revaluation as `revaluation_request` evidence. It
+then proposes the change through the existing `workflow.propose_change`, effective over the
+published version's period. A different registrar approves it with the existing route, which
+creates version 2. A trigger on `workflow.change_request` stops the generic correction route
+from changing a published pilot grade without PVP revised marks.
+
+The staff and student result views now show the current version, recomputed from the
+published inputs with approved revisions applied. The audit checks both the published and the
+current version. Because version 2 carries an approved workflow decision, `privacy.eligible_records`
+lists it, so the existing private-proof flow works on the corrected grade without changes. The
+T5 and T6 tests now share the pilot workflow helpers in the integration fixture.
+
+Left for later: exam-approver corrections from the access matrix, question-wise grievances
+linked to PVP registration, proofs on published version 1 grades, final publication, and the
+browser journey. See [paper-viewing corrections](architecture/pvp-corrections.md).
+
+The integration test publishes AI-A, then corrects SYN24AI003 from F to B+ after an expert
+raises `see_part_b` from 20 to 26. It covers:
+
+- Registrar-only authority and every refused revaluation, including a lower mark, a lab
+  component, a CIE component, an absent script, a mark over the maximum and a stale version.
+- The blocked generic route.
+- Idempotent retries, the stored evidence, and the proposer being unable to approve.
+- Version 2 authored by the approver, with the staff and student views and a clean audit.
+- The record becoming proof-eligible only after approval.
+
+All 45 database checks passed with `0020` applied. Locally, 83 of 84 integration checks passed;
+the private-proof check again needs the ZK ceremony that CI provides. The quality gate passed
+with 170 tooling/unit checks.
+
 ## Entry format
 
 For future milestones, record the date, concrete outcome, important decision and

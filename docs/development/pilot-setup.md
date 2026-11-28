@@ -16,7 +16,7 @@ data is untouched:
 | Duties    | Course teacher and SEE examiner duties, HoD and delegate duties, and S1's roster delegation, all matching `PILOT_WORLD` in `packages/access-matrix` |
 | Policy    | Each section's frozen assessment policy, `rvce-2022-itl-s1` version 1 (migration `0017`), and the S1/S2 validation delegations (migration `0018`)   |
 
-Apply migrations through `0019` first. From the repository root:
+Apply migrations through `0020` first. From the repository root:
 
 ```powershell
 npm run db:migrate
@@ -98,9 +98,30 @@ per enrolled student. Then:
 
 The rules and the audit are in [pilot result publication](../architecture/result-publication.md).
 
+## Correct a result after paper viewing
+
+SYN24AI003 fails CD252IA in the provisional results. After paper viewing, the expert team raises
+`see_part_b` from 20 to 26. R1 submits the revaluation:
+
+- Request: `POST /api/v1/pilot/records/<record ID>/pvp`, with an `Idempotency-Key` header.
+- Body: `{"expectedVersion": 1, "revised": {"see_part_b": "26"}, "reason": "…"}`.
+- The record ID is in the publication view.
+
+R2 then approves the returned request with `POST /api/v1/change-requests/<request ID>/approve`.
+The result becomes version 2 with grade B+ and is marked `revisedAfterPvp`. The student can then
+request a private proof for it.
+
+Refused requests:
+
+- A lab component returns 422 `PVP_LAB_EXCLUDED`.
+- A lower mark returns 422 `NO_NEGATIVE_EVALUATION`.
+- R1 cannot approve their own request.
+
+The rules are in [paper-viewing corrections](../architecture/pvp-corrections.md).
+
 ## Limits
 
-- Corrections, final publication and the result screens arrive with the following slices.
+- Final publication and the result screens arrive with the following slices.
 - Delegation windows use the fixture dates. S1's roster delegation is valid until 2027-02-01.
 - The script runs against the configured development database with the administrative `.env`
   credentials. It is not a production provisioning tool.
